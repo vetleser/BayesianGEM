@@ -163,7 +163,7 @@ class SMCABC:
         return particles_t, simulated_data_t, distances_t
     
     def update_population(self,particles_t, simulated_data_t, distances_t):
-        print ('updating population')
+        logging.info('Updating population')
         # save first generation
         if len(self.population) == 0:
             self.population_t0 = particles_t
@@ -185,7 +185,7 @@ class SMCABC:
         
         
     def update_posterior(self):
-        print ('Updating prior')
+        logging.info('Updating prior')
         parameters = dict()   # {'Protein_Tm':[]}
         for particle in self.population:
             for p,val in particle.items(): 
