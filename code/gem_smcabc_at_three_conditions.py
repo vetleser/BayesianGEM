@@ -10,6 +10,12 @@ import GEMS
 import os
 import pandas as pd
 import pickle
+import logging
+
+# In[]
+
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s') 
+
 
 
 # In[2]:
@@ -58,7 +64,7 @@ for ind in params.index:
 
 min_epsilon = -1 # equivalent to r2 score of 1
 population_size = 100
-outfile = '../results/smcabc_gem_three_conditions_save_all_particles.pkl'
+outfile = '../smcabc_gem_three_conditions_save_all_particles.pkl'
 
 
 # In[ ]:
@@ -73,7 +79,9 @@ if not os.path.exists(outfile):
                         GEMS.distance_2,
                         Yobs,
                         outfile,
-                        generation_size=128)
+                        generation_size=1,
+                        maxiter = 1
+                        )
 else: model = pickle.load(open(outfile,'rb'))
 
 
@@ -82,6 +90,6 @@ else: model = pickle.load(open(outfile,'rb'))
 # In[ ]:
 
 
-print('start simulations')
+logging.info('start simulations')
 model.run_simulation()
 

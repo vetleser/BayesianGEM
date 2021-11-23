@@ -12,6 +12,7 @@ from multiprocessing import Process,cpu_count,Manager
 from decimal import Decimal
 import pickle
 import os
+import logging
 
 
 # In[2]:
@@ -56,7 +57,7 @@ class RV:
 
 class SMCABC:
     def __init__(self,simulator,priors,min_epsilon,population_size,distance_function,
-                 Yobs,outfile,cores=cpu_count(),generation_size=128):
+                 Yobs,outfile,cores=cpu_count(),generation_size=128, maxiter = 100000):
         '''
         simulator:       a function that takes a dictionary of parameters as input. Ouput {'data':Ysim}
         priors:          a dictionary which use id of parameters as keys and RV class object as values
@@ -67,6 +68,7 @@ class SMCABC:
         outfile:         unique id for the experiment. This will be also used to continue a simulation that 
                          is partly done
         cores:           number of treads
+        maxiter:         Maximum number of iterations before breaking the fiting
         
         !!!Important: distance is to be minimized!!!
         '''
@@ -91,6 +93,7 @@ class SMCABC:
         self.all_simulated_data = []  # store all simulated data
         self.all_particles = []       # store all simulated particles
         self.all_distances = []       # store all simulated distances
+        self.maxiter = maxiter
         
     
     def simulate_one(self,particle,index,Q):
@@ -178,7 +181,7 @@ class SMCABC:
         self.simulated_data = list(combined_simulated[sort_index][:self.population_size])
         self.epsilons.append(np.max(self.distances))
         
-        print('Model: epsilon=',str(self.epsilons[-1]))
+        logging.info(f"Model epsilon: {str(self.epsilons[-1])}")
         
         
     def update_posterior(self):
@@ -195,9 +198,14 @@ class SMCABC:
         
     
     def run_simulation(self):
-        while self.epsilons[-1] > self.min_epsilon:
+        for _ in range(self.maxiter):
+            if self.epsilons[-1] <= self.min_epsilon:
+                logging.info("Bayesian fitting procedure ended successfully")
+                break
             particles_t, simulated_data_t, distances_t = self.simulate_a_generation()
             self.update_population(particles_t, simulated_data_t, distances_t)
             self.update_posterior()
             pickle.dump(self,open(self.outfile,'wb'))
-
+            #logging.info(f"epsilon: {self.epsilons[-1]}")
+        else:
+            logging.warning("Maximum number of iterations reached")
