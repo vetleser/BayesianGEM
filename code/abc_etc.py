@@ -57,7 +57,7 @@ class RV:
 
 class SMCABC:
     def __init__(self,simulator,priors,min_epsilon,population_size,distance_function,
-                 Yobs,outfile,cores=cpu_count(),generation_size=128, maxiter = 100000):
+                 Yobs,outfile,cores=cpu_count(),generation_size=128, maxiter=100000):
         '''
         simulator:       a function that takes a dictionary of parameters as input. Ouput {'data':Ysim}
         priors:          a dictionary which use id of parameters as keys and RV class object as values
@@ -68,7 +68,7 @@ class SMCABC:
         outfile:         unique id for the experiment. This will be also used to continue a simulation that 
                          is partly done
         cores:           number of treads
-        maxiter:         Maximum number of iterations before breaking the fiting
+        maxiter:         Maximum number of iterations before breaking the fitting
         
         !!!Important: distance is to be minimized!!!
         '''

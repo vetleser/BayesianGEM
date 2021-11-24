@@ -80,7 +80,7 @@ if not os.path.exists(outfile):
                         Yobs,
                         outfile,
                         generation_size=128,
-                        maxiter = 100000
+                        maxiter=100000
                         )
 else: model = pickle.load(open(outfile,'rb'))
 
