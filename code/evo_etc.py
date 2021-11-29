@@ -6,198 +6,173 @@
 # In[1]:
 
 
+import logging
+from math import sqrt
+from typing import Callable, Dict
+from inspyred.ec import replacers, variators
 import numpy as np
+import numpy.typing as npt
+from numpy.random.mtrand import seed
+import scipy
 import scipy.stats as ss
+from scipy.stats import poisson
 from multiprocessing import Process,cpu_count,Manager
 from decimal import Decimal
+from random_sampler import RV
+import inspyred
 import pickle
+import inspyred.ec
+import inspyred.ec.variators as variators
+import inspyred.ec.evaluators as evaluators
+import inspyred.ec.selectors as selectors
 import os
+import GEMS
+import random as rand
+simResultType = Dict[str, Dict[str, npt.NDArray[np.float64]]]
+individualType = Dict[str, RV]
+candidateType = Dict[str, float]
+distanceArgType = Dict[str, npt.NDArray[np.float64]]
 
 
 # In[2]:
 
-
-class RV:
-    def __init__(self, dist_name,loc,scale):
-        '''
-        dist_name: 'norm' or 'uniform'
-        loc, scale: the same as used in scipy.stats
-        '''
-        
-        self.dist_name = dist_name
-        self.loc = loc
-        self.scale = scale
-        
-        if self.dist_name == 'uniform': 
-            self.rvf = np.random.uniform
-            self.rvf_scale = self.loc + self.scale
-            self.pdf = ss.uniform.pdf
-        
-            
-        if self.dist_name == 'normal':
-            self.rvf = np.random.normal
-            self.rvf_scale = self.scale
-            self.pdf = ss.norm.pdf
-        
-    def rvfv(self):
-        '''
-        Generate a random sample from the given prior distribution
-        '''
-        return self.rvf(self.loc,self.rvf_scale)
-    
-    def pdfv(self,x):
-        '''
-        Get the pdf value for a give value x
-        '''
-        return self.pdf(x,self.loc,self.scale)
+random_seed = 12168
 
 
-# In[ ]:
-
-class SMCABC:
-    def __init__(self,simulator,priors,min_epsilon,population_size,distance_function,
-                 Yobs,outfile,cores=cpu_count(),generation_size=128):
+class GA:
+    def __init__(self,simulator: Callable[[candidateType], simResultType], priors : individualType, min_epsilon: float,
+    distance_function: Callable[[distanceArgType, distanceArgType], float],
+                 Yobs: distanceArgType, outfile: str,cores: int = cpu_count(),generation_size: int =128, mutation_frequency: float = 1.,
+                  selection_proportion: float = 0.5, maxiter: int = 100000):
         '''
         simulator:       a function that takes a dictionary of parameters as input. Ouput {'data':Ysim}
         priors:          a dictionary which use id of parameters as keys and RV class object as values
         min_epsilon:     minimal epsilon
-        population_size: the size of each population
+        generation_size: the size of each population
         distance_function: a function that calculate the distance between observed data and simulated data
         Yobs:            observed data
         outfile:         unique id for the experiment. This will be also used to continue a simulation that 
                          is partly done
         cores:           number of treads
+        mutation_frequency: The poisson lambda parameter to specify the number of mutations for each differentiation
+        selection_proportion: The proportion of the population in each generation used to produce offspring
+        maxiter: The maximum number of generations to simulate
+
         
         !!!Important: distance is to be minimized!!!
         '''
         self.simulator = simulator
         self.priors = priors
-        self.posterior = priors                   # to be updated
-        self.population_size = population_size
         self.distance_function = distance_function
         self.min_epsilon = min_epsilon
         self.Yobs = Yobs
         self.outfile = outfile
         self.population = []  # a list of populations [p1,p2...]
-        self.distances = []    # a list of distances for particles in population
-        self.simulations = 0  # number of simulations performed 
         self.cores = cores    
-        self.simulated_data_t0 = [] # first population
-        self.population_t0 = []
-        self.distances_t0 = []
-        self.simulated_data = []  # last population
         self.epsilons = [np.inf]          # min distance in each generation
         self.generation_size = generation_size   # number of particles to be simulated at each generation
-        self.all_simulated_data = []  # store all simulated data
-        self.all_particles = []       # store all simulated particles
-        self.all_distances = []       # store all simulated distances
-        
-    
-    def simulate_one(self,particle,index,Q):
-        '''
-        particle:  parameters 
-        Q:      a multiprocessing.Queue object
-        index:  the index in particles list
-        '''
-        res = self.simulator(particle)
-        # ysim = {simulated}
-
-        Q.put((index,res))
-    
-    def calculate_distances_parallel(self,particles):
-        Q = Manager().Queue()
-        jobs = [Process(target=self.simulate_one,args=(particle,index,Q)) 
-                               for index,particle in enumerate(particles)]
-        
-        for p in jobs: p.start()
-        for p in jobs: p.join()
-        
-        distances = [None for _ in range(len(particles))]
-        simulated_data = [None for _ in range(len(particles))]
-
-        for index,res in [Q.get(timeout=1) for p in jobs]: 
-            distances[index] = self.distance_function(self.Yobs,res)
-            simulated_data[index] = res
-        
-        # save all simulated results
-        self.all_simulated_data.extend(simulated_data)
-        self.all_distances.extend(distances)
-        self.all_particles.extend(particles)
-        
-        return distances,simulated_data
+        self.mutation_frequency = mutation_frequency
+        self.selection_proportion = selection_proportion
+        self.maxiter = maxiter
 
     
-    def check_t0_particles(self,particles):
-        # check Topt < Tm, if false, resample from prior
-        for particle in particles:
-            for idp in particle.keys():
-                if 'Tm' not in idp: continue
-                id_topt = idp.split('_')[0]+'_Topt'
-                if particle[idp]>particle[id_topt]: continue
-                count = 0 # maximal resample times
-                while count<10:
-                    tm = self.posterior[idp].rvfv()
-                    topt = self.posterior[id_topt].rvfv()
-                    if tm>topt:
-                        particle[idp] = tm
-                        particle[id_topt]= topt
+        def archiver(random, population, archive, args):
+            self.population.append(population)
+            max_generation_epsilon = max(p.fitness for p in population)
+            self.epsilons.append(max_generation_epsilon)
+            logging.info(f"Model epsilon {max_generation_epsilon}")
+            pickle.dump(self,self.outfile, 'wb')
+
+
+        def terminator(population, num_generations, num_evaluations, args) -> bool:
+            return self.epsilons[-1] <= self.min_epsilon or num_generations > self.maxiter
+
+        def evaluator(candidate: individualType, args: dict) -> float:
+            res = self.simulator(args = {key: value.loc for key, value in candidate.items()})
+            distance = self.distance_function(Yobs, res)
+            return distance
+
+
+        def generator(random, args):
+            def correct_validity(seed: individualType):
+                seed = self.priors
+                # check Topt < Tm, if false, resample from prior
+                protein_ids = set(entry.split('_')[0] for entry in seed)
+                for id in protein_ids:
+                    Tm_key = id + "_Tm"
+                    Topt_key = id + "_Topt"
+                    for _ in range(10):
+                        # We try to get things right 10 times before we give up
+                        Tm = seed[Tm_key]
+                        Topt = seed[Topt_key]
+                        if Tm < Topt:
+                            seed[Tm_key] = Tm.mutate()
+                            seed[Topt_key] = Topt.mutate()
+                        else:
+                            break
+            return correct_validity(self.priors)
+        
+
+        @variators.mutator
+        def mutate(random: int, candidate: individualType, args: dict):
+            def correct_validity(entry):
+                # As we only change one parameter at a time, we only need to check
+                # the validity of the parameters of one enzyme
+                protein_id = entry.split('_')[0]
+                Tm_key = protein_id + "_Tm"
+                Topt_key = protein_id + "_Topt"
+                for _ in range(10):
+                    # We try to get things right 10 times before we give up
+                    Tm = candidate[Tm_key]
+                    Topt = candidate[Topt_key]
+                    if Tm < Topt:
+                        candidate[Tm_key] = Tm.mutate()
+                        candidate[Topt_key] = Topt.mutate()
+                    else:
                         break
-                    count += 1
-        return particles
-    
-    def simulate_a_generation(self):
-        particles_t, simulated_data_t, distances_t = [], [], []
-        while len(particles_t) < self.generation_size:
-            self.simulations += self.cores
-            particles = [{idp: rv.rvfv() for idp,rv in self.posterior.items()} for i in range(self.cores)]
-            particles = self.check_t0_particles(particles)
-            distances,simulated_data = self.calculate_distances_parallel(particles)
-            
-            particles_t.extend(particles)
-            simulated_data_t.extend(simulated_data)
-            distances_t.extend(distances)
-        
-        return particles_t, simulated_data_t, distances_t
-    
-    def update_population(self,particles_t, simulated_data_t, distances_t):
-        print ('updating population')
-        # save first generation
-        if len(self.population) == 0:
-            self.population_t0 = particles_t
-            self.distances_t0 = distances_t
-            self.simulated_data_t0 = simulated_data_t
-        
-        
-        combined_particles = np.array(self.population + particles_t)
-        combined_distances = np.array(self.distances + distances_t)
-        combined_simulated = np.array(self.simulated_data + simulated_data_t)
-        
-        sort_index = np.argsort(combined_distances)
-        self.population = list(combined_particles[sort_index][:self.population_size])
-        self.distances = list(combined_distances[sort_index][:self.population_size])
-        self.simulated_data = list(combined_simulated[sort_index][:self.population_size])
-        self.epsilons.append(np.max(self.distances))
-        
-        print('Model: epsilon=',str(self.epsilons[-1]))
-        
-        
-    def update_posterior(self):
-        print ('Updating prior')
-        parameters = dict()   # {'Protein_Tm':[]}
-        for particle in self.population:
-            for p,val in particle.items(): 
-                lst = parameters.get(p,[])
-                lst.append(val)
-                parameters[p] =lst
-        
-        for p, lst in parameters.items():
-            self.posterior[p] = RV('normal', loc = np.mean(lst), scale = np.std(lst))
-        
+
+            n_mutations = poisson.rvs(mu=self.mutation_frequency)
+            entries: list[str] = list(candidate.keys())
+            for _ in range(n_mutations):
+                entry = rand.choice(entries)
+                candidate[entry] = candidate[entry].mutate()
+                correct_validity(entry)
+
+
+        @variators.crossover
+        def cross(random: int, mom: individualType, dad: individualType, args: dict):
+            def merge_distributions(mom: RV, dad: RV):
+                if mom.dist_name != dad.dist_name:
+                    raise ValueError("Attemt to merge distributions of different types")
+                dist_name = mom.dist_name
+                # For normally distributed variables, the take the average of the variances
+                scale = sqrt((mom.scale**2 + dad.scale**2) / 2) if dist_name == 'normal' else (mom.scale + dad.scale) / 2
+                loc = (mom.loc + dad.loc) / 2
+                return RV(dist_name, loc, scale)
+                
+
+            common_keys = set(mom.keys())
+            common_keys.update(dad.keys())
+            return {key: merge_distributions(mom[key], dad[key]) for key in common_keys}
+
+
+        self.archiver = archiver
+        self.terminator = terminator
+        self.evaluator = evaluator
+        self.generator = generator
+        self.mutator = mutate
+        self.crossover = cross
+
+
     
     def run_simulation(self):
-        while self.epsilons[-1] > self.min_epsilon:
-            particles_t, simulated_data_t, distances_t = self.simulate_a_generation()
-            self.update_population(particles_t, simulated_data_t, distances_t)
-            self.update_posterior()
-            pickle.dump(self,open(self.outfile,'wb'))
+        algorithm = inspyred.ec.EvolutionaryComputation(random_seed)
+        algorithm.terminator = self.terminator
+        algorithm.archiver = self.archiver
+        algorithm.variator = [self.crossover, self.mutator]
+        algorithm.selector = selectors.tournament_selection
+        algorithm.replacer = replacers.truncation_replacement
 
+
+        kwargsdict = {'mp_evaluator' : self.evaluator, 'mp_nprocs': self.cores, 'num_selected': int(self.generation_size * self.selection_proportion)}
+        algorithm.evolve(generator=self.generator, evaluator=evaluators.parallel_evaluation_mp, maximize=False, pop_size=self.generation_size, args = kwargsdict)
