@@ -118,7 +118,8 @@ class SMCABC:
         distances = [None for _ in range(len(particles))]
         simulated_data = [None for _ in range(len(particles))]
 
-        for index,res in [Q.get(timeout=1) for p in jobs]: 
+        while not Q.empty():
+            index,res = Q.get(timeout=1)
             distances[index] = self.distance_function(self.Yobs,res)
             simulated_data[index] = res
         
