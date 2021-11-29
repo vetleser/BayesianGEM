@@ -123,6 +123,16 @@ class SMCABC:
             distances[index] = self.distance_function(self.Yobs,res)
             simulated_data[index] = res
         
+        # Q may not always contain the result of all jobs we passed to it,
+        # this must be handled carefully
+        missing_indicies = [i for i, val in enumerate(distances) if val is None]
+        # We solve the problem by removing elements corresponding to missing
+        # values
+        for i in missing_indicies:
+            del simulated_data[i]
+            del particles[i]
+            del distances[i]
+            
         # save all simulated results
         self.all_simulated_data.extend(simulated_data)
         self.all_distances.extend(distances)
