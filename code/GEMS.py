@@ -150,7 +150,6 @@ def anaerobic_reduced(thermalParams):
     man = pickle.load(open(os.path.join(path,'models/anaerobic.pkl'),'rb'))
     sel_temp = [5.0,15.0,26.3,30.0,33.0,35.0,37.5,40.0]
     ran = etc.simulate_growth(man,np.array(sel_temp)+273.15,df=df,sigma=0.5)
-    ran = np.zeros(len(sel_temp))
     ran = [0 if x is None else x for x in ran]
     rexp = dfan_batch.loc[sel_temp,'r_an'].values
     #anaerobic_exp_data()['data']
