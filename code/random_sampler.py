@@ -2,7 +2,7 @@ import numpy as np
 import scipy.stats as ss
 
 class RV:
-    def __init__(self, dist_name: str,loc: float, scale: float):
+    def __init__(self, dist_name: str,loc: float, scale: float, rng: np.random.RandomState = None):
         '''
         dist_name: 'norm' or 'uniform'
         loc, scale: the same as used in scipy.stats
@@ -11,15 +11,21 @@ class RV:
         self.dist_name = dist_name
         self.loc = loc
         self.scale = scale
-        
+        self.rng = rng
+
+        if rng is not None:
+            random_source = rng
+        else:
+            random_source = np.random
+
         if self.dist_name == 'uniform': 
-            self.rvf = np.random.uniform
+            self.rvf = random_source.uniform
             self.rvf_scale = self.loc + self.scale
             self.pdf = ss.uniform.pdf
         
             
         if self.dist_name == 'normal':
-            self.rvf = np.random.normal
+            self.rvf = random_source.normal
             self.rvf_scale = self.scale
             self.pdf = ss.norm.pdf
 
@@ -44,5 +50,8 @@ class RV:
         '''
         Generate a random sample from the given prior distribution and use it as a the location for a new RV object
         '''
-        return RV(dist_name=self.dist_name, loc=self.rvfv(), scale=self.scale)
+        return RV(dist_name=self.dist_name, loc=self.rvfv(), scale=self.scale, rng=self.rng)
+    
+    def set_rng(self, rng: np.random.RandomState):
+        self.rvf = rng.uniform if self.dist_name == "uniform" else rng.normal
 

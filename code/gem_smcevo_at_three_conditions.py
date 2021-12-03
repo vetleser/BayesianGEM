@@ -4,6 +4,7 @@
 # In[1]:
 
 
+import dill
 import evo_etc as evo
 import numpy as np
 import GEMS
@@ -55,9 +56,9 @@ for ind in params.index:
 
 # In[ ]:
 
-
+rng = evo.default_rng(39322)
 min_epsilon = -1 # equivalent to r2 score of 1
-population_size = 100
+population_size = 2
 outfile = '../results/smcevo_gem_three_conditions_save_all_particles.pkl'
 
 
@@ -66,16 +67,16 @@ outfile = '../results/smcevo_gem_three_conditions_save_all_particles.pkl'
 
 if not os.path.exists(outfile):
     print('Initialize model')
-    model = evo.GA(GEMS.simulate_at_three_conditions_2,
-                        priors,
-                        min_epsilon,
-                        population_size,
-                        GEMS.distance_2,
-                        Yobs,
-                        outfile,
-                        generation_size=10,
-                        maxiter=1)
-else: model = pickle.load(open(outfile,'rb'))
+    model = evo.GA(simulator= GEMS.simulate_at_three_conditions_2,
+                        priors=priors,
+                        min_epsilon=min_epsilon,
+                        generation_size=population_size,
+                        distance_function=GEMS.distance_2,
+                        Yobs=Yobs,
+                        outfile=outfile,
+                        maxiter=1,
+                        rng=rng)
+else: model = dill.load(open(outfile,'rb'))
 
 
 # #### Run simulation
