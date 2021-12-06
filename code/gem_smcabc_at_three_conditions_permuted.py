@@ -11,7 +11,6 @@ import os
 import pandas as pd
 import pickle
 import permute_parameters
-import datetime
 import logging
 
 
@@ -62,7 +61,7 @@ for ind in params.index:
 # In[ ]:
 
 
-min_epsilon = -1 # equivalent to r2 score of 1
+min_epsilon = -.9 # equivalent to r2 score of 1
 population_size = 100
 outfiles = [f'../results/smcabc_gem_three_conditions_permuted_{i}_save_all_particles.pkl' for i in range(n_permutations)]
 
@@ -72,7 +71,7 @@ outfiles = [f'../results/smcabc_gem_three_conditions_permuted_{i}_save_all_parti
 models = []
 for outfile in outfiles:
     if not os.path.exists(outfile):
-        print('Initialize model')
+        logging.info('Initialize model')
         model = abc.SMCABC(GEMS.simulate_at_three_conditions_2,
                             priors,
                             min_epsilon,
@@ -80,7 +79,8 @@ for outfile in outfiles:
                             GEMS.distance_2,
                             Yobs,
                             outfile,
-                            generation_size=128)
+                            generation_size=128,
+                            maxiter=100)
     else: model = pickle.load(open(outfile,'rb'))
     models.append(model)
 
@@ -93,4 +93,4 @@ for i, model in enumerate(models):
     logging.info(f'Start simulations with prior parameter set {i}')
     model.run_simulation()
 
-print(f'DONE')
+logging.info(f'DONE')
