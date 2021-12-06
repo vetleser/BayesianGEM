@@ -65,7 +65,7 @@ for i in range(n_permutations):
 
 min_epsilon = -.9 # equivalent to r2 score of 1
 population_size = 100
-outfiles = [f'../data/smcabc_gem_three_conditions_permuted_{i}_save_all_particles.pkl' for i in range(n_permutations)]
+outfiles = [f'../results/smcabc_gem_three_conditions_permuted_{i}_save_all_particles.pkl' for i in range(n_permutations)]
 
 
 # In[ ]:
