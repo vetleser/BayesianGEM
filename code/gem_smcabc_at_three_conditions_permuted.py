@@ -12,6 +12,7 @@ import pandas as pd
 import pickle
 import permute_parameters
 import datetime
+import logging
 
 
 # In[2]:
@@ -89,7 +90,7 @@ for outfile in outfiles:
 # In[ ]:
 
 for i, model in enumerate(models):
-    print(f'{datetime.datetime.now()} => Start simulations with prior parameter set {i}')
+    logging.info(f'Start simulations with prior parameter set {i}')
     model.run_simulation()
 
-print(f'{datetime.datetime.now()} => DONE')
+print(f'DONE')

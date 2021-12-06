@@ -2,4 +2,6 @@ figures/*.pdf
 results/*
 code/__pycache__
 code/etcpy/__pycache__
+*.log
+results.tar.gz
 
