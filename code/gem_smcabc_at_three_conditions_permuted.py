@@ -13,7 +13,9 @@ import pickle
 import permute_parameters
 import logging
 
+# In[]
 
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s') 
 # In[2]:
 
 
