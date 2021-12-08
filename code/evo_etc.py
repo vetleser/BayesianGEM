@@ -9,7 +9,7 @@
 from copy import deepcopy
 import logging
 from math import sqrt
-from typing import Callable, Dict, List
+from typing import Callable, Dict, Iterable, List
 import dill
 from inspyred.ec import replacers, variators
 from inspyred.ec.variators import mutators
@@ -64,7 +64,7 @@ class GA:
     def __init__(self,simulator: Callable[[candidateType], simResultType], priors : individualType, min_epsilon: float,
     distance_function: Callable[[distanceArgType, distanceArgType], float],
                  Yobs: distanceArgType, outfile: str,cores: int = cpu_count(),generation_size: int = 128, mutation_frequency: float = 1.,
-                  selection_proportion: float = 0.5, maxiter: int = 100000, rng: EvolutionGenerator = None):
+                  selection_proportion: float = 0.5, maxiter: int = 100000, rng: EvolutionGenerator = None, n_children : int = 2):
         '''
         simulator:       a function that takes a dictionary of parameters as input. Ouput {'data':Ysim}
         priors:          a dictionary which use id of parameters as keys and RV class object as values
@@ -78,6 +78,7 @@ class GA:
         mutation_frequency: The poisson lambda parameter to specify the number of mutations for each differentiation
         selection_proportion: The proportion of the population in each generation used to produce offspring
         maxiter: The maximum number of generations to simulate
+        n_children: The number of children to produce for each crossing
 
         
         !!!Important: distance is to be minimized!!!
@@ -106,6 +107,7 @@ class GA:
         self.all_simulated_data = []
         self.all_distances = []
         self.generations = 0
+        self.n_children = n_children
 
     
         def archiver(random, population, archive, args):
@@ -200,8 +202,8 @@ class GA:
                 return mutate(random = random, candidate=self.priors, args=args)
 
         # @variators.mutator
-        def mutate(random: np.random.Generator, candidate: individualType, args: dict):
-            def correct_validity(entry):
+        def mutate(random: np.random.Generator, candidate: individualType, args: dict) -> individualType:
+            def correct_validity(entry: str) -> None:
                 # As we only change one parameter at a time, we only need to check
                 # the validity of the parameters of one enzyme
                 protein_id = entry.split('_')[0]
@@ -227,7 +229,7 @@ class GA:
 
 
         @variators.crossover
-        def cross(random: np.random.Generator, mom: individualType, dad: individualType, args: dict):
+        def cross(random: np.random.Generator, mom: individualType, dad: individualType, args: dict) -> Iterable[individualType]:
             def merge_distributions(mom: RV, dad: RV):
                 if mom.dist_name != dad.dist_name:
                     raise ValueError("Attemt to merge distributions of different types")
@@ -235,12 +237,12 @@ class GA:
                 # For normally distributed variables, the take the average of the variances
                 scale = sqrt((mom.scale**2 + dad.scale**2) / 2) if dist_name == 'normal' else (mom.scale + dad.scale) / 2
                 loc = (mom.loc + dad.loc) / 2
-                return RV(dist_name, loc, scale, rng=self.rng)
+                return RV(dist_name, loc, scale, rng=random)
                 
 
             common_keys = set(mom.keys())
             common_keys.update(dad.keys())
-            return {key: merge_distributions(mom[key], dad[key]) for key in common_keys}
+            return ({key: merge_distributions(mom[key], dad[key]) for key in common_keys} for _ in range(self.n_children))
 
 
         self.archiver = archiver
