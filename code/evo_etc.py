@@ -47,11 +47,18 @@ distanceArgType = Dict[str, npt.NDArray[np.float64]]
 # For this to work, we must alias random.Random.sample
 # using np.random.Generator.choice
 class EvolutionGenerator(np.random.Generator):
+
     def __init__(self, bit_generator: np.random.BitGenerator) -> None:
         super().__init__(bit_generator)
     
     def sample(self, population, k, *, counts=None):
         return self.choice(a=population, size=k)
+
+    @classmethod
+    def from_numpy_generator(cls, generator: np.random.Generator):
+        return cls(generator.bit_generator)
+
+
 
 def default_rng(seed=None):
     return EvolutionGenerator(np.random.PCG64(seed))
@@ -87,7 +94,7 @@ class GA:
         self.priors = priors
         if rng is None:
             default_seed = 1952
-            self.rng = np.random.default_rng(default_seed)
+            self.rng = default_rng(default_seed)
         else:
             self.rng = rng
         # Ensures random state is respected
@@ -97,7 +104,7 @@ class GA:
         self.min_epsilon = min_epsilon
         self.Yobs = Yobs
         self.outfile = outfile
-        self.population = []  # a list of populations [p1,p2...]
+        self.population: List[inspyred.ec.Individual] = []  # a list of populations [p1,p2...]
         self.cores = cores    
         self.epsilons = [np.inf]          # min distance in each generation
         self.generation_size = generation_size   # number of particles to be simulated at each generation
@@ -181,7 +188,7 @@ class GA:
                 return all_distances
 
 
-        def generator(random: np.random.Generator, args):
+        def generator(random: EvolutionGenerator, args):
             # def correct_validity(seed: individualType):
             #     seed = deepcopy(self.priors)
             #     # check Topt < Tm, if false, resample from prior
@@ -202,7 +209,7 @@ class GA:
                 return mutate(random = random, candidate=self.priors, args=args)
 
         # @variators.mutator
-        def mutate(random: np.random.Generator, candidate: individualType, args: dict) -> individualType:
+        def mutate(random: EvolutionGenerator, candidate: individualType, args: dict) -> individualType:
             def correct_validity(entry: str) -> None:
                 # As we only change one parameter at a time, we only need to check
                 # the validity of the parameters of one enzyme
@@ -229,7 +236,7 @@ class GA:
 
 
         @variators.crossover
-        def cross(random: np.random.Generator, mom: individualType, dad: individualType, args: dict) -> Iterable[individualType]:
+        def cross(random: EvolutionGenerator, mom: individualType, dad: individualType, args: dict) -> Iterable[individualType]:
             def merge_distributions(mom: RV, dad: RV):
                 if mom.dist_name != dad.dist_name:
                     raise ValueError("Attemt to merge distributions of different types")
@@ -261,9 +268,11 @@ class GA:
         algorithm.variator = [self.crossover, self.mutator]
         algorithm.selector = selectors.tournament_selection
         algorithm.replacer = replacers.truncation_replacement
+        # Restore rng. This is a workaround due to https://github.com/uqfoundation/dill/issues/442
+        self.rng = EvolutionGenerator.from_numpy_generator(self.rng)
         if self.generations > 0:
             # Restore computations from stored results
-            seeds = self.population
+            seeds : List[individualType] = [individual.candidate for individual  in self.population[-1]]
         else:
             seeds = None
 

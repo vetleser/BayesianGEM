@@ -81,7 +81,8 @@ if not os.path.exists(outfile):
                         maxiter=100,
                         rng=rng,
                         mutation_frequency=1)
-else: model = dill.load(open(outfile,'rb'))
+else: 
+    model = dill.load(open(outfile,'rb'))
 
 
 # #### Run simulation
