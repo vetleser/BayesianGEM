@@ -147,12 +147,12 @@ class GA:
             logger = args['_ec'].logger
             
             try:
-                evaluator = args['mp_evaluator']
+                evaluator: Callable[[individualType,dict], float] = args['mp_evaluator']
             except KeyError:
                 logger.error('parallel_evaluation_mp requires \'mp_evaluator\' be defined in the keyword arguments list')
                 raise
             try:
-                nprocs = args['mp_nprocs']
+                nprocs: int = args['mp_nprocs']
             except KeyError:
                 nprocs = pathos.multiprocessing.cpu_count()
                 
@@ -168,10 +168,8 @@ class GA:
             start = time.time()
             try:
                 pool = pathos.multiprocessing.Pool(processes=nprocs)
-                results = [pool.apply_async(evaluator, (c, pickled_args)) for c in candidates]
-                pool.close()
-                pool.join()
-                result_list = [r.get() for r in results]
+                results = pool.map(lambda c: evaluator(c, pickled_args), candidates)
+                result_list = list(results)
             except (OSError, RuntimeError) as e:
                 logger.error('failed parallel_evaluation_mp: {0}'.format(str(e)))
                 raise
