@@ -167,7 +167,7 @@ class GA:
 
             start = time.time()
             try:
-                pool = pathos.multiprocessing.Pool(processes=nprocs)
+                pool = pathos.multiprocessing.Pool(processes=nprocs,context="spawn")
                 results = pool.map(lambda c: evaluator(c, pickled_args), candidates)
                 result_list = list(results)
             except (OSError, RuntimeError) as e:
