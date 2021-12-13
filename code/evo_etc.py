@@ -13,6 +13,7 @@ from typing import Callable, Dict, Iterable, List
 import dill
 from inspyred.ec import replacers, variators
 from inspyred.ec.variators import mutators
+import multiprocess
 import numpy as np
 import numpy.typing as npt
 from numpy.random.mtrand import seed
@@ -167,7 +168,9 @@ class GA:
 
             start = time.time()
             try:
-                pool = pathos.multiprocessing.Pool(processes=nprocs,context="spawn")
+                multiprocessing.get_context
+                pool = pathos.multiprocessing.Pool(processes=nprocs,
+                context=multiprocess.context.SpawnContext())
                 results = pool.map(lambda c: evaluator(c, pickled_args), candidates)
                 result_list = list(results)
             except (OSError, RuntimeError) as e:

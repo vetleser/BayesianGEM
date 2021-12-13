@@ -20,76 +20,80 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 # In[2]:
 
 
-Yobs_batch = GEMS.aerobic_exp_data()
-Yobs_chemo = GEMS.chemostat_exp_data()
-#Yobs_batch_an = GEMS.anaerobic_exp_data()
-dfae_batch,dfan_batch =GEMS.load_exp_batch_data('../data/ExpGrowth.tsv')
-sel_temp = [5.0,15.0,26.3,30.0,33.0,35.0,37.5,40.0]
-Yobs_batch_an = {'data':dfan_batch.loc[sel_temp,'r_an'].values}
+def main():
+    Yobs_batch = GEMS.aerobic_exp_data()
+    Yobs_chemo = GEMS.chemostat_exp_data()
+    #Yobs_batch_an = GEMS.anaerobic_exp_data()
+    dfae_batch,dfan_batch =GEMS.load_exp_batch_data('../data/ExpGrowth.tsv')
+    sel_temp = [5.0,15.0,26.3,30.0,33.0,35.0,37.5,40.0]
+    Yobs_batch_an = {'data':dfan_batch.loc[sel_temp,'r_an'].values}
 
 
-# In[5]:
+    # In[5]:
 
 
-Yobs = {'rae':Yobs_batch['data'],
-        'chemostat':Yobs_chemo['data'],
-        'ran':Yobs_batch_an['data']}
+    Yobs = {'rae':Yobs_batch['data'],
+            'chemostat':Yobs_chemo['data'],
+            'ran':Yobs_batch_an['data']}
 
 
-# In[ ]:
+    # In[ ]:
 
 
-path = os.path.dirname(os.path.realpath(__file__)).replace('code','')
-params = pd.read_csv(os.path.join(path,'data/model_enzyme_params.csv'),index_col=0)
+    path = os.path.dirname(os.path.realpath(__file__)).replace('code','')
+    params = pd.read_csv(os.path.join(path,'data/model_enzyme_params.csv'),index_col=0)
 
 
-# #### Define priors
+    # #### Define priors
 
-# In[ ]:
-
-
-priors = dict()
-for ind in params.index: 
-    for col in ['Tm','Topt','dCpt']: 
-        priors['{0}_{1}'.format(ind,col)] = evo.RV('normal',
-                                                      loc=params.loc[ind,col],
-                                                      scale=params.loc[ind,col+'_std'])
+    # In[ ]:
 
 
-# #### Define model settings
-
-# In[ ]:
-
-rng = evo.default_rng(39322)
-min_epsilon = -.9 # equivalent to r2 score of 1
-population_size = 100
-outfile = '../results/smcevo_gem_three_conditions_save_all_particles.pkl'
+    priors = dict()
+    for ind in params.index: 
+        for col in ['Tm','Topt','dCpt']: 
+            priors['{0}_{1}'.format(ind,col)] = evo.RV('normal',
+                                                        loc=params.loc[ind,col],
+                                                        scale=params.loc[ind,col+'_std'])
 
 
-# In[ ]:
+    # #### Define model settings
+
+    # In[ ]:
+
+    rng = evo.default_rng(39322)
+    min_epsilon = -.9 # equivalent to r2 score of 1
+    population_size = 100
+    outfile = '../results/smcevo_gem_three_conditions_save_all_particles.pkl'
 
 
-if not os.path.exists(outfile):
-    logging.info('Initialize model')
-    model = evo.GA(simulator= GEMS.simulate_at_three_conditions_2,
-                        priors=priors,
-                        min_epsilon=min_epsilon,
-                        generation_size=population_size,
-                        distance_function=GEMS.distance_2,
-                        Yobs=Yobs,
-                        outfile=outfile,
-                        maxiter=100,
-                        rng=rng,
-                        mutation_frequency=1)
-else: 
-    model = dill.load(open(outfile,'rb'))
+    # In[ ]:
 
 
-# #### Run simulation
+    if not os.path.exists(outfile):
+        logging.info('Initialize model')
+        model = evo.GA(simulator= GEMS.simulate_at_three_conditions_2,
+                            priors=priors,
+                            min_epsilon=min_epsilon,
+                            generation_size=population_size,
+                            distance_function=GEMS.distance_2,
+                            Yobs=Yobs,
+                            outfile=outfile,
+                            maxiter=100,
+                            rng=rng,
+                            mutation_frequency=1)
+    else: 
+        model = dill.load(open(outfile,'rb'))
 
-# In[ ]:
+
+    # #### Run simulation
+
+    # In[ ]:
 
 
-logging.info('start simulations')
-model.run_simulation()
+    logging.info('start simulations')
+    model.run_simulation()
 
+
+if __name__ == '__main__':
+    main()
