@@ -72,7 +72,7 @@ class GA:
     def __init__(self,simulator: Callable[[candidateType], simResultType], priors : individualType, min_epsilon: float,
     distance_function: Callable[[distanceArgType, distanceArgType], float],
                  Yobs: distanceArgType, outfile: str,cores: int = cpu_count(),generation_size: int = 128, mutation_frequency: float = 1.,
-                  selection_proportion: float = 0.5, maxiter: int = 100000, rng: EvolutionGenerator = None, n_children : int = 2):
+                  selection_proportion: float = 0.5, maxiter: int = 100000, rng: EvolutionGenerator = None, n_children : int = 2, mutation_prob: float = 1.):
         '''
         simulator:       a function that takes a dictionary of parameters as input. Ouput {'data':Ysim}
         priors:          a dictionary which use id of parameters as keys and RV class object as values
@@ -83,10 +83,12 @@ class GA:
         outfile:         unique id for the experiment. This will be also used to continue a simulation that 
                          is partly done
         cores:           number of treads
-        mutation_frequency: The poisson lambda parameter to specify the number of mutations for each differentiation
+        mutation_frequency: The poisson lambda parameter to specify the number of mutations for each differentiation.
+         Note that no mutation takes place in case the candidate is not selected for mutation (see parameter mutation_prob)
         selection_proportion: The proportion of the population in each generation used to produce offspring
         maxiter: The maximum number of generations to simulate
         n_children: The number of children to produce for each crossing
+        mutation_prob: The probability that the mutator will apply mutation on a specific candidate solution
 
         
         !!!Important: distance is to be minimized!!!
@@ -116,6 +118,7 @@ class GA:
         self.all_distances = []
         self.generations = 0
         self.n_children = n_children
+        self.mutation_prob = mutation_prob
 
     
         def archiver(random, population, archive, args):
@@ -138,20 +141,15 @@ class GA:
             return self.epsilons[-1] <= self.min_epsilon or self.generations > self.maxiter
 
         # @evaluators.evaluator
-        def evaluator(candidate: individualType, args: dict) -> float:
+        """ def evaluator(candidate: individualType, args: dict) -> float:
             res = self.simulator(args = {key: value.loc for key, value in candidate.items()})
             distance = self.distance_function(Yobs, res)
-            return res, distance
+            return res, distance """
 
         def parallel_evaluation_mp(candidates: List[individualType], args: dict):
             # Copy-catted from https://github.com/aarongarrett/inspyred/blob/master/inspyred/ec/evaluators.py
             logger = args['_ec'].logger
             
-            try:
-                evaluator: Callable[[individualType,dict], float] = args['mp_evaluator']
-            except KeyError:
-                logger.error('parallel_evaluation_mp requires \'mp_evaluator\' be defined in the keyword arguments list')
-                raise
             try:
                 nprocs: int = args['mp_nprocs']
             except KeyError:
@@ -168,20 +166,37 @@ class GA:
 
             start = time.time()
             try:
-                multiprocessing.get_context
-                pool = pathos.multiprocessing.Pool(processes=nprocs,
-                context=multiprocess.context.SpawnContext())
-                results = pool.map(lambda c: evaluator(c, pickled_args), candidates)
-                result_list = list(results)
+                # Use parallel backend such as in abc_etc.py
+                Q = pathos.helpers.mp.Manager().Queue()
+                jobs = [pathos.helpers.mp.Process(target=self.simulate_one,args=(particle,index,Q)) 
+                               for index,particle in enumerate(candidates)]
+                
+                for p in jobs: p.start()
+                for p in jobs: p.join()
+
+                # Q may not always contain the result of all jobs we passed to it,
+                # this must be handled carefully
+                # We solve the problem by assuming that any jobs which fails to complete corresponds to zero fitness
+                result_list = [None for _ in range(len(candidates))]
+
+                while not Q.empty():
+                    index,res = Q.get(timeout=1)
+                    result_list[index] = self.distance_function(self.Yobs,res)
+                
             except (OSError, RuntimeError) as e:
                 logger.error('failed parallel_evaluation_mp: {0}'.format(str(e)))
                 raise
             else:
                 all_simulated_data = []
                 all_distances = []
-                for res, distance in result_list:
-                    all_simulated_data.append(res)
-                    all_distances.append(distance)
+                for entry in result_list:
+                    if entry is None:
+                        all_simulated_data.append(None)
+                        all_distances.append(np.inf)
+                    else: 
+                        res, distance = entry
+                        all_simulated_data.append(res)
+                        all_distances.append(distance)
                 self.all_distances.append(all_distances)
                 self.all_simulated_data.append(all_simulated_data)
                 end = time.time()
@@ -226,13 +241,13 @@ class GA:
                         candidate[Topt_key] = Topt.mutate()
                     else:
                         break
-
-            n_mutations = random.poisson(lam=self.mutation_frequency)
-            entries: list[str] = list(candidate.keys())
-            for _ in range(n_mutations):
-                entry = random.choice(entries)
-                candidate[entry] = candidate[entry].mutate()
-                correct_validity(entry)
+            if float(random.uniform(low=0, high=1)) < self.mutation_prob:
+                n_mutations = random.poisson(lam=self.mutation_frequency)
+                entries: list[str] = list(candidate.keys())
+                for _ in range(n_mutations):
+                    entry = random.choice(entries)
+                    candidate[entry] = candidate[entry].mutate()
+                    correct_validity(entry)
             return candidate
 
 
@@ -255,11 +270,23 @@ class GA:
 
         self.archiver = archiver
         self.terminator = terminator
-        self.evaluator = evaluator
+        # self.evaluator = evaluator
         self.generator = generator
         self.mutator = mutators.mutator(mutate)
         self.crossover = cross
         self.parallel_evaluation_mp = parallel_evaluation_mp
+    
+
+    def simulate_one(self,particle,index,Q):
+        '''
+        particle:  parameters 
+        Q:      a multiprocessing.Queue object
+        index:  the index in particles list
+        '''
+        res = self.simulator({key: value.loc for key, value in particle.items()})
+        # ysim = {simulated}
+
+        Q.put((index,res))
 
     
     def run_simulation(self) -> None:
@@ -278,6 +305,6 @@ class GA:
             seeds = None
 
 
-        kwargsdict = {'mp_evaluator' : self.evaluator, 'mp_nprocs': self.cores, 'num_selected': int(self.generation_size * self.selection_proportion)}
+        kwargsdict = {'mp_nprocs': self.cores, 'num_selected': int(self.generation_size * self.selection_proportion)}
         algorithm.evolve(generator=self.generator, evaluator=self.parallel_evaluation_mp, maximize=False, seeds = seeds, pop_size=self.generation_size, **kwargsdict)
         dill.dump(self, file=open(self.outfile,mode='wb'))
