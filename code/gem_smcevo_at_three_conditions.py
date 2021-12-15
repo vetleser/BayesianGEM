@@ -81,7 +81,7 @@ def main():
                             outfile=outfile,
                             maxiter=100,
                             rng=rng,
-                            mutation_frequency=100,
+                            mutation_frequency=20,
                             mutation_prob=0.5)
     else: 
         model = dill.load(open(outfile,'rb'))

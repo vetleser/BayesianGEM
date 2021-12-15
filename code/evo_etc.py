@@ -181,7 +181,7 @@ class GA:
 
                 while not Q.empty():
                     index,res = Q.get(timeout=1)
-                    result_list[index] = self.distance_function(self.Yobs,res)
+                    result_list[index] = res
                 
             except (OSError, RuntimeError) as e:
                 logger.error('failed parallel_evaluation_mp: {0}'.format(str(e)))
@@ -194,7 +194,7 @@ class GA:
                         all_simulated_data.append(None)
                         all_distances.append(np.inf)
                     else: 
-                        res, distance = entry
+                        distance = self.distance_function(self.Yobs,res)
                         all_simulated_data.append(res)
                         all_distances.append(distance)
                 self.all_distances.append(all_distances)
@@ -222,7 +222,7 @@ class GA:
             #             else:
             #                 break
             #     return seed
-                return mutate(random = random, candidate=self.priors, args=args)
+                return mutate(random = random, candidate=deepcopy(self.priors), args=args)
 
         # @variators.mutator
         def mutate(random: EvolutionGenerator, candidate: individualType, args: dict) -> individualType:
