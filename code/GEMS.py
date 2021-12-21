@@ -9,6 +9,7 @@ import numpy as np
 import pickle
 from etcpy import etc
 import os
+import logging
 from sklearn.metrics import mean_squared_error as MSE
 from sklearn.metrics import r2_score
 from cobra.exceptions import Infeasible
@@ -117,11 +118,11 @@ def aerobic(thermalParams):
     
     rae = [0 if x is None else x for x in rae]
     rae = [0 if x<1e-3 else x for x in rae]
-    print(rae)
+    logging.info(f"rae: {rae}")
     rexp = aerobic_exp_data()['data']
     
-    print('r2_batch:',r2_score(rexp,rae))
-    print('MSE_ae',MSE(rexp,rae))
+    logging.info(f'r2_batch: {r2_score(rexp,rae)}')
+    logging.info(f'MSE_ae: {MSE(rexp,rae)}')
     return {'data':np.array(rae)}
 
 
@@ -136,8 +137,8 @@ def anaerobic(thermalParams):
     ran = [0 if x is None else x for x in ran]
     rexp = anaerobic_exp_data()['data']
     
-    print('r2_batch_an:',r2_score(rexp,ran))
-    print('MSE_an',MSE(rexp,ran))
+    logging.info(f'r2_batch_an: {r2_score(rexp,ran)}')
+    logging.info(f'MSE_an: {MSE(rexp,ran)}')
 
     return  {'data':np.array(ran)}
 
@@ -155,9 +156,9 @@ def anaerobic_reduced(thermalParams):
     #anaerobic_exp_data()['data']
     
     
-    print('r2_batch_an:',r2_score(rexp,ran))
-    print('MSE_an',MSE(rexp,ran))
-    print('Model error:',len(rexp),len(ran))
+    logging.info(f'r2_batch_an: {r2_score(rexp,ran)}')
+    logging.info(f'MSE_an: {MSE(rexp,ran)}')
+    logging.info(f'Model error: {len(rexp)} {len(ran)}')
 
     return  {'data':np.array(ran)}
 
@@ -192,12 +193,12 @@ def chemostat(thermalParams):
         x = [s.fluxes[rxn_id] for s in solution]
         x.extend([0]*(len(dfchemo.index)-len(x)))
         pred_flux += x
-    print(pred_flux)
+    logging.log(f'Predicted flux: {pred_flux}')
     
     # pred_flux = [0 for item in exp_flux]
     
-    print('r2_flux:',r2_score(exp_flux,pred_flux))
-    print('MSE_chemo',MSE(exp_flux,pred_flux))
+    logging.log(f'r2_flux: {r2_score(exp_flux,pred_flux)}')
+    logging.log('MSE_chemo: {MSE(exp_flux,pred_flux)}')
 
     return  {'data':np.array(pred_flux)}
 
@@ -252,7 +253,7 @@ def distance_2(x,y):
     # y: simulated {'rae':...,}
     
     r2s = {k:r2_score(x[k],y[k])for k in x.keys()}
-    print('Model r2',r2s)
+    logging.info(f'Model r2: {r2s}')
     
     return -np.mean(list(r2s.values())) # maximize r2 score, minimize -r2 score
 
@@ -266,10 +267,10 @@ def distance_cv1(x,y):
     
     keys = ['rae','chemostat']
     r2s = {k:r2_score(x[k],y[k]) for k in x.keys()}
-    print('Model r2',r2s)
+    logging.info(f'Model r2: {r2s}')
     
     lst = [r2s[k] for k in keys]
-    print('Model distance:',-np.mean(lst))
+    logging.info(f'Model distance: {-np.mean(lst)}')
     return -np.mean(lst) # maximize r2 score, minimize -r2 score
 
 
@@ -282,10 +283,10 @@ def distance_cv2(x,y):
     
     keys = ['rae','ran']
     r2s = {k:r2_score(x[k],y[k]) for k in x.keys()}
-    print('Model r2',r2s)
+    logging.info(f'Model r2: {r2s}')
     
     lst = [r2s[k] for k in keys]
-    print('Model distance:',-np.mean(lst))
+    logging.info(f'Model distance: {-np.mean(lst)}')
     return -np.mean(lst) # maximize r2 score, minimize -r2 score
 
 
@@ -298,10 +299,10 @@ def distance_cv3(x,y):
     
     keys = ['chemostat','ran']
     r2s = {k:r2_score(x[k],y[k]) for k in x.keys()}
-    print('Model r2',r2s)
+    logging.info('Model r2: {r2s}')
     
     lst = [r2s[k] for k in keys]
-    print('Model distance:',-np.mean(lst))
+    logging.info(f'Model distance: {-np.mean(lst)}')
     return -np.mean(lst) # maximize r2 score, minimize -r2 score
 
 

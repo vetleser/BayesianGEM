@@ -193,7 +193,8 @@ class GA:
                     if entry is None:
                         all_simulated_data.append(None)
                         all_distances.append(np.inf)
-                    else: 
+                    else:
+                        res = entry 
                         distance = self.distance_function(self.Yobs,res)
                         all_simulated_data.append(res)
                         all_distances.append(distance)
@@ -283,7 +284,9 @@ class GA:
         Q:      a multiprocessing.Queue object
         index:  the index in particles list
         '''
-        res = self.simulator({key: value.loc for key, value in particle.items()})
+
+        particle_for_evaluation = {key: value.loc for key, value in particle.items()}
+        res = self.simulator(particle_for_evaluation)
         # ysim = {simulated}
 
         Q.put((index,res))

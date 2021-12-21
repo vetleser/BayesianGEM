@@ -79,10 +79,10 @@ def main():
                             distance_function=GEMS.distance_2,
                             Yobs=Yobs,
                             outfile=outfile,
-                            maxiter=100,
+                            maxiter=400,
                             rng=rng,
                             mutation_frequency=20,
-                            mutation_prob=0.5)
+                            mutation_prob=.5)
     else: 
         model = dill.load(open(outfile,'rb'))
 
