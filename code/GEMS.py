@@ -193,12 +193,12 @@ def chemostat(thermalParams):
         x = [s.fluxes[rxn_id] for s in solution]
         x.extend([0]*(len(dfchemo.index)-len(x)))
         pred_flux += x
-    logging.log(f'Predicted flux: {pred_flux}')
+    logging.info(f'Predicted flux: {pred_flux}')
     
     # pred_flux = [0 for item in exp_flux]
     
-    logging.log(f'r2_flux: {r2_score(exp_flux,pred_flux)}')
-    logging.log('MSE_chemo: {MSE(exp_flux,pred_flux)}')
+    logging.info(f'r2_flux: {r2_score(exp_flux,pred_flux)}')
+    logging.info(f'MSE_chemo: {MSE(exp_flux,pred_flux)}')
 
     return  {'data':np.array(pred_flux)}
 
@@ -299,7 +299,7 @@ def distance_cv3(x,y):
     
     keys = ['chemostat','ran']
     r2s = {k:r2_score(x[k],y[k]) for k in x.keys()}
-    logging.info('Model r2: {r2s}')
+    logging.info(f'Model r2: {r2s}')
     
     lst = [r2s[k] for k in keys]
     logging.info(f'Model distance: {-np.mean(lst)}')
