@@ -66,6 +66,9 @@ def default_rng(seed=None):
 
 # In[2]:
 
+def convert_to_raw_particle(particle: individualType) -> candidateType:
+    return {key: value.loc for key, value in particle.items()}
+
 
 
 class GA:
@@ -116,6 +119,7 @@ class GA:
         self.maxiter = maxiter
         self.all_simulated_data = []
         self.all_distances = []
+        self.all_particles = []
         self.generations = 0
         self.n_children = n_children
         self.mutation_prob = mutation_prob
@@ -198,8 +202,10 @@ class GA:
                         distance = self.distance_function(self.Yobs,res)
                         all_simulated_data.append(res)
                         all_distances.append(distance)
-                self.all_distances.append(all_distances)
-                self.all_simulated_data.append(all_simulated_data)
+                self.all_distances.extend(all_distances)
+                self.all_simulated_data.extend(all_simulated_data)
+                self.all_particles.extend(candidates)
+
                 end = time.time()
                 logger.debug('completed parallel_evaluation_mp in {0} seconds'.format(end - start))
                 return all_distances
@@ -285,8 +291,7 @@ class GA:
         index:  the index in particles list
         '''
 
-        particle_for_evaluation = {key: value.loc for key, value in particle.items()}
-        res = self.simulator(particle_for_evaluation)
+        res = self.simulator(convert_to_raw_particle(particle=particle))
         # ysim = {simulated}
 
         Q.put((index,res))
