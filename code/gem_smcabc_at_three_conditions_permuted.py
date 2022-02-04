@@ -43,21 +43,40 @@ rng = np.random.default_rng(random_seed)
 path = os.path.dirname(os.path.realpath(__file__)).replace('code','')
 params = pd.read_csv(os.path.join(path,'data/model_enzyme_params.csv'),index_col=0)
 permuted_params = [permute_parameters.permute_params(params, rng) for _ in range(n_permutations)]
+combined_params = {'unpermuted': params}
+for i, permuted_param_set in enumerate(permuted_params):
+    combined_params[f'permuted_{i}'] = permuted_param_set
+
+
+candidate_frame: pd.DataFrame = pd.DataFrame(index=pd.MultiIndex.from_product([combined_params.keys(), ["original", "replicate"]], names = ["origin", "status"])).reset_index()
+
+
+
+
+
+
+
 
 
 # #### Define priors
 
 # In[ ]:
 
+priors = []
 
-priors = [dict() for _ in range(n_permutations)]
-
-for i in range(n_permutations):
+for origin in candidate_frame.origin:
+    params = combined_params[origin]
+    prior = dict()
     for ind in params.index: 
         for col in ['Tm','Topt','dCpt']: 
-            priors[i]['{0}_{1}'.format(ind,col)] = abc.RV('normal',
-                                                          loc=permuted_params[i].loc[ind,col],
-                                                          scale=permuted_params[i].loc[ind,col+'_std'])
+            prior['{0}_{1}'.format(ind,col)] = abc.RV('normal',
+                                                          loc=combined_params[origin].loc[ind,col],
+                                                          scale=combined_params[origin].loc[ind,col+'_std'])
+    priors.append(prior)
+
+
+candidate_frame['priors'] = priors
+
 
 
 # #### Define model settings
@@ -65,36 +84,47 @@ for i in range(n_permutations):
 # In[ ]:
 
 
-min_epsilon = -.9 # equivalent to r2 score of 1
+min_epsilon = -1.0 # equivalent to r2 score of 1
 population_size = 100
-outfiles = [f'../results/smcabc_gem_three_conditions_permuted_{i}_save_all_particles.pkl' for i in range(n_permutations)]
+outdir = '../results/permuted_smcabc_res'
+if not os.path.exists(outdir):
+    os.makedirs(outdir)
+candidate_frame['outfile'] = [f'{outdir}/smcabc_gem_three_conditions_{origin}_{status}_save_all_particles.pkl' for
+ origin, status in zip(candidate_frame['origin'],candidate_frame['status'])]
+
+pickle.dump(file=open(file=f'{outdir}/simulation_skeleton.pkl',mode='wb'),obj=candidate_frame)
+
+
 
 
 # In[ ]:
 
 models = []
-for i, outfile in enumerate(outfiles):
+for priors, outfile in zip(candidate_frame['priors'], candidate_frame['outfile']):
     if not os.path.exists(outfile):
-        logging.info('Initialize model')
-        model = abc.SMCABC(GEMS.simulate_at_three_conditions_2,
-                            priors[i],
-                            min_epsilon,
-                            population_size,
-                            GEMS.distance_2,
-                            Yobs,
-                            outfile,
-                            generation_size=128,
-                            maxiter=100)
-    else: model = pickle.load(open(outfile,'rb'))
-    models.append(model)
+        logging.info('Initialize models')
+        models.append(abc.SMCABC(GEMS.simulate_at_three_conditions_2,
+                                priors=priors,
+                                min_epsilon=min_epsilon,
+                                population_size=population_size,
+                                distance_function=GEMS.distance_2,
+                                Yobs=Yobs,
+                                outfile=outfile,
+                                generation_size=128,
+                                 maxiter=500)
+        )
+    else:
+        models.append(pickle.load(open(outfile,'rb')))
+
+candidate_frame['model'] = models
 
 
 # #### Run simulation
 
 # In[ ]:
 
-for i, model in enumerate(models):
-    logging.info(f'Start simulations with prior parameter set {i}')
+for origin, status, model in zip(candidate_frame['origin'],candidate_frame['status'], candidate_frame['model']):
+    logging.info(f'Start simulations with prior parameter set {origin}, {status}')
     model.run_simulation()
 
 logging.info(f'DONE')
