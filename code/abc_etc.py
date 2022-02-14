@@ -13,10 +13,15 @@ from decimal import Decimal
 import pickle
 import os
 import logging
+from typing import Callable, Dict, Iterable, List
+import numpy.typing as npt
 
 
-# In[2]:
+simResultType = Dict[str, Dict[str, npt.NDArray[np.float64]]]
+candidateType = Dict[str, float]
+distanceArgType = Dict[str, npt.NDArray[np.float64]]
 
+# In[]
 
 class RV:
     def __init__(self, dist_name,loc,scale):
@@ -56,8 +61,9 @@ class RV:
 # In[ ]:
 
 class SMCABC:
-    def __init__(self,simulator,priors,min_epsilon,population_size,distance_function,
-                 Yobs,outfile,cores=cpu_count(),generation_size=128, maxiter=100000):
+    def __init__(self,simulator: Callable[[candidateType], simResultType],priors: candidateType,min_epsilon: float,population_size: int,
+    distance_function: Callable[[distanceArgType, distanceArgType], float],
+                 Yobs: distanceArgType,outfile: str,cores: int=cpu_count(),generation_size: int =128, maxiter: int=100000):
         '''
         simulator:       a function that takes a dictionary of parameters as input. Ouput {'data':Ysim}
         priors:          a dictionary which use id of parameters as keys and RV class object as values
@@ -80,7 +86,7 @@ class SMCABC:
         self.min_epsilon = min_epsilon
         self.Yobs = Yobs
         self.outfile = outfile
-        self.population = []  # a list of populations [p1,p2...]
+        self.population: List[List[candidateType]] = []  # a list of populations [p1,p2...]
         self.distances = []    # a list of distances for particles in population
         self.simulations = 0  # number of simulations performed 
         self.cores = cores    
@@ -91,8 +97,8 @@ class SMCABC:
         self.epsilons = [np.inf]          # min distance in each generation
         self.generation_size = generation_size   # number of particles to be simulated at each generation
         self.all_simulated_data = []  # store all simulated data
-        self.all_particles = []       # store all simulated particles
-        self.all_distances = []       # store all simulated distances
+        self.all_particles: List[candidateType] = []       # store all simulated particles
+        self.all_distances: List[float] = []       # store all simulated distances
         self.maxiter = maxiter
         
     
