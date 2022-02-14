@@ -96,7 +96,7 @@ def create_concensus_model(model_results: abc.SMCABC,  r2_threshold=.9):
 
 
 
-model_frame['concensus_model'] = map(create_concensus_model, model_frame['modeling_results'])
+model_frame['concensus_model'] = list(map(create_concensus_model, model_frame['modeling_results']))
 
 # In[]
 
@@ -119,7 +119,7 @@ result_frame['to'] = [combination[1] for combination in model_combinations]
 results = []
 
 for from_model, to_model in zip(result_frame['from'], result_frame['to']):
-    itermediate_models = map(lambda ratio: create_intermediate_model(from_model=from_model,to_model=to_model,ratio=ratio), ratios)
+    itermediate_models = list(map(lambda ratio: create_intermediate_model(from_model=from_model,to_model=to_model,ratio=ratio), ratios))
     distances, simulated_data = calculate_distances_parallel(itermediate_models)
     results.append(pd.DataFrame({'ratio' : ratios,'distances' : distances, 'simulated_data' : simulated_data}))
 
