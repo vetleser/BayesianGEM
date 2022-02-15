@@ -77,7 +77,7 @@ def calculate_distances_parallel(particles):
 # In[1]:
 
 n_permutations = 3
-infiles = ['../results/smcabc_gem_three_conditions_save_all_particles_replicate.pkl'] + [f'../results/smcabc_gem_three_conditions_permuted_{i}_save_all_particles.pkl' for i in [0, 1]]
+infiles = ['../results/smcabc_gem_three_conditions_save_all_particles.pkl'] + [f'../results/smcabc_gem_three_conditions_permuted_{i}_save_all_particles.pkl' for i in [0, 1]]
 model_frame = pd.DataFrame({'origin' : ['unpermuted', 'permuted_0', 'permuted_1'], 'file_path': infiles})
 model_frame.set_index(model_frame['origin'])
 model_frame['modeling_results'] = [pickle.load(open(infile,'rb')) for infile in model_frame['file_path']]
@@ -87,6 +87,7 @@ def create_concensus_model(model_results: abc.SMCABC,  r2_threshold=.9):
     concensus_model: abc.candidateType = dict()
     posterior_idxs = np.nonzero(np.array(model_results.all_distances) < -r2_threshold)[0]
     posterior_particles = [model_results.all_particles[idx] for idx in posterior_idxs]
+    print(len(posterior_particles))
     parameter_names = posterior_particles[0].keys()
     for parameter in parameter_names:
         parameter_values = [particle[parameter] for particle in posterior_particles]
@@ -116,6 +117,8 @@ result_frame = pd.DataFrame()
 model_combinations = combinations(model_frame['origin'],2)
 result_frame['from'] = [combination[0] for combination in model_combinations]
 result_frame['to'] = [combination[1] for combination in model_combinations]
+
+# In[]
 results = []
 
 for from_model, to_model in zip(result_frame['from'], result_frame['to']):
