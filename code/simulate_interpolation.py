@@ -4,7 +4,7 @@
 # The purpose of this script is to investigate the effect of interpolating
 # points from different posterior distributions and check the results
 
-# In[]
+# In[1]
 from sympy import Float
 import abc_etc as abc
 import numpy as np
@@ -18,7 +18,7 @@ import numpy.typing as npt
 from itertools import combinations
 from multiprocessing import Process,cpu_count,Manager
 
-# In[]
+# In[2]
 
 # Preliminary definitions and settings
 simulator = GEMS.simulate_at_three_conditions_2
@@ -74,15 +74,15 @@ def calculate_distances_parallel(particles):
             del distances[i]
         return distances,simulated_data
 
-# In[1]:
+# In[3]:
 
 n_permutations = 3
 infiles = ['../results/smcabc_gem_three_conditions_save_all_particles.pkl'] + [f'../results/smcabc_gem_three_conditions_permuted_{i}_save_all_particles.pkl' for i in [0, 1]]
 model_frame = pd.DataFrame({'origin' : ['unpermuted', 'permuted_0', 'permuted_1'], 'file_path': infiles})
-model_frame.set_index(model_frame['origin'])
+model_frame.set_index('origin', inplace=True)
 model_frame['modeling_results'] = [pickle.load(open(infile,'rb')) for infile in model_frame['file_path']]
 
-# In[]
+# In[4]
 def create_concensus_model(model_results: abc.SMCABC,  r2_threshold=.9):
     concensus_model: abc.candidateType = dict()
     posterior_idxs = np.nonzero(np.array(model_results.all_distances) < -r2_threshold)[0]
@@ -99,7 +99,7 @@ def create_concensus_model(model_results: abc.SMCABC,  r2_threshold=.9):
 
 model_frame['concensus_model'] = list(map(create_concensus_model, model_frame['modeling_results']))
 
-# In[]
+# In[5]
 
 np.linspace(0,1,11)
 
@@ -114,14 +114,16 @@ def create_intermediate_model(from_model, to_model, ratio):
 
 ratios = np.linspace(0,1,10)
 result_frame = pd.DataFrame()
-model_combinations = combinations(model_frame['origin'],2)
+model_combinations = list(combinations(model_frame.index,2))
 result_frame['from'] = [combination[0] for combination in model_combinations]
 result_frame['to'] = [combination[1] for combination in model_combinations]
 
 # In[]
 results = []
 
-for from_model, to_model in zip(result_frame['from'], result_frame['to']):
+for from_model_name, to_model_name in zip(result_frame['from'], result_frame['to']):
+    from_model = model_frame['concensus_model'][from_model_name]
+    to_model = model_frame['concensus_model'][to_model_name]
     itermediate_models = list(map(lambda ratio: create_intermediate_model(from_model=from_model,to_model=to_model,ratio=ratio), ratios))
     distances, simulated_data = calculate_distances_parallel(itermediate_models)
     results.append(pd.DataFrame({'ratio' : ratios,'distances' : distances, 'simulated_data' : simulated_data}))
