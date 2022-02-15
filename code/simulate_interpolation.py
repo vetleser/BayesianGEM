@@ -106,7 +106,7 @@ np.linspace(0,1,11)
 def create_intermediate_model(from_model, to_model, ratio):
     # A ratio of 0 will yield the from_model, whereas a ratio of 1 will yield the to_model
     intermediate_model = abc.candidateType = dict()
-    parameter_names = from_model[0].keys()
+    parameter_names = from_model.keys()
     for parameter in parameter_names:
         intermediate_value: float = (1 - ratio)*from_model[parameter] + ratio * to_model[parameter]
         intermediate_model[parameter] = intermediate_value
