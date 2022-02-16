@@ -24,6 +24,8 @@ from multiprocessing import Process,cpu_count,Manager
 
 # Preliminary definitions and settings
 n_comparisons = 10
+random_seed = 249
+rng = np.random.default_rng(random_seed)
 simulator = GEMS.simulate_at_three_conditions_2
 distance_function = GEMS.distance_2
 Yobs_batch = GEMS.aerobic_exp_data()
@@ -90,7 +92,7 @@ model_frame = pd.DataFrame({'origin' : ['unpermuted', 'permuted_0', 'permuted_1'
 model_frame.set_index('origin', inplace=True)
 modeling_results = [pickle.load(open(infile,'rb')) for infile in model_frame['file_path']]
 model_frame['modeling_results'] = modeling_results
-model_frame['posterior_particles'] = [extract_posterior_particles(model=model) for model in modeling_results] 
+model_frame['posterior_particles'] = [extract_posterior_particles(model=model) for model in modeling_results]
 
 def create_intermediate_model(from_model: abc.candidateType, to_model: abc.candidateType, ratio: Float):
     # A ratio of 0 will yield the from_model, whereas a ratio of 1 will yield the to_model
@@ -112,10 +114,11 @@ results: List[List[pd.DataFrame]] = []
 
 for from_model_name, to_model_name in zip(result_frame['from'], result_frame['to']):
     case_result = []
-    from_posterior_particles: "pd.Series[abc.candidateType]" = model_frame['posterior_particles'][from_model_name]
-    to_posterior_particles: "pd.Series[abc.candidateType]" = model_frame['posterior_particles'][to_model_name]
-    from_particles = from_posterior_particles.sample(n=n_comparisons, replace=True)
-    to_particles = to_posterior_particles.sample(n=n_comparisons, replace=True)
+    from_posterior_particles: List[abc.candidateType] = model_frame['posterior_particles'][from_model_name]
+    to_posterior_particles: List[abc.candidateType] = model_frame['posterior_particles'][to_model_name]
+    
+    from_particles = rng.choice(from_posterior_particles, size=n_comparisons, replace=True)
+    to_particles = rng.choice(to_posterior_particles, size=n_comparisons, replace=True)
     for from_particle, to_particle in zip(from_particle, to_particle):
         itermediate_models = list(map(lambda ratio: create_intermediate_model(from_model=from_particle,to_model=to_particle,ratio=ratio), ratios))
         distances, simulated_data = calculate_distances_parallel(itermediate_models)
