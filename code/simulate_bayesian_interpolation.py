@@ -119,7 +119,7 @@ for from_model_name, to_model_name in zip(result_frame['from'], result_frame['to
     
     from_particles = rng.choice(from_posterior_particles, size=n_comparisons, replace=True)
     to_particles = rng.choice(to_posterior_particles, size=n_comparisons, replace=True)
-    for from_particle, to_particle in zip(from_particle, to_particle):
+    for from_particle, to_particle in zip(from_particles, to_particles):
         itermediate_models = list(map(lambda ratio: create_intermediate_model(from_model=from_particle,to_model=to_particle,ratio=ratio), ratios))
         distances, simulated_data = calculate_distances_parallel(itermediate_models)
         case_result.append(pd.DataFrame({'ratio' : ratios,'distances' : distances, 'simulated_data' : simulated_data}))
