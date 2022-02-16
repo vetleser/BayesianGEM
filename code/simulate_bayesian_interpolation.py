@@ -112,8 +112,8 @@ results: List[List[pd.DataFrame]] = []
 
 for from_model_name, to_model_name in zip(result_frame['from'], result_frame['to']):
     case_result = []
-    from_posterior_particles: pd.Series[abc.candidateType] = model_frame['posterior_particles'][from_model_name]
-    to_posterior_particles: pd.Series[abc.candidateType] = model_frame['posterior_particles'][to_model_name]
+    from_posterior_particles: "pd.Series[abc.candidateType]" = model_frame['posterior_particles'][from_model_name]
+    to_posterior_particles: "pd.Series[abc.candidateType]" = model_frame['posterior_particles'][to_model_name]
     from_particles = from_posterior_particles.sample(n=n_comparisons, replace=True)
     to_particles = to_posterior_particles.sample(n=n_comparisons, replace=True)
     for from_particle, to_particle in zip(from_particle, to_particle):
