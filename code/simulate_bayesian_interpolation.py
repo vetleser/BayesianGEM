@@ -124,4 +124,4 @@ for from_model_name, to_model_name in zip(result_frame['from'], result_frame['to
 
 result_frame['results'] = results
 
-pickle.dump(obj=result_frame, file=open('../results/interpolation_results.pkl','wb'))
+pickle.dump(obj=result_frame, file=open('../results/bayesian_interpolation_results.pkl','wb'))
