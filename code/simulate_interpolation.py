@@ -101,7 +101,6 @@ model_frame['concensus_model'] = list(map(create_concensus_model, model_frame['m
 
 # In[5]
 
-np.linspace(0,1,11)
 
 def create_intermediate_model(from_model, to_model, ratio):
     # A ratio of 0 will yield the from_model, whereas a ratio of 1 will yield the to_model
@@ -112,7 +111,7 @@ def create_intermediate_model(from_model, to_model, ratio):
         intermediate_model[parameter] = intermediate_value
     return intermediate_model
 
-ratios = np.linspace(0,1,10)
+ratios = np.linspace(0,1,11)
 result_frame = pd.DataFrame()
 model_combinations = list(combinations(model_frame.index,2))
 result_frame['from'] = [combination[0] for combination in model_combinations]
