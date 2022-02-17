@@ -5,4 +5,5 @@ code/etcpy/__pycache__
 *.log
 results.tar.gz
 *.ipynb_checkpoints
+code/.ipynb_checkpoints/*
 

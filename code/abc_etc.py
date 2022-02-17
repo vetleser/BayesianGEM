@@ -12,6 +12,7 @@ from multiprocessing import Process,cpu_count,Manager
 from decimal import Decimal
 import pickle
 import os
+from random_sampler import RV
 import logging
 from typing import Callable, Dict, Iterable, List
 import numpy.typing as npt
@@ -199,7 +200,7 @@ class SMCABC:
         self.population = list(combined_particles[sort_index][:self.population_size])
         self.distances = list(combined_distances[sort_index][:self.population_size])
         self.simulated_data = list(combined_simulated[sort_index][:self.population_size])
-        self.epsilons.append(np.max(self.distances))
+        self.epsilons.append(np.max(self.distances[np.isfinite(self.distances)]) if len(np.isfinite) > 0 else np.inf)
         
         logging.info(f"Model epsilon: {str(self.epsilons[-1])}")
         
