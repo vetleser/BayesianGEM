@@ -83,7 +83,7 @@ def calculate_distances_parallel(particles):
 
 def extract_posterior_particles(model: abc.SMCABC, r2_threshold = 0.9):
     posterior_idxs = np.nonzero(np.array(model.all_distances) < -r2_threshold)[0]
-    return [model.all_particles[idx] for idx in posterior_idxs]
+    return [model.all_particles[idx] for idx in posterior_idxs] 
 
 
 n_permutations = 3

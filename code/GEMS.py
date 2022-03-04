@@ -4,6 +4,7 @@
 # In[1]:
 
 
+from typing import Dict, Iterable
 import pandas as pd
 import numpy as np
 import pickle
@@ -15,6 +16,7 @@ from sklearn.metrics import r2_score
 from cobra.exceptions import Infeasible
 
 
+candidateType = Dict[str, float]
 # ### save .pkl model
 # mae,man = pickle.load(open('../models/models.pkl','rb'))
 # pickle.dump(mae,open('../models/aerobic.pkl','wb'))
@@ -201,6 +203,67 @@ def chemostat(thermalParams):
     logging.info(f'MSE_chemo: {MSE(exp_flux,pred_flux)}')
 
     return  {'data':np.array(pred_flux)}
+
+# In[]
+
+def aerobic_fva(thermalParams: candidateType, processes=1):
+    """
+    Run FVA on aerobic conditions
+
+    Args:
+        thermalParams: A dictionary of the model's thermal parameters
+    """
+    # thermalParams: a dictionary with ids like uniprotid_Topt
+    df,new_params = format_input(thermalParams)
+    mae = pickle.load(open(os.path.join(path,'models/aerobic.pkl'),'rb'))
+    etc.solve_unboundedness(mae)
+    rae = etc.simulate_fva(mae,dfae_batch.index+273.15,df=df,sigma=0.5, processes=processes)
+    return rae
+
+
+def anaerobic_reduced_fva(thermalParams: candidateType, processes=1):
+    """
+    Run FVA under anaerobic conditions
+
+    Args:
+        thermalParams: A dictionary of the model's thermal parameters
+    """
+    # thermalParams: a dictionary with ids like uniprotid_Topt 
+    df,new_params = format_input(thermalParams)
+    mae = pickle.load(open(os.path.join(path,'models/anaerobic.pkl'),'rb'))
+    etc.solve_unboundedness(mae)
+    sel_temp = [5.0,15.0,26.3,30.0,33.0,35.0,37.5,40.0]
+    ran = etc.simulate_fva(mae,np.array(sel_temp+273.15,df=df,sigma=0.5), processes=processes)
+    return ran
+
+
+def chemostat_fva(thermalParams, processes=1):
+    """
+    Run FVA under chemostat conditions
+
+    Args:
+        thermalParams: A dictionary of the model's thermal parameters
+    """
+    df,new_params = GEMS.format_input(thermalParams)
+    mae = pickle.load(open(os.path.join(path,'models/aerobic.pkl'),'rb'))
+    etc.solve_unboundedness(mae)
+    growth_id = 'r_2111'
+    glc_up_id = 'r_1714_REV'
+    prot_pool_id = 'prot_pool_exchange'
+    dilut = 0.1
+    sigma = 0.5
+    
+    solution = etc.fva_chemostat(mae,dilut,new_params,dfchemo.index+273.15,
+                                            sigma,growth_id,glc_up_id,prot_pool_id, processes=processes)
+    return  solution
+
+# In[]
+
+def run_fva_at_three_conditions(thermalParams, processes = 1):
+    fva_functions = [aerobic_fva, anaerobic_reduced_fva, chemostat_fva]
+    condition_names = ["aerobic", "anaerobic", "chemostat"]
+    fva_results: Iterable[pd.DataFrame] = map(lambda f, x: f(thermalParams, processes=processes).assign(condition=x), zip(fva_functions,condition_names))
+    return pd.concat(fva_results)
 
 
 # In[ ]:

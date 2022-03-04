@@ -51,13 +51,6 @@ for i, permuted_param_set in enumerate(permuted_params):
 candidate_frame: pd.DataFrame = pd.DataFrame(index=pd.MultiIndex.from_product([combined_params.keys(), ["original", "replicate"]], names = ["origin", "status"])).reset_index()
 
 
-
-
-
-
-
-
-
 # #### Define priors
 
 # In[ ]:
