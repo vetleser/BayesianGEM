@@ -20,6 +20,7 @@ import numpy.typing as npt
 
 simResultType = Dict[str, Dict[str, npt.NDArray[np.float64]]]
 candidateType = Dict[str, float]
+prior_type = Dict[str, RV]
 distanceArgType = Dict[str, npt.NDArray[np.float64]]
 
 # In[]
@@ -62,7 +63,7 @@ class RV:
 # In[ ]:
 
 class SMCABC:
-    def __init__(self,simulator: Callable[[candidateType], simResultType],priors: candidateType,min_epsilon: float,population_size: int,
+    def __init__(self,simulator: Callable[[candidateType], simResultType],priors: prior_type,min_epsilon: float,population_size: int,
     distance_function: Callable[[distanceArgType, distanceArgType], float],
                  Yobs: distanceArgType,outfile: str,cores: int=cpu_count(),generation_size: int =128, maxiter: int=100000):
         '''
@@ -101,6 +102,7 @@ class SMCABC:
         self.all_particles: List[candidateType] = []       # store all simulated particles
         self.all_distances: List[float] = []       # store all simulated distances
         self.maxiter = maxiter
+        self.iterations = 0
         
     
     def simulate_one(self,particle,index,Q):
@@ -219,7 +221,7 @@ class SMCABC:
         
     
     def run_simulation(self):
-        for _ in range(self.maxiter):
+        while self.iterations < self.maxiter:
             if self.epsilons[-1] <= self.min_epsilon:
                 logging.info("Bayesian fitting procedure ended successfully")
                 break
@@ -227,6 +229,7 @@ class SMCABC:
             self.update_population(particles_t, simulated_data_t, distances_t)
             self.update_posterior()
             pickle.dump(self,open(self.outfile,'wb'))
+            self.iterations += 1
             #logging.info(f"epsilon: {self.epsilons[-1]}")
         else:
             logging.warning("Maximum number of iterations reached")
