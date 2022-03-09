@@ -221,6 +221,7 @@ class SMCABC:
         
     
     def run_simulation(self):
+        self.iterations = len(self.population)
         while self.iterations < self.maxiter:
             logging.info(f"Running iteration {self.iterations+1} of {self.maxiter}")
             if self.epsilons[-1] <= self.min_epsilon:
