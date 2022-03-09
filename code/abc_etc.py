@@ -202,7 +202,7 @@ class SMCABC:
         self.population = list(combined_particles[sort_index][:self.population_size])
         self.distances = list(combined_distances[sort_index][:self.population_size])
         self.simulated_data = list(combined_simulated[sort_index][:self.population_size])
-        self.epsilons.append(np.max(self.distances[np.isfinite(self.distances)]) if len(np.isfinite) > 0 else np.inf)
+        self.epsilons.append(np.max(self.distances))
         
         logging.info(f"Model epsilon: {str(self.epsilons[-1])}")
         
