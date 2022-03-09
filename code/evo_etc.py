@@ -142,6 +142,8 @@ class GA:
 
 
         def terminator(population, num_generations, num_evaluations, args) -> bool:
+            n_generations = self.generations
+            logging.info(f"Running generation {n_generations+1} of {self.maxiter}")
             return self.epsilons[-1] <= self.min_epsilon or self.generations > self.maxiter
 
         # @evaluators.evaluator

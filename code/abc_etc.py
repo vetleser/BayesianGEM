@@ -222,6 +222,7 @@ class SMCABC:
     
     def run_simulation(self):
         while self.iterations < self.maxiter:
+            logging.info(f"Running iteration {self.iterations+1} of {self.maxiter}")
             if self.epsilons[-1] <= self.min_epsilon:
                 logging.info("Bayesian fitting procedure ended successfully")
                 break
