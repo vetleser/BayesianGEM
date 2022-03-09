@@ -88,7 +88,7 @@ class SMCABC:
         self.min_epsilon = min_epsilon
         self.Yobs = Yobs
         self.outfile = outfile
-        self.population: List[List[candidateType]] = []  # a list of populations [p1,p2...]
+        self.population: List[candidateType] = []  # a list of the current population
         self.distances = []    # a list of distances for particles in population
         self.simulations = 0  # number of simulations performed 
         self.cores = cores    
@@ -221,7 +221,7 @@ class SMCABC:
         
     
     def run_simulation(self):
-        self.iterations = len(self.population)
+        self.iterations = len(self.epsilons)-1
         while self.iterations < self.maxiter:
             logging.info(f"Running iteration {self.iterations+1} of {self.maxiter}")
             if self.epsilons[-1] <= self.min_epsilon:
