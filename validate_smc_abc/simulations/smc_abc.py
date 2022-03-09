@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+7#!/usr/bin/env python
 # coding: utf-8
   #507  conda create --name forPyabc
   #508  python -m ipykernel install --user --name=forPyabc
@@ -8,7 +8,6 @@
 # In[1]:
 
 
-import pyabc
 import matplotlib.pyplot as plt
 import os
 import tempfile
