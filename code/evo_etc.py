@@ -110,7 +110,7 @@ class GA:
         self.min_epsilon = min_epsilon
         self.Yobs = Yobs
         self.outfile = outfile
-        self.population: List[inspyred.ec.Individual] = []  # a list of populations [p1,p2...]
+        self.population: List[inspyred.ec.Individual] = []
         self.cores = cores    
         self.epsilons = [np.inf]          # min distance in each generation
         self.generation_size = generation_size   # number of particles to be simulated at each generation
@@ -132,7 +132,7 @@ class GA:
                 archive = []
             else:
                 archive.append(None)
-            self.population.append(population)
+            self.population = population
             max_generation_epsilon = max(p.fitness for p in population)
             self.epsilons.append(max_generation_epsilon)
             logging.info(f"Model epsilon {max_generation_epsilon}")
@@ -310,7 +310,7 @@ class GA:
         self.rng = EvolutionGenerator.from_numpy_generator(self.rng)
         if self.generations > 0:
             # Restore computations from stored results
-            seeds : List[individualType] = [individual.candidate for individual  in self.population[-1]]
+            seeds : List[individualType] = [individual.candidate for individual  in self.population]
         else:
             seeds = None
 
