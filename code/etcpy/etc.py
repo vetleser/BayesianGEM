@@ -83,7 +83,7 @@ def get_dH_dS_dCpu_from_TmLength(Tm,N):
     dCpu = fsolve(func,10000)[0]
     return dHTH,dSTS,dCpu
 
-def change_rxn_coeff(rxn,met,new_coeff):
+def change_rxn_coeff(rxn: cobra.Reaction,met: cobra.Metabolite,new_coeff: float):
     '''
     # This is based on the rxn.add_metabolites function. If there the metabolite is already in the reaction,
     # new and old coefficients will be added. For example, if the old coeff of metA is 1, use
@@ -557,43 +557,26 @@ def simulate_chomostat(model: Model,dilu,params,Ts,sigma,growth_id,glc_up_id,pro
 
     '''
     warm_start = working_model is not None
+    reference_model = model if warm_start else None
     solutions = list() # corresponding to Ts. a list of solutions from model.optimize()
     df = calculate_thermal_params(params)
-    with model as m0:
-        # Step 1: fix growth rate, set objective function as minimizing glucose uptake rate
+    model_to_optimize = working_model if warm_start else model
+    with model_to_optimize as m0:
+        # Step 1: fix growth rate
         rxn_growth = m0.reactions.get_by_id(growth_id)
         rxn_growth.lower_bound = dilu
-
-        m0.objective = glc_up_id
-        m0.objective.direction = 'min'
-        if warm_start:
-            working_model.objective = glc_up_id
-            working_model.objective.direction = 'min'
-        
         for T in Ts:
-            with m0 as m1:  
+            with m0 as m1:
+                opt_model = m0 if warm_start else m1
                 # Step 2: map temperature constraints. 
-                if warm_start:
-                    map_fNT(working_model,T,df, reference_model=m1)
-                    map_kcatT(working_model,T,df, reference_model=m1)
-                    set_NGAMT(working_model,T)
-                    set_sigma(working_model,sigma)
-                else:
-                    map_fNT(m1,T,df)
-                    map_kcatT(m1,T,df)
-                    set_NGAMT(m1,T)
-                    set_sigma(m1,sigma)
-                
-                try: 
-                    # Step 3: minimize the glucose uptake rate. Fix glucose uptake rate, minimize enzyme usage
-                    model_to_optimize = working_model if warm_start else m1
-                    solution1 = model_to_optimize.optimize(raise_error=True)
-                    model_to_optimize.reactions.get_by_id(glc_up_id).upper_bound = solution1.objective_value*1.001
-                    model_to_optimize.objective = prot_pool_id
-                    model_to_optimize.objective.direction = 'min'
-                    
-                    solution2 = model_to_optimize.optimize(raise_error=True)
-                    solutions.append(solution2)
+                map_fNT(opt_model,T,df, reference_model=reference_model)
+                map_kcatT(opt_model,T,df, reference_model=reference_model)
+                set_NGAMT(opt_model,T)
+                set_sigma(opt_model,sigma)
+                try:
+                    # Step 3: set objective function as minimizing glucose uptake rate and protein useage 
+                    cobra.util.add_lexicographic_constraints(opt_model, [glc_up_id, prot_pool_id], ['min', 'min'])
+                    solutions.append(opt_model.optimize())
                     logging.info('Model solved successfully')
                 except OptimizationError as err:
                     logging.info(f'Failed to solve the problem, problem: {str(err)}')

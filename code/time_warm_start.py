@@ -30,19 +30,19 @@ print(f"Computed aerobic conditions without warm start in {toc-tic} seconds.")
 
 # In[]
 tic = time.perf_counter()
-GEMS.aerobic(particle,warm_start=True)
+aerobic_warm_start = GEMS.aerobic(particle,warm_start=True)
 toc = time.perf_counter()
 print(f"Computed aerobic conditions with warm start in {toc-tic} seconds.")
 
 # In[]
 tic = time.perf_counter()
-GEMS.simulate_at_three_conditions_2(particle,warm_start=False)
+total_cold_start = GEMS.simulate_at_three_conditions_2(particle,warm_start=False)
 toc = time.perf_counter()
 print(f"Computed results at three conditions without warm start in {toc-tic} seconds.")
 
 # In[]
 tic = time.perf_counter()
-GEMS.simulate_at_three_conditions_2(particle,warm_start=True)
+total_warm_start = GEMS.simulate_at_three_conditions_2(particle,warm_start=True)
 toc = time.perf_counter()
 print(f"Computed results at three conditions with warm start in {toc-tic} seconds.")
 # %%
