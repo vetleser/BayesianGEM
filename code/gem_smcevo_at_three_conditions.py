@@ -62,7 +62,7 @@ def main():
     # In[ ]:
 
     rng = evo.default_rng(39322)
-    min_epsilon = -.1 # equivalent to r2 score of 1
+    min_epsilon = -1.0 # equivalent to r2 score of 1
     population_size = 100
     outfile = '../results/smcevo_gem_three_conditions_save_all_particles_refined.pkl'
 
