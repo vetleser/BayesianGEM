@@ -7,6 +7,7 @@ import cobra
 from cobra import Model
 from cobra.exceptions import OptimizationError
 from cobra.flux_analysis import flux_variability_analysis
+import gurobipy_helpers as helpers
 import logging
 
 from sympy import Float
@@ -214,6 +215,7 @@ def map_kcatT(model: Model,T: float,df: pd.DataFrame, reference_model: Model=Non
     # Gang Li, 2019-05-03
     #
     '''
+    warm_start = reference_model is not None
     met: cobra.Metabolite
     for met in model.metabolites:
         
@@ -245,7 +247,7 @@ def map_kcatT(model: Model,T: float,df: pd.DataFrame, reference_model: Model=Non
         for rxn in met.reactions:
             if rxn.id.startswith('draw_prot'): continue
 
-            if reference_model is not None:
+            if warm_start:
                 # assume that Topt in the original model is measured at Topt
                 rxn_id = rxn.id
                 reference_rxn = reference_model.reactions.get_by_id(rxn_id)
@@ -256,8 +258,15 @@ def map_kcatT(model: Model,T: float,df: pd.DataFrame, reference_model: Model=Non
             kcatT = calculate_kcatT(T,dHTH,dSTS,dCpu,kcatTopt,dCpt,Topt)
             if kcatT < 1e-32: kcatT = 1e-32
             new_coeff = -1/kcatT
-
-            change_rxn_coeff(rxn,met,new_coeff)
+            if warm_start:
+                rxn._metabolites[met] = new_coeff
+                {
+                    rxn.forward_variable: new_coeff,
+                    rxn.reverse_variable: -new_coeff,
+                    }
+                model.constraints
+            else:
+                change_rxn_coeff(rxn,met,new_coeff)
 
 def getNGAMT(T):
     # T is in K, a single value

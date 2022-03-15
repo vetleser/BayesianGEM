@@ -123,6 +123,7 @@ class SMCABC:
         
         for p in jobs: p.start()
         for p in jobs: p.join()
+
         
         distances = [None for _ in range(len(particles))]
         simulated_data = [None for _ in range(len(particles))]
