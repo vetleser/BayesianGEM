@@ -178,7 +178,9 @@ class GA:
                                for index,particle in enumerate(candidates)]
                 
                 for p in jobs: p.start()
-                for p in jobs: p.join()
+                # The timeout is an emergency hatch designed to catch 
+                # processes which for some reason are caught in a deadlock
+                for p in jobs: p.join(timeout=1000)
 
                 # Q may not always contain the result of all jobs we passed to it,
                 # this must be handled carefully
