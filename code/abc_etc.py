@@ -122,7 +122,9 @@ class SMCABC:
                                for index,particle in enumerate(particles)]
         
         for p in jobs: p.start()
-        for p in jobs: p.join()
+        # The timeout is an emergency hatch designed to catch 
+        # processes which for some reason are caught in a deadlock
+        for p in jobs: p.join(timeout=1000)
         
         distances = [None for _ in range(len(particles))]
         simulated_data = [None for _ in range(len(particles))]
