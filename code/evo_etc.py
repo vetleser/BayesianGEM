@@ -110,7 +110,7 @@ class GA:
         self.min_epsilon = min_epsilon
         self.Yobs = Yobs
         self.outfile = outfile
-        self.population: List[inspyred.ec.Individual] = []  # a list of populations [p1,p2...]
+        self.population: List[inspyred.ec.Individual] = []
         self.cores = cores    
         self.epsilons = [np.inf]          # min distance in each generation
         self.generation_size = generation_size   # number of particles to be simulated at each generation
@@ -132,7 +132,7 @@ class GA:
                 archive = []
             else:
                 archive.append(None)
-            self.population.append(population)
+            self.population = population
             max_generation_epsilon = max(p.fitness for p in population)
             self.epsilons.append(max_generation_epsilon)
             logging.info(f"Model epsilon {max_generation_epsilon}")
@@ -142,6 +142,8 @@ class GA:
 
 
         def terminator(population, num_generations, num_evaluations, args) -> bool:
+            n_generations = self.generations
+            logging.info(f"Running generation {n_generations+1} of {self.maxiter}")
             return self.epsilons[-1] <= self.min_epsilon or self.generations > self.maxiter
 
         # @evaluators.evaluator
@@ -176,7 +178,9 @@ class GA:
                                for index,particle in enumerate(candidates)]
                 
                 for p in jobs: p.start()
-                for p in jobs: p.join()
+                # The timeout is an emergency hatch designed to catch 
+                # processes which for some reason are caught in a deadlock
+                for p in jobs: p.join(timeout=1000)
 
                 # Q may not always contain the result of all jobs we passed to it,
                 # this must be handled carefully
@@ -308,7 +312,7 @@ class GA:
         self.rng = EvolutionGenerator.from_numpy_generator(self.rng)
         if self.generations > 0:
             # Restore computations from stored results
-            seeds : List[individualType] = [individual.candidate for individual  in self.population[-1]]
+            seeds : List[individualType] = [individual.candidate for individual  in self.population]
         else:
             seeds = None
 

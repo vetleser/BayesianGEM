@@ -1,10 +1,33 @@
+from typing import List
 import numpy as np
 from scipy.optimize import fsolve
 import pandas as pd
 import time
+import cobra
 from cobra import Model
 from cobra.exceptions import OptimizationError
+from cobra.flux_analysis import flux_variability_analysis
 import logging
+
+from sympy import Float
+
+T0 = 273.15
+
+def solve_unboundedness(model: Model, extreme_bound: float = 1000):
+    """This function ensures no bound has an infinite magnitude, but are set to a threshold
+    The input model is changed in-place
+
+    Args:
+        model (Model): A Cobra model to the modified
+        extreme_bound (float): The extreme absolute value for bounds. Any bound exceeding this will be set
+        to this value respecting the its sign
+    """
+    for reaction in model.reactions:
+        if reaction.lower_bound < extreme_bound:
+            reaction.lower_bound = - extreme_bound
+        if reaction.upper_bound > extreme_bound:
+            reaction.upper_bound = extreme_bound
+
 
 def get_dH_dS_dCpu_from_TmT90(Tm,T90):
     '''
@@ -60,7 +83,7 @@ def get_dH_dS_dCpu_from_TmLength(Tm,N):
     dCpu = fsolve(func,10000)[0]
     return dHTH,dSTS,dCpu
 
-def change_rxn_coeff(rxn,met,new_coeff):
+def change_rxn_coeff(rxn: cobra.Reaction,met: cobra.Metabolite,new_coeff: float):
     '''
     # This is based on the rxn.add_metabolites function. If there the metabolite is already in the reaction,
     # new and old coefficients will be added. For example, if the old coeff of metA is 1, use
@@ -73,7 +96,7 @@ def change_rxn_coeff(rxn,met,new_coeff):
 
 
 
-def get_dGu(T,dHTH,dSTS,dCpu):
+def get_dGu(T: float,dHTH: float,dSTS: float,dCpu: float):
     '''
     # calculate the deltaG of unfolding process at temperature T
     # dHTH, dSTS are enthalpy and entropy at TH and TS, repspectively
@@ -82,11 +105,11 @@ def get_dGu(T,dHTH,dSTS,dCpu):
     TH = 373.5;
     TS = 385;
 
-    dGu = dHTH +dCpu*(T-TH) -T*dSTS-T*dCpu*np.log(T/TS);
+    dGu: float = dHTH +dCpu*(T-TH) -T*dSTS-T*dCpu*np.log(T/TS);
     return dGu
 
 
-def get_fNT(T,dHTH,dSTS,dCpu):
+def get_fNT(T: float,dHTH: float,dSTS: float,dCpu: float):
     '''
     # Calculate the fraction of enzyme in native state
     # dHTH, dSTS are enthalpy and entropy at TH and TS, repspectively
@@ -95,11 +118,11 @@ def get_fNT(T,dHTH,dSTS,dCpu):
     '''
     R = 8.314;
     dGu = get_dGu(T,dHTH,dSTS,dCpu);
-    f = 1/(1+np.exp(-dGu/R/T));
+    f: float = 1/(1+np.exp(-dGu/R/T));
     return f
 
 
-def map_fNT(model,T,df,Tadj=0):
+def map_fNT(model: Model,T: float,df: pd.DataFrame,Tadj: float=0, reference_model: Model=None):
     '''
     # apply the fraction of enzymes in native state to each protein.
     # model, cobra model
@@ -107,6 +130,8 @@ def map_fNT(model,T,df,Tadj=0):
     # Tadj, This is to adjust the orginal denaturation curve by moving to left by
     # Tadj degrees.
     # df, a dataframe containing thermal parameters of enzymes: dHTH, dSTS, dCpu
+    # reference_model In the case of warm-starting FBA, the parameters to modify are fetched from the
+    # reference model cobra model.
     #
     #
     # Gang Li, 2019-05-03
@@ -121,19 +146,26 @@ def map_fNT(model,T,df,Tadj=0):
 
     '''
 
-    met = model.metabolites.prot_pool
+    met: cobra.Metabolite = model.metabolites.prot_pool
+    if reference_model is not None:
+        reference_met: cobra.Metabolite = reference_model.metabolites.prot_pool
 
+    rxn: cobra.Reaction
     for rxn in met.reactions:
         # this is to ignore reaction 'prot_pool_exchange': --> prot_pool
         if len(rxn.metabolites)<2: continue
 
-        uniprot_id = rxn.id.split('_')[-1]
+        uniprot_id: str = rxn.id.split('_')[-1]
         cols = ['dHTH', 'dSTS','dCpu','Topt']
-        [dHTH, dSTS,dCpu,topt]=df.loc[uniprot_id,cols]
+        [dHTH, dSTS,dCpu,topt] = df.loc[uniprot_id,cols]
         fNT = get_fNT(T+Tadj,dHTH,dSTS,dCpu)
         if fNT < 1e-32: fNT = 1e-32
-        new_coeff = rxn.metabolites[met]/fNT
-        
+        if reference_model is not None:
+            rxn_id = rxn.id
+            reference_rxn: float = reference_model.reactions.get_by_id(rxn_id)
+            new_coeff: float = reference_rxn.metabolites[reference_met]/fNT
+        else: 
+            new_coeff: float = rxn.metabolites[met]/fNT
         change_rxn_coeff(rxn,met,new_coeff)
         
 
@@ -168,19 +200,23 @@ def calculate_kcatT(T,dHTH,dSTS,dCpu,kcatTopt,dCpt,Topt):
     return kcatT
 
 
-def map_kcatT(model,T,df):
+def map_kcatT(model: Model,T: float,df: pd.DataFrame, reference_model: Model=None):
     '''
     # Apply temperature effect on enzyme kcat.
     # based on trainsition state theory
     # model, cobra model
     # T, temperature, in K
     # df, a dataframe containing thermal parameters of enzymes: dHTH, dSTS, dCpu, Topt
+    # reference_model In the case of warm-starting FBA, the parameters to modify are fetched from the
+    # reference model cobra model.
     # Ensure that Topt is in K. Other parameters are in standard units.
     #
     # Gang Li, 2019-05-03
     #
     '''
+    met: cobra.Metabolite
     for met in model.metabolites:
+        
 
         # look for those metabolites: prot_uniprotid
         if not met.id.startswith('prot_'): continue
@@ -188,6 +224,10 @@ def map_kcatT(model,T,df):
         # ingore metabolite: prot_pool
         if met.id == 'prot_pool': continue
         uniprot_id = met.id.split('_')[1]
+
+        if reference_model is not None:
+            met_id = met.id
+            reference_met = reference_model.metabolites.get_by_id(met_id)
 
         # Change kcat value.
         # pmet_r_0001 + 1.8518518518518518e-07 prot_P00044 + 1.8518518518518518e-07 prot_P32891 -->
@@ -201,14 +241,18 @@ def map_kcatT(model,T,df):
         cols = ['dHTH', 'dSTS','dCpu','Topt','dCpt']
         [dHTH, dSTS,dCpu,Topt,dCpt]=df.loc[uniprot_id,cols]
 
-
+        rxn: cobra.Reaction
         for rxn in met.reactions:
             if rxn.id.startswith('draw_prot'): continue
 
-            # assume that Topt in the original model is measured at Topt
-            kcatTopt = -1/rxn.metabolites[met]
-
-
+            if reference_model is not None:
+                # assume that Topt in the original model is measured at Topt
+                rxn_id = rxn.id
+                reference_rxn = reference_model.reactions.get_by_id(rxn_id)
+                kcatTopt = -1/reference_rxn.metabolites[reference_met]
+            else: 
+                # assume that Topt in the original model is measured at Topt
+                kcatTopt = -1/rxn.metabolites[met]
             kcatT = calculate_kcatT(T,dHTH,dSTS,dCpu,kcatTopt,dCpt,Topt)
             if kcatT < 1e-32: kcatT = 1e-32
             new_coeff = -1/kcatT
@@ -244,17 +288,22 @@ def set_sigma(model,sigma):
     rxn.upper_bound = 0.17866*sigma
 
 
-def simulate_growth(model: Model,Ts,sigma,df,Tadj=0):
+def simulate_fva(model: Model,Ts: List[float],sigma: float,df: pd.DataFrame,Tadj=0,processes: int=1) -> pd.DataFrame:
     '''
+    Simulate FVA on growth scenarios
     # model, cobra model
     # Ts, a list of temperatures in K
     # sigma, enzyme saturation factor
     # df, a dataframe containing thermal parameters of enzymes: dHTH, dSTS, dCpu, Topt
     # Ensure that Topt is in K. Other parameters are in standard units.
     # Tadj, as descrbed in map_fNT
-    #
+    # 
     '''
-    rs = list()
+    rs: List[pd.DataFrame] = list()
+    # This wierd DataFrame with zero columns is intended to prevent nasty errors when all
+    # FVA solutions fail
+    skeleton_df = pd.DataFrame({'reaction': [],'T': [], 'minimum': [], 'maximum': []})
+    rs.append(skeleton_df)
     for T in Ts:
         with model:
             # map temperature constraints
@@ -262,10 +311,59 @@ def simulate_growth(model: Model,Ts,sigma,df,Tadj=0):
             map_kcatT(model,T,df)
             set_NGAMT(model,T)
             set_sigma(model,sigma)
+            r = flux_variability_analysis(model=model, fraction_of_optimum=0.99, processes=processes)
+            logging.info("Model solved successfully")
+            r["T"] = T
+            r.reset_index(inplace=True)
+            r.rename(columns={'index': 'reaction'},inplace=True)
+            rs.append(r)
+            """
+            try:
+                    r = flux_variability_analysis(model=model, fraction_of_optimum=0.99)
+                    logging.info("Model solved successfully")
+                    r["T"] = T
+                    r.reset_index(inplace=True)
+                    r.rename(columns={'index': 'reaction'},inplace=True)
+                    rs.append(r)
+            except OptimizationError as err:
+                logging.info(f'Failed to solve the problem, problem: {str(err)}')
+            """
+    return pd.concat(rs)
+
+def simulate_growth(model: Model,Ts,sigma,df,Tadj=0, working_model: Model=None):
+    '''
+    # model, cobra model
+    # Ts, a list of temperatures in K
+    # sigma, enzyme saturation factor
+    # df, a dataframe containing thermal parameters of enzymes: dHTH, dSTS, dCpu, Topt
+    # working_model, If provided, warm-start FBA will be used for accelerating computations. The working model will be modified during this
+    # process
+    # Ensure that Topt is in K. Other parameters are in standard units.
+    # Tadj, as descrbed in map_fNT
+    #
+    '''
+    warm_start = working_model is not None
+    rs = list()
+    for T in Ts:
+        with model:
+            # map temperature constraints
+            if warm_start:
+                map_fNT(working_model,T,df, reference_model=model)
+                map_kcatT(working_model,T,df, reference_model=model)
+                set_NGAMT(working_model,T)
+                set_sigma(working_model,sigma)
+            else:
+                map_fNT(model,T,df)
+                map_kcatT(model,T,df)
+                set_NGAMT(model,T)
+                set_sigma(model,sigma)
 
             try:
-                 r = model.optimize(raise_error=True).objective_value
-                 logging.info("Model solved successfully")
+                if warm_start:
+                    r = working_model.optimize(raise_error=True).objective_value
+                else:
+                    r = model.optimize(raise_error=True).objective_value
+                logging.info("Model solved successfully")
             except OptimizationError as err:
                 logging.info(f'Failed to solve the problem, problem: {str(err)}')
                 r = 0
@@ -386,10 +484,11 @@ def calculate_thermal_params(params):
     
     return thermalparams
         
-        
-def simulate_chomostat(model: Model,dilu,params,Ts,sigma,growth_id,glc_up_id,prot_pool_id):
+
+def fva_chemostat(model: Model,dilu: float,params: pd.DataFrame,Ts: List[Float],sigma: float,
+growth_id: str,glc_up_id: str,prot_pool_id: str, processes: int=1) -> pd.DataFrame:
     '''
-    # Do simulation on a given dilution and a list of temperatures. 
+    # Do FVA simulation on a given dilution and a list of temperatures. 
     # model, cobra model
     # dilu, dilution rate
     # params: a dataframe containing Tm, T90, Length, dCpt, Topt. All temperatures are in K.
@@ -399,7 +498,11 @@ def simulate_chomostat(model: Model,dilu,params,Ts,sigma,growth_id,glc_up_id,pro
     # glc_up_id, reaction id of glucose uptake reaction
     # prot_pool_id, reaction id of prot_pool_exchange. --> prot_pool
     '''
-    solutions = list() # corresponding to Ts. a list of solutions from model.optimize()
+    solutions: List[pd.DataFrame] = list() # corresponding to Ts. a list of solutions from model.optimize()
+    # This wierd DataFrame with zero columns is intended to prevent nasty errors when all
+    # FVA solutions fail
+    skeleton_df = pd.DataFrame({'reaction': [],'T': [], 'minimum': [], 'maximum': []})
+    solutions.append(skeleton_df)
     df = calculate_thermal_params(params)
     with model as m0:
         # Step 1: fix growth rate, set objective function as minimizing glucose uptatke rate
@@ -424,8 +527,56 @@ def simulate_chomostat(model: Model,dilu,params,Ts,sigma,growth_id,glc_up_id,pro
                     m1.objective = prot_pool_id
                     m1.objective.direction = 'min'
                     
-                    solution2 = m1.optimize(raise_error=True)
-                    solutions.append(solution2)
+                    fva_solution = flux_variability_analysis(m1,fraction_of_optimum=0.99, processes=processes)
+                    logging.info('FVA problems solved successfully')
+                    fva_solution["T"] = T
+                    fva_solution.reset_index(inplace=True)
+                    fva_solution.rename(columns={'index': 'reaction'},inplace=True)
+                    solutions.append(fva_solution)
+                except OptimizationError as err:
+                    logging.info(f'Failed to solve the problem, problem: {str(err)}')
+                    #solutions.append(None)
+                    break # because model has been impaired. Further simulation won't give right output.
+                
+    return pd.concat(solutions)
+
+
+def simulate_chomostat(model: Model,dilu,params,Ts,sigma,growth_id,glc_up_id,prot_pool_id, working_model: Model=None):
+    '''
+    # Do simulation on a given dilution and a list of temperatures. 
+    # model, cobra model
+    # dilu, dilution rate
+    # params: a dataframe containing Tm, T90, Length, dCpt, Topt. All temperatures are in K.
+    # Ts, a list of temperatures to simulate at. in K
+    # sigma, saturation factor
+    # growth_id, reaction of of growth
+    # glc_up_id, reaction id of glucose uptake reaction
+    # prot_pool_id, reaction id of prot_pool_exchange. --> prot_pool
+    # working_model, If provided, warm-start FBA will be used for accelerating computations. The working model will be modified during this
+    # process
+
+    '''
+    warm_start = working_model is not None
+    reference_model = model if warm_start else None
+    solutions = list() # corresponding to Ts. a list of solutions from model.optimize()
+    df = calculate_thermal_params(params)
+    model_to_optimize = working_model if warm_start else model
+    with model_to_optimize as m0:
+        # Step 1: fix growth rate
+        rxn_growth = m0.reactions.get_by_id(growth_id)
+        rxn_growth.lower_bound = dilu
+        for T in Ts:
+            with m0 as m1:
+                opt_model = m0 if warm_start else m1
+                # Step 2: map temperature constraints. 
+                map_fNT(opt_model,T,df, reference_model=reference_model)
+                map_kcatT(opt_model,T,df, reference_model=reference_model)
+                set_NGAMT(opt_model,T)
+                set_sigma(opt_model,sigma)
+                try:
+                    # Step 3: set objective function as minimizing glucose uptake rate and protein useage 
+                    cobra.util.add_lexicographic_constraints(opt_model, [glc_up_id, prot_pool_id], ['min', 'min'])
+                    solutions.append(opt_model.optimize())
                     logging.info('Model solved successfully')
                 except OptimizationError as err:
                     logging.info(f'Failed to solve the problem, problem: {str(err)}')

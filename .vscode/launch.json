@@ -4,17 +4,24 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-
-
         {
             "name": "Python: Current File",
             "type": "python",
-            "justMyCode": false,
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "cwd": "${fileDirname}",
-            "subProcess": true
+            "justMyCode": true
+        },
+        {
+            "version": "2.0.0",
+            "tasks": [
+                {
+                    "type": "austin",
+                    "file": "main.py",
+                    "args": ["--verbose"],
+                    "label": "Profile main.py",
+                }
+            ]
         }
     ]
 }

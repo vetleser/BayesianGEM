@@ -20,6 +20,7 @@ import numpy.typing as npt
 
 simResultType = Dict[str, Dict[str, npt.NDArray[np.float64]]]
 candidateType = Dict[str, float]
+prior_type = Dict[str, RV]
 distanceArgType = Dict[str, npt.NDArray[np.float64]]
 
 # In[]
@@ -62,7 +63,7 @@ class RV:
 # In[ ]:
 
 class SMCABC:
-    def __init__(self,simulator: Callable[[candidateType], simResultType],priors: candidateType,min_epsilon: float,population_size: int,
+    def __init__(self,simulator: Callable[[candidateType], simResultType],priors: prior_type,min_epsilon: float,population_size: int,
     distance_function: Callable[[distanceArgType, distanceArgType], float],
                  Yobs: distanceArgType,outfile: str,cores: int=cpu_count(),generation_size: int =128, maxiter: int=100000):
         '''
@@ -87,7 +88,7 @@ class SMCABC:
         self.min_epsilon = min_epsilon
         self.Yobs = Yobs
         self.outfile = outfile
-        self.population: List[List[candidateType]] = []  # a list of populations [p1,p2...]
+        self.population: List[candidateType] = []  # a list of the current population
         self.distances = []    # a list of distances for particles in population
         self.simulations = 0  # number of simulations performed 
         self.cores = cores    
@@ -101,6 +102,7 @@ class SMCABC:
         self.all_particles: List[candidateType] = []       # store all simulated particles
         self.all_distances: List[float] = []       # store all simulated distances
         self.maxiter = maxiter
+        self.iterations = 0
         
     
     def simulate_one(self,particle,index,Q):
@@ -120,7 +122,9 @@ class SMCABC:
                                for index,particle in enumerate(particles)]
         
         for p in jobs: p.start()
-        for p in jobs: p.join()
+        # The timeout is an emergency hatch designed to catch 
+        # processes which for some reason are caught in a deadlock
+        for p in jobs: p.join(timeout=1000)
         
         distances = [None for _ in range(len(particles))]
         simulated_data = [None for _ in range(len(particles))]
@@ -200,7 +204,7 @@ class SMCABC:
         self.population = list(combined_particles[sort_index][:self.population_size])
         self.distances = list(combined_distances[sort_index][:self.population_size])
         self.simulated_data = list(combined_simulated[sort_index][:self.population_size])
-        self.epsilons.append(np.max(self.distances[np.isfinite(self.distances)]) if len(np.isfinite) > 0 else np.inf)
+        self.epsilons.append(np.max(self.distances))
         
         logging.info(f"Model epsilon: {str(self.epsilons[-1])}")
         
@@ -219,7 +223,9 @@ class SMCABC:
         
     
     def run_simulation(self):
-        for _ in range(self.maxiter):
+        self.iterations = len(self.epsilons)-1
+        while self.iterations < self.maxiter:
+            logging.info(f"Running iteration {self.iterations+1} of {self.maxiter}")
             if self.epsilons[-1] <= self.min_epsilon:
                 logging.info("Bayesian fitting procedure ended successfully")
                 break
@@ -227,6 +233,7 @@ class SMCABC:
             self.update_population(particles_t, simulated_data_t, distances_t)
             self.update_posterior()
             pickle.dump(self,open(self.outfile,'wb'))
+            self.iterations += 1
             #logging.info(f"epsilon: {self.epsilons[-1]}")
         else:
             logging.warning("Maximum number of iterations reached")

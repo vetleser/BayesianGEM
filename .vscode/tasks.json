@@ -1,0 +1,12 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "austin",
+            "file": "code/time_warm_start.py",
+            "args": ["--verbose"],
+            "label": "Profile model evalution",
+            "command": ["cd code/"]
+        }
+    ]
+}

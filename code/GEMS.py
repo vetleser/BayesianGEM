@@ -4,6 +4,7 @@
 # In[1]:
 
 
+from typing import Dict, Iterable
 import pandas as pd
 import numpy as np
 import pickle
@@ -15,10 +16,28 @@ from sklearn.metrics import r2_score
 from cobra.exceptions import Infeasible
 
 
-# ### save .pkl model
-# mae,man = pickle.load(open('../models/models.pkl','rb'))
+candidateType = Dict[str, float]
+
+# In[]
+def augment_model(model):
+    # This function is intended to resolve
+    # technical problems which arise when copying models
+    # and doing other special operations such as summary
+    model._annotation = dict()
+    model._tolerance = 1e-6
+    model.groups = []
+
+_mae,_man = pickle.load(open('../models/models.pkl','rb'))
+augment_model(_mae)
+augment_model(_man)
+_working_mae = _mae.copy()
+_working_man = _man.copy()
+### save .pkl model
 # pickle.dump(mae,open('../models/aerobic.pkl','wb'))
 # pickle.dump(man,open('../models/anaerobic.pkl','wb'))
+
+
+
 
 # ### Load data
 
@@ -109,12 +128,17 @@ def format_input(thermalParams):
 # In[4]:
 
 
-def aerobic(thermalParams):
+def aerobic(thermalParams, warm_start=True):
     # thermalParams: a dictionary with ids like uniprotid_Topt 
     df,new_params = format_input(thermalParams)
-    mae = pickle.load(open(os.path.join(path,'models/aerobic.pkl'),'rb'))
+    if warm_start:
+        mae = _mae
+        working_model = _working_mae
+    else:
+        mae = pickle.load(open(os.path.join(path,'models/aerobic.pkl'),'rb'))
+        working_model = None
     
-    rae = etc.simulate_growth(mae,dfae_batch.index+273.15,df=df,sigma=0.5)
+    rae = etc.simulate_growth(mae,dfae_batch.index+273.15,df=df,sigma=0.5, working_model=working_model)
     
     rae = [0 if x is None else x for x in rae]
     rae = [0 if x<1e-3 else x for x in rae]
@@ -129,11 +153,16 @@ def aerobic(thermalParams):
 # In[ ]:
 
 
-def anaerobic(thermalParams):
+def anaerobic(thermalParams, warm_start=True):
     df,new_params = format_input(thermalParams)
-    man = pickle.load(open(os.path.join(path,'models/anaerobic.pkl'),'rb'))
+    if warm_start:
+        man = _man
+        working_model = _working_man
+    else:
+        man = pickle.load(open(os.path.join(path,'models/anaerobic.pkl'),'rb'))
+        working_model = None
 
-    ran = etc.simulate_growth(man,dfan_batch.index+273.15,df=df,sigma=0.5)
+    ran = etc.simulate_growth(man,dfan_batch.index+273.15,df=df,sigma=0.5,working_model=working_model)
     ran = [0 if x is None else x for x in ran]
     rexp = anaerobic_exp_data()['data']
     
@@ -146,11 +175,17 @@ def anaerobic(thermalParams):
 # In[ ]:
 
 
-def anaerobic_reduced(thermalParams):
+def anaerobic_reduced(thermalParams,warm_start=True):
     df,new_params = format_input(thermalParams)
     man = pickle.load(open(os.path.join(path,'models/anaerobic.pkl'),'rb'))
+    if warm_start:
+        man = _man
+        working_model = _working_man
+    else:
+        man = pickle.load(open(os.path.join(path,'models/anaerobic.pkl'),'rb'))
+        working_model = None
     sel_temp = [5.0,15.0,26.3,30.0,33.0,35.0,37.5,40.0]
-    ran = etc.simulate_growth(man,np.array(sel_temp)+273.15,df=df,sigma=0.5)
+    ran = etc.simulate_growth(man,np.array(sel_temp)+273.15,df=df,sigma=0.5, working_model=working_model)
     ran = [0 if x is None else x for x in ran]
     rexp = dfan_batch.loc[sel_temp,'r_an'].values
     #anaerobic_exp_data()['data']
@@ -166,9 +201,14 @@ def anaerobic_reduced(thermalParams):
 # In[ ]:
 
 
-def chemostat(thermalParams):
+def chemostat(thermalParams, warm_start=True):
     df,new_params = format_input(thermalParams)
-    mae = pickle.load(open(os.path.join(path,'models/aerobic.pkl'),'rb'))
+    if warm_start:
+        mae = _mae
+        working_model = _working_mae
+    else:
+        mae = pickle.load(open(os.path.join(path,'models/aerobic.pkl'),'rb'))
+        working_model = None
     exp_flux = chemostat_exp_data()['data']
     
     growth_id = 'r_2111'
@@ -178,7 +218,7 @@ def chemostat(thermalParams):
     sigma = 0.5
     
     solution = etc.simulate_chomostat(mae,dilut,new_params,dfchemo.index+273.15,
-                                            sigma,growth_id,glc_up_id,prot_pool_id)
+                                            sigma,growth_id,glc_up_id,prot_pool_id, working_model=working_model)
 
     # Extract fluxes
     rxn_lst = [
@@ -202,21 +242,82 @@ def chemostat(thermalParams):
 
     return  {'data':np.array(pred_flux)}
 
+# In[]
+
+def aerobic_fva(thermalParams: candidateType, processes=1):
+    """
+    Run FVA on aerobic conditions
+
+    Args:
+        thermalParams: A dictionary of the model's thermal parameters
+    """
+    # thermalParams: a dictionary with ids like uniprotid_Topt
+    df,new_params = format_input(thermalParams)
+    mae = pickle.load(open(os.path.join(path,'models/aerobic.pkl'),'rb'))
+    etc.solve_unboundedness(mae)
+    rae = etc.simulate_fva(mae,dfae_batch.index+273.15,df=df,sigma=0.5, processes=processes)
+    return rae
+
+
+def anaerobic_reduced_fva(thermalParams: candidateType, processes=1):
+    """
+    Run FVA under anaerobic conditions
+
+    Args:
+        thermalParams: A dictionary of the model's thermal parameters
+    """
+    # thermalParams: a dictionary with ids like uniprotid_Topt 
+    df,new_params = format_input(thermalParams)
+    mae = pickle.load(open(os.path.join(path,'models/anaerobic.pkl'),'rb'))
+    etc.solve_unboundedness(mae)
+    sel_temp = [5.0,15.0,26.3,30.0,33.0,35.0,37.5,40.0]
+    ran = etc.simulate_fva(mae,np.array(sel_temp+273.15,df=df,sigma=0.5), processes=processes)
+    return ran
+
+
+def chemostat_fva(thermalParams, processes=1):
+    """
+    Run FVA under chemostat conditions
+
+    Args:
+        thermalParams: A dictionary of the model's thermal parameters
+    """
+    df,new_params = format_input(thermalParams)
+    mae = pickle.load(open(os.path.join(path,'models/aerobic.pkl'),'rb'))
+    etc.solve_unboundedness(mae)
+    growth_id = 'r_2111'
+    glc_up_id = 'r_1714_REV'
+    prot_pool_id = 'prot_pool_exchange'
+    dilut = 0.1
+    sigma = 0.5
+    
+    solution = etc.fva_chemostat(mae,dilut,new_params,dfchemo.index+273.15,
+                                            sigma,growth_id,glc_up_id,prot_pool_id, processes=processes)
+    return  solution
+
+# In[]
+
+def run_fva_at_three_conditions(thermalParams, processes = 1):
+    fva_functions = [aerobic_fva, anaerobic_reduced_fva, chemostat_fva]
+    condition_names = ["aerobic", "anaerobic", "chemostat"]
+    fva_results: Iterable[pd.DataFrame] = map(lambda f, x: f(thermalParams, processes=processes).assign(condition=x), zip(fva_functions,condition_names))
+    return pd.concat(fva_results)
+
 
 # In[ ]:
 
 
-def simulate_at_three_conditions(args,distance_function,Yobs,min_epsilon):
+def simulate_at_three_conditions(args,distance_function,Yobs,min_epsilon, warm_start=True):
     
-    data_batch = aerobic(args)['data']
+    data_batch = aerobic(args,warm_start=warm_start)['data']
     d_ae = distance_function(Yobs['rae'],data_batch)
     if d_ae < min_epsilon['rae']: return False, {}, {}
     
-    data_batch_an = anaerobic_reduced(args)['data']
+    data_batch_an = anaerobic_reduced(args,warm_start=warm_start)['data']
     d_an = distance_function(Yobs['ran'],data_batch_an)
     if d_an < min_epsilon['ran']: return False, {}, {}
     
-    data_chemo = chemostat(args)['data']
+    data_chemo = chemostat(args,warm_start=warm_start)['data']
     d_c = distance_function(Yobs['chemostat'],data_chemo)
     if d_c < min_epsilon['chemostat']: return False, {}, {}
     return True,{'rae':data_batch,'chemostat':data_chemo,'ran':data_batch_an},{'rae':d_ae,'chemostat':d_c,'ran':d_an}
@@ -225,10 +326,10 @@ def simulate_at_three_conditions(args,distance_function,Yobs,min_epsilon):
 # In[ ]:
 
 
-def simulate_at_three_conditions_2(args):
-    data_batch = aerobic(args)['data']
-    data_batch_an = anaerobic_reduced(args)['data']
-    data_chemo = chemostat(args)['data']
+def simulate_at_three_conditions_2(args, warm_start=True):
+    data_batch = aerobic(args,warm_start=warm_start)['data']
+    data_batch_an = anaerobic_reduced(args,warm_start=warm_start)['data']
+    data_chemo = chemostat(args,warm_start=warm_start)['data']
     
     return {'rae':data_batch,'chemostat':data_chemo,'ran':data_batch_an}
 

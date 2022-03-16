@@ -62,9 +62,9 @@ def main():
     # In[ ]:
 
     rng = evo.default_rng(39322)
-    min_epsilon = -.9 # equivalent to r2 score of 1
+    min_epsilon = -1.0 # equivalent to r2 score of 1
     population_size = 100
-    outfile = '../results/smcevo_gem_three_conditions_save_all_particles.pkl'
+    outfile = '../results/smcevo_gem_three_conditions_save_all_particles_refined.pkl'
 
 
     # In[ ]:
@@ -72,6 +72,8 @@ def main():
 
     if not os.path.exists(outfile):
         logging.info('Initialize model')
+        # Parameters are set to generate 128 children per generation in order to provide 
+        # comparable results with the Bayesian fitting algorithm
         model = evo.GA(simulator= GEMS.simulate_at_three_conditions_2,
                             priors=priors,
                             min_epsilon=min_epsilon,
@@ -79,10 +81,12 @@ def main():
                             distance_function=GEMS.distance_2,
                             Yobs=Yobs,
                             outfile=outfile,
-                            maxiter=400,
+                            maxiter=500,
                             rng=rng,
                             mutation_frequency=100,
-                            mutation_prob=.5)
+                            mutation_prob=.5,
+                            selection_proportion=0.32,
+                            n_children=8)
     else: 
         model = dill.load(open(outfile,'rb'))
 
