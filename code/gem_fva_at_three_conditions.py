@@ -47,5 +47,5 @@ rename({"sampled_particle": "particle"}).
 assign(fva_res = lambda df: cpu_pool.map(func=GEMS.run_fva_at_three_conditions,iterable=df.particle))
 )
 logging.info("Saving results")
-pickle.dump(obj=fva_frame)
+pickle.dump(obj=fva_frame, file=open("../results/permuted_smcabc_res/fva_at_three_conditions",'wb'))
 logging.info("DONE")
