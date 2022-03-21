@@ -21,7 +21,7 @@ cpu_pool = multiprocessing.Pool(processes=N_CORES)
 candidateType = Dict[str, float]
 
 def read_posterior_particles(filename: str):
-    model: etc.SMCABC = pickle.load(open(file=filename,mode='wb'))
+    model: etc.SMCABC = pickle.load(open(file=filename,mode='rb'))
     return get_posterior_particles(model=model)
 
 def get_posterior_particles(model: etc.SMCABC):
