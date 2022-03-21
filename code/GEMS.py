@@ -14,6 +14,7 @@ import logging
 from sklearn.metrics import mean_squared_error as MSE
 from sklearn.metrics import r2_score
 from cobra.exceptions import Infeasible
+from itertools import starmap
 
 
 candidateType = Dict[str, float]
@@ -300,7 +301,7 @@ def chemostat_fva(thermalParams, processes=1):
 def run_fva_at_three_conditions(thermalParams, processes = 1):
     fva_functions = [aerobic_fva, anaerobic_reduced_fva, chemostat_fva]
     condition_names = ["aerobic", "anaerobic", "chemostat"]
-    fva_results: Iterable[pd.DataFrame] = map(lambda f, x: f(thermalParams, processes=processes).assign(condition=x), zip(fva_functions,condition_names))
+    fva_results: Iterable[pd.DataFrame] = starmap(lambda f, x: f(thermalParams, processes=processes).assign(condition=x), zip(fva_functions,condition_names))
     return pd.concat(fva_results)
 
 
