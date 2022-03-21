@@ -21,7 +21,7 @@ cpu_pool = multiprocessing.Pool(processes=N_CORES)
 candidateType = Dict[str, float]
 
 def read_posterior_particles(filename: str):
-    model: etc.SMCABC = pickle.load(open(file=filename,mode='rb'))
+    model: etc.SMCABC = pickle.load(open(file=filename,mode='wb'))
     return get_posterior_particles(model=model)
 
 def get_posterior_particles(model: etc.SMCABC):
@@ -43,7 +43,7 @@ reduced_simulation_skeleton["sampled_particles"] = [rng.choice(a=particle_collec
 logging.info("Running FVA")
 fva_frame = (reduced_simulation_skeleton[["origin","sampled_particles"]].
 explode("sampled_particles",ignore_index=True).
-rename({"sampled_particles": "particle"}).
+rename(columns={"sampled_particles": "particle"}).
 assign(fva_res = lambda df: cpu_pool.map(func=GEMS.run_fva_at_three_conditions,iterable=df.particle))
 )
 logging.info("Saving results")
