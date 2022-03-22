@@ -14,24 +14,39 @@ import logging
 from sklearn.metrics import mean_squared_error as MSE
 from sklearn.metrics import r2_score
 from cobra.exceptions import Infeasible
+import reframed
 
 
 candidateType = Dict[str, float]
 
 # In[]
-def augment_model(model):
-    # This function is intended to resolve
-    # technical problems which arise when copying models
-    # and doing other special operations such as summary
-    model._annotation = dict()
-    model._tolerance = 1e-6
-    model.groups = []
+def models_init():
+    def augment_model(model):
+        # This function is intended to resolve
+        # technical problems which arise when copying models
+        # and doing other special operations such as summary
+        model._annotation = dict()
+        model._tolerance = 1e-6
+        model.groups = []
+    _mae_cobra,_man_cobra = pickle.load(open('../models/models.pkl','rb'))
+    augment_model(_mae_cobra)
+    augment_model(_man_cobra)
+    global _mae, _man
+    _mae = reframed.from_cobrapy(_mae_cobra)
+    _man = reframed.from_cobrapy(_man_cobra)
+    reframed.set_default_solver('gurobi')
+    global _working_mae, _working_man
+    _working_mae = _mae.copy()
+    _working_man = _man.copy()
+    global _mae_solver, _man_solver
+    _mae_solver = reframed.solver_instance(_working_mae)
+    _man_solver = reframed.solver_instance(_working_man)
 
-_mae,_man = pickle.load(open('../models/models.pkl','rb'))
-augment_model(_mae)
-augment_model(_man)
-_working_mae = _mae.copy()
-_working_man = _man.copy()
+models_init()
+
+
+
+
 ### save .pkl model
 # pickle.dump(mae,open('../models/aerobic.pkl','wb'))
 # pickle.dump(man,open('../models/anaerobic.pkl','wb'))
@@ -134,11 +149,12 @@ def aerobic(thermalParams, warm_start=True):
     if warm_start:
         mae = _mae
         working_model = _working_mae
+        rae = etc.simulate_growth(mae,dfae_batch.index+273.15,df=df,sigma=0.5, working_model=working_model)
+
     else:
         mae = pickle.load(open(os.path.join(path,'models/aerobic.pkl'),'rb'))
         working_model = None
-    
-    rae = etc.simulate_growth(mae,dfae_batch.index+273.15,df=df,sigma=0.5, working_model=working_model)
+        rae = etc.simulate_growth(mae,dfae_batch.index+273.15,df=df,sigma=0.5, working_model=working_model)    
     
     rae = [0 if x is None else x for x in rae]
     rae = [0 if x<1e-3 else x for x in rae]
