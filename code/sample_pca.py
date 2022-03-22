@@ -76,7 +76,8 @@ def df_dict_helper(series):
 
 with multiprocessing.Pool(4) as p:
     job_dict = {name: group[name] for name, group in model_frame["particle_df"].groupby(level="origin")}
-    pca_replication_ordinations = dict(job_dict.keys(), p.map(df_dict_helper, job_dict.values()))
+    raw_results = p.map(df_dict_helper, job_dict.values())
+    pca_replication_ordinations = dict(zip(job_dict.keys(), raw_results))
 
 dump_pickle(pca_replication_ordinations,"../results/pca_replication_ordinations.pkl")
 

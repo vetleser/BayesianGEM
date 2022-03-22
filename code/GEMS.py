@@ -272,7 +272,7 @@ def anaerobic_reduced_fva(thermalParams: candidateType, processes=1):
     mae = pickle.load(open(os.path.join(path,'models/anaerobic.pkl'),'rb'))
     etc.solve_unboundedness(mae)
     sel_temp = [5.0,15.0,26.3,30.0,33.0,35.0,37.5,40.0]
-    ran = etc.simulate_fva(mae,np.array(sel_temp+273.15,df=df,sigma=0.5), processes=processes)
+    ran = etc.simulate_fva(mae,np.array(sel_temp)+273.15,df=df,sigma=0.5, processes=processes)
     return ran
 
 
