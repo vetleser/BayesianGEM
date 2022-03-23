@@ -5,8 +5,6 @@ import pickle
 import pandas as pd
 import numpy as np
 from sklearn.decomposition import PCA
-import evo_etc
-import multiprocessing
 
 # Convenient pickle wrappers
 def load_pickle(filename):
@@ -21,14 +19,15 @@ def combine_dataframes_for_models(df_dict):
     augmented_df_dict = {label: df.copy() for label, df in df_dict.items()}
     print("Copying done")
     for label, df in augmented_df_dict.items():
-        df["model"] = label
+        df["origin"] = label[0]
+        df["status"] = label[1]
         df.reset_index()
     print("Labelling done")
     return pd.concat(augmented_df_dict.values(), ignore_index=True)
 
 def perform_pca_on_parameters(df):
     # 1. normalize all columns to a standard normal distribution
-    X, y, model, period = df.values[:,:-3], df.values[:,-3], df.values[:,-2], df.values[:,-1]
+    X = df.values[:,:-3]
     X_n = np.zeros_like(X)    
     for i in range(X_n.shape[1]): X_n[:,i] = (X[:,i]-np.mean(X[:,i]))/np.std(X[:,i])
     pca = PCA(n_components=2)

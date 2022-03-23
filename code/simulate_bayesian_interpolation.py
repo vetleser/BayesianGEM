@@ -16,7 +16,7 @@ import pandas as pd
 import pickle
 import permute_parameters
 import logging
-import etcpy as etc
+import abc_etc as etc
 import numpy.typing as npt
 from itertools import combinations
 from multiprocessing import Process,cpu_count,Manager
