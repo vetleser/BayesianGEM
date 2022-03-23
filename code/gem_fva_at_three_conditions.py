@@ -28,24 +28,21 @@ def get_posterior_particles(model: etc.SMCABC):
     return [particle for particle, distance in
      zip(model.all_particles,model.all_distances) if distance < -0.90]
 
-def run_fva_on_particles(particle_list):
-    pass
-
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 logging.info("Reading data")
 full_simulation_skeleton: pd.DataFrame = pickle.load(open("../results/permuted_smcabc_res/simulation_skeleton.pkl",'rb'))
-reduced_simulation_skeleton = full_simulation_skeleton.loc[full_simulation_skeleton.status == "original", ["origin","outfile"]]
+reduced_simulation_skeleton = full_simulation_skeleton.loc[:, ["origin","status","outfile"]]
 reduced_simulation_skeleton["posterior_particles"] = list(map(read_posterior_particles,  
 reduced_simulation_skeleton.outfile))
 reduced_simulation_skeleton["sampled_particles"] = [rng.choice(a=particle_collection,size=N_SAMPLES,replace=True) for
  particle_collection in reduced_simulation_skeleton["posterior_particles"]]
 logging.info("Running FVA")
-fva_frame = (reduced_simulation_skeleton[["origin","sampled_particles"]].
+fva_frame = (reduced_simulation_skeleton[["origin","status", "sampled_particles"]].
 explode("sampled_particles",ignore_index=True).
 rename(columns={"sampled_particles": "particle"}).
 assign(fva_res = lambda df: cpu_pool.map(func=GEMS.run_fva_at_three_conditions,iterable=df.particle))
 )
 logging.info("Saving results")
-pickle.dump(obj=fva_frame, file=open("../results/permuted_smcabc_res/fva_at_three_conditions",'wb'))
+pickle.dump(obj=fva_frame, file=open("../results/permuted_smcabc_res/fva_at_three_conditions.pkl",'wb'))
 logging.info("DONE")

@@ -15,33 +15,6 @@ def load_pickle(filename):
 def dump_pickle(obj,filename):
     return pickle.dump(obj=obj,file=open(file=filename, mode='wb'))
 
-def build_a_dataframe_for_all_particles(results, n_priors = 128, r2_threshold = 0.9, convert_results=False):
-    columns = list(results.all_particles[0].keys())
-    columns.sort()
-    print("Iterating over particles")
-    data = list()
-    for p in results.all_particles:
-        if convert_results:
-            p_refined = evo_etc.convert_to_raw_particle(p)
-        else:
-            p_refined = p
-        data.append([p_refined[k] for k in columns])
-    print("Creating Data Frame")
-    df = pd.DataFrame(data=data,columns=columns)
-    df['r2'] = results.all_distances
-    print(df.shape)
-    
-    # Remove samples with a R2 score smaller than -3
-    print("Doing filtering and labelling of Data Frame")
-    df['r2'] = -df['r2']
-    sel_index = df.index[df['r2']>-3]    
-    df = df.loc[sel_index,:]
-    df["period"] = "Intermediate"
-    df.loc[:n_priors,"period"] = "Prior"
-    df.loc[df["r2"] > r2_threshold,"period"] = 'Posterior'
-    print(df.shape)
-
-    return df
 
 def combine_dataframes_for_models(df_dict):
     # augmented_df_list =[ df.assign(model = lambda df: label)  for df, label in zip(df_list, index)]
@@ -65,23 +38,8 @@ def perform_pca_on_parameters(df):
 
 model_frame = load_pickle("../results/permuted_smcabc_res/result_model_frame.pkl")
 
-def df_dict_helper(series):
-        df_dict = {index: value for index, value in series.iteritems()}
-        combined_df = combine_dataframes_for_models(df_dict)
-        PCS, EV = perform_pca_on_parameters(combined_df)
-        # This is a dirty trick to prevent variable unpacking and throwing away
-        # the EV part of the result
-        return PCS, EV
-
-
-with multiprocessing.Pool(4) as p:
-    job_dict = {name: group[name] for name, group in model_frame["particle_df"].groupby(level="origin")}
-    raw_results = p.map(df_dict_helper, job_dict.values())
-    pca_replication_ordinations = dict(zip(job_dict.keys(), raw_results))
-
-dump_pickle(pca_replication_ordinations,"../results/pca_replication_ordinations.pkl")
-
-original_particle_df_dict = {name: group[name]["original"] for name, group in model_frame["particle_df"].groupby(level="origin")}
-combined_original_df = combine_dataframes_for_models(original_particle_df_dict)
-pca_original_ordination = perform_pca_on_parameters(combined_original_df)
-dump_pickle(pca_original_ordination,"../results/pca_original_ordination.pkl")
+full_particle_df_dict = {distribution: df for distribution, df in model_frame["particle_df"].iteritems()}
+combined_df = combine_dataframes_for_models(full_particle_df_dict)
+dump_pickle(combined_df, "../results/permuted_smcabc_res/combined_particle_df.pkl")
+pca_ordination = perform_pca_on_parameters(combined_df)
+dump_pickle(pca_ordination,"../results/permuted_smcabc_res/pca_full_ordination.pkl")

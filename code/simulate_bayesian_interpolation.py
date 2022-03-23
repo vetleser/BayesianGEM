@@ -16,6 +16,7 @@ import pandas as pd
 import pickle
 import permute_parameters
 import logging
+import etcpy as etc
 import numpy.typing as npt
 from itertools import combinations
 from multiprocessing import Process,cpu_count,Manager
@@ -81,18 +82,24 @@ def calculate_distances_parallel(particles):
 
 # In[3]:
 
+def read_posterior_particles(filename: str):
+    model: etc.SMCABC = pickle.load(open(file=filename,mode='rb'))
+    return get_posterior_particles(model=model)
+
+def get_posterior_particles(model: etc.SMCABC):
+    return [particle for particle, distance in
+     zip(model.all_particles,model.all_distances) if distance < -0.90]
+
 def extract_posterior_particles(model: abc.SMCABC, r2_threshold = 0.9):
     posterior_idxs = np.nonzero(np.array(model.all_distances) < -r2_threshold)[0]
     return [model.all_particles[idx] for idx in posterior_idxs] 
 
 
-n_permutations = 3
-infiles = ['../results/smcabc_gem_three_conditions_save_all_particles.pkl'] + [f'../results/smcabc_gem_three_conditions_permuted_{i}_save_all_particles.pkl' for i in [0, 1]]
-model_frame = pd.DataFrame({'origin' : ['unpermuted', 'permuted_0', 'permuted_1'], 'file_path': infiles})
-model_frame.set_index('origin', inplace=True)
-modeling_results = [pickle.load(open(infile,'rb')) for infile in model_frame['file_path']]
-model_frame['modeling_results'] = modeling_results
-model_frame['posterior_particles'] = [extract_posterior_particles(model=model) for model in modeling_results]
+model_frame: pd.DataFrame = pickle.load(open("../results/permuted_smcabc_res/simulation_skeleton.pkl",'rb'))
+
+model_frame["posterior_particles"] = list(map(read_posterior_particles,
+model_frame.outfile))
+model_frame.set_index(["origin","status"], inplace=True)
 
 def create_intermediate_model(from_model: abc.candidateType, to_model: abc.candidateType, ratio: Float):
     # A ratio of 0 will yield the from_model, whereas a ratio of 1 will yield the to_model
@@ -127,4 +134,4 @@ for from_model_name, to_model_name in zip(result_frame['from'], result_frame['to
 
 result_frame['results'] = results
 
-pickle.dump(obj=result_frame, file=open('../results/bayesian_interpolation_results.pkl','wb'))
+pickle.dump(obj=result_frame, file=open('../results/permuted_smcabc_res/bayesian_interpolation_results.pkl','wb'))
