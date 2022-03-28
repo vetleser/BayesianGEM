@@ -1,21 +1,23 @@
 name: etcFBA
 channels:
   - gurobi
-  - https://conda.anaconda.org/gurobi
   - conda-forge
   - bioconda
   - defaults
 dependencies:
+  - _libgcc_mutex=0.1
+  - _openmp_mutex=4.5
+  - alsa-lib=1.2.3
   - anyio=3.3.2
   - appdirs=1.4.4
   - argon2-cffi=20.1.0
   - async_generator=1.10
   - attrs=21.2.0
-  - autopep8=1.6.0
+  - babel=2.9.1
   - backcall=0.2.0
-  - backports=1.0=py_2
+  - backports=1.0
   - backports.functools_lru_cache=1.6.4
-  - blas=1.1=openblas
+  - blas=1.1
   - bleach=4.1.0
   - brotlipy=0.7.0
   - ca-certificates=2021.10.8
@@ -25,8 +27,8 @@ dependencies:
   - cobra=0.21.0
   - colorama=0.4.4
   - commonmark=0.9.1
-  - cryptography=36.0.0
-  - cycler=0.10.0=py_2
+  - cryptography=36.0.1
+  - cycler=0.10.0
   - dbus=1.13.6
   - debugpy=1.4.1
   - decorator=5.1.0
@@ -41,7 +43,7 @@ dependencies:
   - future=0.18.2
   - gettext=0.19.8.1
   - gitdb=4.0.9
-  - gitpython=3.1.24
+  - gitpython=3.1.27
   - glib=2.68.4
   - glib-tools=2.68.4
   - glpk=4.65
@@ -71,14 +73,17 @@ dependencies:
   - jinja2=3.0.1
   - joblib=1.0.1
   - jpeg=9d
+  - json5=0.9.5
   - jsonschema=4.0.1
   - jupyter=1.0.0
-  - jupyter-server-mathjax=0.2.3
+  - jupyter-server-mathjax=0.2.5
   - jupyter_client=6.1.12
   - jupyter_console=6.4.0
   - jupyter_core=4.8.1
-  - jupyter_server=1.12.1
+  - jupyter_server=1.13.5
+  - jupyterlab=3.2.9
   - jupyterlab_pygments=0.1.2
+  - jupyterlab_server=2.10.3
   - jupyterlab_widgets=1.0.2
   - kiwisolver=1.3.2
   - krb5=1.19.2
@@ -92,7 +97,12 @@ dependencies:
   - libedit=3.1.20191231
   - libevent=2.1.10
   - libffi=3.4.2
+  - libgcc-ng=11.2.0
+  - libgfortran=3.0.0
+  - libgfortran-ng=11.2.0
+  - libgfortran5=11.2.0
   - libglib=2.68.4
+  - libgomp=11.2.0
   - libiconv=1.16
   - liblapack=3.9.0
   - libllvm10=10.0.1
@@ -102,11 +112,13 @@ dependencies:
   - libpng=1.6.37
   - libpq=13.3
   - libsodium=1.0.18
+  - libstdcxx-ng=11.2.0
   - libtiff=4.3.0
   - libuuid=2.32.1
   - libvorbis=1.3.7
   - libwebp-base=1.2.1
   - libxcb=1.13
+  - libxkbcommon=1.0.3
   - libxml2=2.9.12
   - libzlib=1.2.11
   - lz4-c=1.9.3
@@ -120,6 +132,7 @@ dependencies:
   - multiprocess=0.70.12.2
   - mysql-common=8.0.25
   - mysql-libs=8.0.25
+  - nbclassic=0.3.5
   - nbclient=0.5.4
   - nbconvert=6.2.0
   - nbdime=3.1.1
@@ -131,6 +144,7 @@ dependencies:
   - nss=3.69
   - numpy=1.21.2
   - olefile=0.46
+  - openblas=0.2.20
   - openjpeg=2.4.0
   - openssl=1.1.1l
   - optlang=1.4.4
@@ -154,11 +168,10 @@ dependencies:
   - prompt_toolkit=3.0.20
   - pthread-stubs=0.4
   - ptyprocess=0.7.0
-  - pycodestyle=2.8.0
   - pycparser=2.20
   - pydantic=1.8.2
   - pygments=2.10.0
-  - pyopenssl=21.0.0
+  - pyopenssl=22.0.0
   - pyparsing=2.4.7
   - pyqt=5.12.3
   - pyqt-impl=5.12.3
@@ -177,7 +190,7 @@ dependencies:
   - qtconsole=5.1.1
   - qtpy=1.11.2
   - readline=8.1
-  - requests=2.26.0
+  - requests=2.27.1
   - rfc3986=1.5.0
   - rich=6.2.0
   - ruamel.yaml=0.17.16
@@ -199,15 +212,14 @@ dependencies:
   - testpath=0.5.0
   - threadpoolctl=3.0.0
   - tk=8.6.11
-  - toml=0.10.2
   - tornado=6.1
   - traitlets=5.1.0
   - typing-extensions=3.10.0.2
   - typing_extensions=3.10.0.2
-  - urllib3=1.26.7
+  - urllib3=1.26.8
   - wcwidth=0.2.5
   - webencodings=0.5.1
-  - websocket-client=1.2.1
+  - websocket-client=1.2.3
   - wheel=0.37.0
   - widgetsnbextension=3.5.1
   - xorg-libxau=1.0.9
