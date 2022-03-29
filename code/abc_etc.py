@@ -188,7 +188,8 @@ class SMCABC:
         
         combined_particles = np.array(self.population + particles_t)
         combined_distances = np.array(self.distances + distances_t)
-        combined_simulated = np.array(self.simulated_data + simulated_data_t)
+        # We must be careful here as the results can be None due to hung-up processes
+        combined_simulated = np.array(self.simulated_data + simulated_data_t, dtype=object)
         
         sort_index = np.argsort(combined_distances)
         self.population = list(combined_particles[sort_index][:self.population_size])
