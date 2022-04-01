@@ -1,6 +1,5 @@
 from typing import List
 import numpy as np
-from scipy.optimize import fsolve
 import pandas as pd
 import time
 import cobra
@@ -9,30 +8,16 @@ from cobra import Model
 from cobra.exceptions import OptimizationError
 from cobra.flux_analysis import flux_variability_analysis
 import logging
+import etcpy.cobrapy_mappers as cobrapy_mappers
+import etcpy.reframed_mappers as reframed_mappers
+from .thermal_parameters import calculate_thermal_params
 
 from sympy import Float
 
 T0 = 273.15
+SLACK_FACTOR = 1.001      
 
-def solve_unboundedness(model: Model, extreme_bound: float = 1000):
-    """This function ensures no bound has an infinite magnitude, but are set to a threshold
-    The input model is changed in-place
-
-    Args:
-        model (Model): A Cobra model to the modified
-        extreme_bound (float): The extreme absolute value for bounds. Any bound exceeding this will be set
-        to this value respecting the its sign
-    """
-    for reaction in model.reactions:
-        if reaction.lower_bound < extreme_bound:
-            reaction.lower_bound = - extreme_bound
-        if reaction.upper_bound > extreme_bound:
-            reaction.upper_bound = extreme_bound        
-
-
-
-
-
+solve_unboundedness = cobrapy_mappers.solve_unboundedness
 
 def simulate_fva(model: Model,Ts: List[float],sigma: float,df: pd.DataFrame,Tadj=0,processes: int=1) -> pd.DataFrame:
     '''
@@ -50,13 +35,14 @@ def simulate_fva(model: Model,Ts: List[float],sigma: float,df: pd.DataFrame,Tadj
     # FVA solutions fail
     skeleton_df = pd.DataFrame({'reaction': [],'T': [], 'minimum': [], 'maximum': []})
     rs.append(skeleton_df)
+    mappers = cobrapy_mappers
     for T in Ts:
         with model:
             # map temperature constraints
-            map_fNT(model,T,df)
-            map_kcatT(model,T,df)
-            set_NGAMT(model,T)
-            set_sigma(model,sigma)
+            mappers.map_fNT(model,T,df)
+            mappers.map_kcatT(model,T,df)
+            mappers.set_NGAMT(model,T)
+            mappers.set_sigma(model,sigma)
             r = flux_variability_analysis(model=model, fraction_of_optimum=0.99, processes=processes)
             logging.info("Model solved successfully")
             r["T"] = T
@@ -78,9 +64,9 @@ def simulate_fva(model: Model,Ts: List[float],sigma: float,df: pd.DataFrame,Tadj
 
 
 
-def simulate_growth(model: Model,Ts,sigma,df,Tadj=0, working_model: Model=None):
+def simulate_growth(model, Ts,sigma,df,Tadj=0):
     '''
-    # model, cobra model
+    # model, cobra or reframed model
     # Ts, a list of temperatures in K
     # sigma, enzyme saturation factor
     # df, a dataframe containing thermal parameters of enzymes: dHTH, dSTS, dCpu, Topt
@@ -90,34 +76,86 @@ def simulate_growth(model: Model,Ts,sigma,df,Tadj=0, working_model: Model=None):
     # Tadj, as descrbed in map_fNT
     #
     '''
-    warm_start = working_model is not None
+    warm_start = isinstance(model, reframed.CBModel)
     rs = list()
     for T in Ts:
-        with model:
-            # map temperature constraints
-            if warm_start:
-                map_fNT(working_model,T,df, reference_model=model)
-                map_kcatT(working_model,T,df, reference_model=model)
-                set_NGAMT(working_model,T)
-                set_sigma(working_model,sigma)
-            else:
-                map_fNT(model,T,df)
-                map_kcatT(model,T,df)
-                set_NGAMT(model,T)
-                set_sigma(model,sigma)
+        # Ensures we do not break anything important
+        opt_model = model.copy()
+        # map temperature constraints
+        mappers = reframed_mappers if warm_start else cobrapy_mappers
+        mappers.map_fNT(opt_model,T,df)
+        mappers.map_kcatT(opt_model,T,df)
+        mappers.set_NGAMT(opt_model,T)
+        mappers.set_sigma(opt_model,sigma)
 
-            try:
-                if warm_start:
-                    r = reframed.FBA(working_model)
-                else:
-                    r = model.optimize(raise_error=True).objective_value
-                logging.info("Model solved successfully")
-            except OptimizationError as err:
-                logging.info(f'Failed to solve the problem, problem: {str(err)}')
-                r = 0
-            print(T-273.15,r)
-            rs.append(r)
+        try:
+            if warm_start:
+                solution = reframed.FBA(opt_model)
+                r = reframed.FBA(opt_model).fobj
+                if r is None:
+                    raise OptimizationError(solution.message)
+            else:
+                r = opt_model.optimize(raise_error=True).objective_value
+            logging.info("Model solved successfully")
+        except OptimizationError as err:
+            logging.info(f'Failed to solve the problem, problem: {str(err)}')
+            r = 0
+        print(T-273.15,r)
+        rs.append(r)
     return rs
+
+def simulate_chomostat(model,dilu,params,Ts,sigma,growth_id,glc_up_id,prot_pool_id):
+    '''
+    # Do simulation on a given dilution and a list of temperatures. 
+    # model, cobra model
+    # dilu, dilution rate
+    # params: a dataframe containing Tm, T90, Length, dCpt, Topt. All temperatures are in K.
+    # Ts, a list of temperatures to simulate at. in K
+    # sigma, saturation factor
+    # growth_id, reaction of of growth
+    # glc_up_id, reaction id of glucose uptake reaction
+    # prot_pool_id, reaction id of prot_pool_exchange. --> prot_pool
+    # working_model, If provided, warm-start FBA will be used for accelerating computations. The working model will be modified during this
+    # process
+
+    '''
+    warm_start = isinstance(model, reframed.CBModel)
+    solutions = list() # corresponding to Ts. a list of solutions from model.optimize()
+    df = calculate_thermal_params(params)
+    mappers = reframed_mappers if warm_start else cobrapy_mappers
+
+    # Step 1: fix growth rate
+    m0 = model.copy()
+    if warm_start:
+        m0.reactions[growth_id].lb = dilu
+    else: 
+        rxn_growth = m0.reactions.get_by_id(growth_id)
+        rxn_growth.lower_bound = dilu
+    for T in Ts:
+        m1 = m0.copy()
+        # Step 2: map temperature constraints. 
+        mappers.map_fNT(m1,T,df)
+        mappers.map_kcatT(m1,T,df)
+        mappers.set_NGAMT(m1,T)
+        mappers.set_sigma(m1,sigma)
+        try:
+            # Step 3: set objective function as minimizing glucose uptake rate and protein useage 
+            if warm_start:
+                glc_min_flux = reframed.FBA(m1, objective={glc_up_id: -1}).fobj
+                m1.reactions[glc_up_id].ub = glc_min_flux*SLACK_FACTOR
+                solution = reframed.FBA(m1, objective= {prot_pool_id: -1})
+                if solution.status != reframed.solvers.solution.Status.OPTIMAL:
+                    raise OptimizationError(solution.message)
+                solutions.append(solution.values)
+            else:
+                cobra.util.add_lexicographic_constraints(m1, [glc_up_id, prot_pool_id], ['min', 'min'])
+                solutions.append(m1.optimize().fluxes)
+            logging.info('Model solved successfully')
+        except OptimizationError as err:
+            logging.info(f'Failed to solve the problem, problem: {str(err)}')
+            #solutions.append(None)
+            break # because model has been impaired. Further simulation won't give right output.
+    return solutions
 
 def sample_data_uncertainty(params,columns=None):
     '''
@@ -204,33 +242,8 @@ def sample_data_uncertainty_with_constraint(inpt,columns=None):
     sampled_params['T90'] = sampled_params['Tm']+params['T90']-params['Tm']
     return sampled_params
 
-def calculate_thermal_params(params):
-    '''
-    # params, a dataframe with at least following columns: Tm,T90,Length,dCpt,Topt,dCpt. All are in standard units.
-    # 
-    # The script will return a dataframe with following columns: dHTH,dSTS,dCpu,Topt,dCpt
-    # 
-    '''
-    thermalparams = pd.DataFrame()
-    
-    # step 1: calculate dHTH,dSTS,dCpu from tm, t90/length
-    for ind in params.index:
-        tm,t90 = params.loc[ind,'Tm'],params.loc[ind,'T90']
-        if t90 is not None and t90>tm and ~np.isnan(t90):
-            dHTH,dSTS,dCpu = get_dH_dS_dCpu_from_TmT90(tm,t90)
-            if dCpu <0: dHTH,dSTS,dCpu = get_dH_dS_dCpu_from_TmLength(tm,params.loc[ind,'Length'])
-        else: dHTH,dSTS,dCpu = get_dH_dS_dCpu_from_TmLength(tm,params.loc[ind,'Length'])
-         
-        thermalparams.loc[ind,'dHTH'] = dHTH
-        thermalparams.loc[ind,'dSTS'] = dSTS
-        thermalparams.loc[ind,'dCpu'] = dCpu
-        
-        
-    # step 2. copy columns Topt and dCpt
-    thermalparams['Topt'] = params['Topt']
-    thermalparams['dCpt'] = params['dCpt']
-    
-    return thermalparams
+
+
         
 
 def fva_chemostat(model: Model,dilu: float,params: pd.DataFrame,Ts: List[Float],sigma: float,
@@ -251,6 +264,7 @@ growth_id: str,glc_up_id: str,prot_pool_id: str, processes: int=1) -> pd.DataFra
     # FVA solutions fail
     skeleton_df = pd.DataFrame({'reaction': [],'T': [], 'minimum': [], 'maximum': []})
     solutions.append(skeleton_df)
+    mappers = cobrapy_mappers
     df = calculate_thermal_params(params)
     with model as m0:
         # Step 1: fix growth rate, set objective function as minimizing glucose uptatke rate
@@ -263,10 +277,10 @@ growth_id: str,glc_up_id: str,prot_pool_id: str, processes: int=1) -> pd.DataFra
         for T in Ts:
             with m0 as m1:  
                 # Step 2: map temperature constraints. 
-                map_fNT(m1,T,df)
-                map_kcatT(m1,T,df)
-                set_NGAMT(m1,T)
-                set_sigma(m1,sigma)
+                mappers.map_fNT(m1,T,df)
+                mappers.map_kcatT(m1,T,df)
+                mappers.set_NGAMT(m1,T)
+                mappers.set_sigma(m1,sigma)
                 
                 try: 
                     # Step 3: minimize the glucose uptake rate. Fix glucose uptake rate, minimize enzyme usage
@@ -287,47 +301,3 @@ growth_id: str,glc_up_id: str,prot_pool_id: str, processes: int=1) -> pd.DataFra
                     break # because model has been impaired. Further simulation won't give right output.
                 
     return pd.concat(solutions)
-
-
-def simulate_chomostat(model: Model,dilu,params,Ts,sigma,growth_id,glc_up_id,prot_pool_id, working_model: Model=None):
-    '''
-    # Do simulation on a given dilution and a list of temperatures. 
-    # model, cobra model
-    # dilu, dilution rate
-    # params: a dataframe containing Tm, T90, Length, dCpt, Topt. All temperatures are in K.
-    # Ts, a list of temperatures to simulate at. in K
-    # sigma, saturation factor
-    # growth_id, reaction of of growth
-    # glc_up_id, reaction id of glucose uptake reaction
-    # prot_pool_id, reaction id of prot_pool_exchange. --> prot_pool
-    # working_model, If provided, warm-start FBA will be used for accelerating computations. The working model will be modified during this
-    # process
-
-    '''
-    warm_start = working_model is not None
-    reference_model = model if warm_start else None
-    solutions = list() # corresponding to Ts. a list of solutions from model.optimize()
-    df = calculate_thermal_params(params)
-    model_to_optimize = working_model if warm_start else model
-    with model_to_optimize as m0:
-        # Step 1: fix growth rate
-        rxn_growth = m0.reactions.get_by_id(growth_id)
-        rxn_growth.lower_bound = dilu
-        for T in Ts:
-            with m0 as m1:
-                opt_model = m0 if warm_start else m1
-                # Step 2: map temperature constraints. 
-                map_fNT(opt_model,T,df, reference_model=reference_model)
-                map_kcatT(opt_model,T,df, reference_model=reference_model)
-                set_NGAMT(opt_model,T)
-                set_sigma(opt_model,sigma)
-                try:
-                    # Step 3: set objective function as minimizing glucose uptake rate and protein useage 
-                    cobra.util.add_lexicographic_constraints(opt_model, [glc_up_id, prot_pool_id], ['min', 'min'])
-                    solutions.append(opt_model.optimize())
-                    logging.info('Model solved successfully')
-                except OptimizationError as err:
-                    logging.info(f'Failed to solve the problem, problem: {str(err)}')
-                    #solutions.append(None)
-                    break # because model has been impaired. Further simulation won't give right output.
-    return solutions

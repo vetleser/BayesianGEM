@@ -28,6 +28,7 @@ def models_init():
         model._annotation = dict()
         model._tolerance = 1e-6
         model.groups = []
+    global _mae_cobra, _man_cobra
     _mae_cobra,_man_cobra = pickle.load(open('../models/models.pkl','rb'))
     augment_model(_mae_cobra)
     augment_model(_man_cobra)
@@ -35,12 +36,6 @@ def models_init():
     _mae = reframed.from_cobrapy(_mae_cobra)
     _man = reframed.from_cobrapy(_man_cobra)
     reframed.set_default_solver('gurobi')
-    global _working_mae, _working_man
-    _working_mae = _mae.copy()
-    _working_man = _man.copy()
-    global _mae_solver, _man_solver
-    _mae_solver = reframed.solver_instance(_working_mae)
-    _man_solver = reframed.solver_instance(_working_man)
 
 models_init()
 
@@ -148,13 +143,10 @@ def aerobic(thermalParams, warm_start=True):
     df,new_params = format_input(thermalParams)
     if warm_start:
         mae = _mae
-        working_model = _working_mae
-        rae = etc.simulate_growth(mae,dfae_batch.index+273.15,df=df,sigma=0.5, working_model=working_model)
-
+        rae = etc.simulate_growth(mae,dfae_batch.index+273.15,df=df,sigma=0.5)
     else:
-        mae = pickle.load(open(os.path.join(path,'models/aerobic.pkl'),'rb'))
-        working_model = None
-        rae = etc.simulate_growth(mae,dfae_batch.index+273.15,df=df,sigma=0.5, working_model=working_model)    
+        mae = _mae_cobra
+        rae = etc.simulate_growth(mae,dfae_batch.index+273.15,df=df,sigma=0.5)
     
     rae = [0 if x is None else x for x in rae]
     rae = [0 if x<1e-3 else x for x in rae]
@@ -173,12 +165,10 @@ def anaerobic(thermalParams, warm_start=True):
     df,new_params = format_input(thermalParams)
     if warm_start:
         man = _man
-        working_model = _working_man
     else:
-        man = pickle.load(open(os.path.join(path,'models/anaerobic.pkl'),'rb'))
-        working_model = None
+        man = _man_cobra
 
-    ran = etc.simulate_growth(man,dfan_batch.index+273.15,df=df,sigma=0.5,working_model=working_model)
+    ran = etc.simulate_growth(man,dfan_batch.index+273.15,df=df,sigma=0.5)
     ran = [0 if x is None else x for x in ran]
     rexp = anaerobic_exp_data()['data']
     
@@ -196,12 +186,10 @@ def anaerobic_reduced(thermalParams,warm_start=True):
     man = pickle.load(open(os.path.join(path,'models/anaerobic.pkl'),'rb'))
     if warm_start:
         man = _man
-        working_model = _working_man
     else:
-        man = pickle.load(open(os.path.join(path,'models/anaerobic.pkl'),'rb'))
-        working_model = None
+        man = _man_cobra
     sel_temp = [5.0,15.0,26.3,30.0,33.0,35.0,37.5,40.0]
-    ran = etc.simulate_growth(man,np.array(sel_temp)+273.15,df=df,sigma=0.5, working_model=working_model)
+    ran = etc.simulate_growth(man,np.array(sel_temp)+273.15,df=df,sigma=0.5)
     ran = [0 if x is None else x for x in ran]
     rexp = dfan_batch.loc[sel_temp,'r_an'].values
     #anaerobic_exp_data()['data']
@@ -221,10 +209,8 @@ def chemostat(thermalParams, warm_start=True):
     df,new_params = format_input(thermalParams)
     if warm_start:
         mae = _mae
-        working_model = _working_mae
     else:
-        mae = pickle.load(open(os.path.join(path,'models/aerobic.pkl'),'rb'))
-        working_model = None
+        mae = _mae_cobra
     exp_flux = chemostat_exp_data()['data']
     
     growth_id = 'r_2111'
@@ -234,7 +220,7 @@ def chemostat(thermalParams, warm_start=True):
     sigma = 0.5
     
     solution = etc.simulate_chomostat(mae,dilut,new_params,dfchemo.index+273.15,
-                                            sigma,growth_id,glc_up_id,prot_pool_id, working_model=working_model)
+                                            sigma,growth_id,glc_up_id,prot_pool_id)
 
     # Extract fluxes
     rxn_lst = [
@@ -245,8 +231,8 @@ def chemostat(thermalParams, warm_start=True):
     columns = ['Glucose','CO2','Ethanol']
 
     pred_flux = []
-    for i,rxn_id in enumerate(rxn_lst):
-        x = [s.fluxes[rxn_id] for s in solution]
+    for rxn_id in rxn_lst:
+        x = [s[rxn_id] for s in solution]
         x.extend([0]*(len(dfchemo.index)-len(x)))
         pred_flux += x
     logging.info(f'Predicted flux: {pred_flux}')
