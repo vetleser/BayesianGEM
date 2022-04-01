@@ -49,4 +49,5 @@ print(f"Computed results at three conditions with warm start in {toc-tic} second
 tic = time.perf_counter()
 chemostat_warm_start = GEMS.chemostat(particle,warm_start=True)
 toc = time.perf_counter()
-print(f"Computed results at three conditions with warm start in {toc-tic} seconds.")
+print(f"Computed chemostat results with warm start in {toc-tic} seconds.")
+# %%

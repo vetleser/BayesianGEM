@@ -76,34 +76,6 @@ def map_fNT(model: Model,T: float,df: pd.DataFrame,Tadj: float=0):
 
 
 
-def calculate_kcatT(T,dHTH,dSTS,dCpu,kcatTopt,dCpt,Topt):
-    '''
-    # Using Trainsition state theory to calculate kcat at temperature T.
-    # dHTH, dSTS: entropy and enthalpy at comergence temperatures. Protein
-    # unfolding process.
-    # dCpu, heat capacity change unpon unfolding.
-    # kcatTopt: kcat values at optimal temperature
-    # Topt, optimal temperature of the enzyme, in K
-    # T, temperature, in K
-    #
-    '''
-    # Constants
-    R = 8.314
-    TH = 373.5
-    TS = 385
-    T0 = 30+273.15
-
-    # Use the equation from solvedHT.m and re-organized
-    dGuTopt = dHTH +dCpu*(Topt-TH) -Topt*dSTS-Topt*dCpu*np.log(Topt/TS)
-    dHt = dHTH+dCpu*(Topt-TH)-dCpt*(Topt-T0)-R*Topt-(dHTH+dCpu*(Topt-TH))/(1+np.exp(-dGuTopt/(R*Topt)))
-
-    # Calculate kcat at reference Temperautre
-    kcat0 = kcatTopt/np.exp(np.log(Topt/T0)-(dHt+dCpt*(Topt-T0))/R/Topt+dHt/R/T0+dCpt*np.log(Topt/T0)/R)
-
-    # Calculate kcat at given temperature
-    kcatT = kcat0*np.exp(np.log(T/T0)-(dHt+dCpt*(T-T0))/R/T+dHt/R/T0+dCpt*np.log(T/T0)/R)
-
-    return kcatT
 
 
 def map_kcatT(model: Model,T: float,df: pd.DataFrame):

@@ -52,7 +52,7 @@ def chemostat_double_protein_limt(thermalParams,Ts):
     sigma = 0.5
     
     try:
-        solution = etc.simulate_chomostat(mae,dilut,new_params,Ts+273.15,
+        solution = etc.simulate_chemostat(mae,dilut,new_params,Ts+273.15,
                                           sigma,growth_id,glc_up_id,prot_pool_id)
     
     except: solution = None

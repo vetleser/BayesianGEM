@@ -219,7 +219,7 @@ def chemostat(thermalParams, warm_start=True):
     dilut = 0.1
     sigma = 0.5
     
-    solution = etc.simulate_chomostat(mae,dilut,new_params,dfchemo.index+273.15,
+    solution = etc.simulate_chemostat(mae,dilut,new_params,dfchemo.index+273.15,
                                             sigma,growth_id,glc_up_id,prot_pool_id)
 
     # Extract fluxes

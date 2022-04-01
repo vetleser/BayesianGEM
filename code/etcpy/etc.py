@@ -104,7 +104,7 @@ def simulate_growth(model, Ts,sigma,df,Tadj=0):
         rs.append(r)
     return rs
 
-def simulate_chomostat(model,dilu,params,Ts,sigma,growth_id,glc_up_id,prot_pool_id):
+def simulate_chemostat(model,dilu,params,Ts,sigma,growth_id,glc_up_id,prot_pool_id):
     '''
     # Do simulation on a given dilution and a list of temperatures. 
     # model, cobra model
@@ -141,7 +141,7 @@ def simulate_chomostat(model,dilu,params,Ts,sigma,growth_id,glc_up_id,prot_pool_
         try:
             # Step 3: set objective function as minimizing glucose uptake rate and protein useage 
             if warm_start:
-                glc_min_flux = reframed.FBA(m1, objective={glc_up_id: -1}).fobj
+                glc_min_flux = -reframed.FBA(m1, objective={glc_up_id: -1}).fobj
                 m1.reactions[glc_up_id].ub = glc_min_flux*SLACK_FACTOR
                 solution = reframed.FBA(m1, objective= {prot_pool_id: -1})
                 if solution.status != reframed.solvers.solution.Status.OPTIMAL:

@@ -55,7 +55,7 @@ def chemostat(thermalParams,Ts):
     dilut = 0.1
     sigma = 0.5
     
-    solutions = etc.simulate_chomostat(mae,dilut,new_params,Ts,
+    solutions = etc.simulate_chemostat(mae,dilut,new_params,Ts,
                                               sigma,growth_id,glc_up_id,prot_pool_id)
 
     return  solutions
