@@ -55,8 +55,6 @@ def map_kcatT(model: CBModel,T: float,df: pd.DataFrame):
     # model, reframed model
     # T, temperature, in K
     # df, a dataframe containing thermal parameters of enzymes: dHTH, dSTS, dCpu, Topt
-    # reference_model In the case of warm-starting FBA, the parameters to modify are fetched from the
-    # reference model cobra model.
     # Ensure that Topt is in K. Other parameters are in standard units.
     #
     # Gang Li, 2019-05-03

@@ -13,38 +13,10 @@ import os
 import logging
 from sklearn.metrics import mean_squared_error as MSE
 from sklearn.metrics import r2_score
-from cobra.exceptions import Infeasible
 import reframed
 
 
 candidateType = Dict[str, float]
-
-# In[]
-def models_init():
-    def augment_model(model):
-        # This function is intended to resolve
-        # technical problems which arise when copying models
-        # and doing other special operations such as summary
-        model._annotation = dict()
-        model._tolerance = 1e-6
-        model.groups = []
-    global _mae_cobra, _man_cobra
-    _mae_cobra,_man_cobra = pickle.load(open('../models/models.pkl','rb'))
-    augment_model(_mae_cobra)
-    augment_model(_man_cobra)
-    global _mae, _man
-    _mae = reframed.from_cobrapy(_mae_cobra)
-    _man = reframed.from_cobrapy(_man_cobra)
-    reframed.set_default_solver('gurobi')
-
-models_init()
-
-
-
-
-### save .pkl model
-# pickle.dump(mae,open('../models/aerobic.pkl','wb'))
-# pickle.dump(man,open('../models/anaerobic.pkl','wb'))
 
 
 
@@ -141,12 +113,8 @@ def format_input(thermalParams):
 def aerobic(thermalParams, warm_start=True):
     # thermalParams: a dictionary with ids like uniprotid_Topt 
     df,new_params = format_input(thermalParams)
-    if warm_start:
-        mae = _mae
-        rae = etc.simulate_growth(mae,dfae_batch.index+273.15,df=df,sigma=0.5)
-    else:
-        mae = _mae_cobra
-        rae = etc.simulate_growth(mae,dfae_batch.index+273.15,df=df,sigma=0.5)
+    mae = pickle.load(open(os.path.join(path,'models/aerobic.pkl'),'rb'))
+    rae = etc.simulate_growth(mae,dfae_batch.index+273.15,df=df,sigma=0.5)
     
     rae = [0 if x is None else x for x in rae]
     rae = [0 if x<1e-3 else x for x in rae]
@@ -163,11 +131,7 @@ def aerobic(thermalParams, warm_start=True):
 
 def anaerobic(thermalParams, warm_start=True):
     df,new_params = format_input(thermalParams)
-    if warm_start:
-        man = _man
-    else:
-        man = _man_cobra
-
+    man = pickle.load(open(os.path.join(path,'models/anaerobic.pkl'),'rb'))
     ran = etc.simulate_growth(man,dfan_batch.index+273.15,df=df,sigma=0.5)
     ran = [0 if x is None else x for x in ran]
     rexp = anaerobic_exp_data()['data']
@@ -184,10 +148,7 @@ def anaerobic(thermalParams, warm_start=True):
 def anaerobic_reduced(thermalParams,warm_start=True):
     df,new_params = format_input(thermalParams)
     man = pickle.load(open(os.path.join(path,'models/anaerobic.pkl'),'rb'))
-    if warm_start:
-        man = _man
-    else:
-        man = _man_cobra
+    
     sel_temp = [5.0,15.0,26.3,30.0,33.0,35.0,37.5,40.0]
     ran = etc.simulate_growth(man,np.array(sel_temp)+273.15,df=df,sigma=0.5)
     ran = [0 if x is None else x for x in ran]
@@ -207,10 +168,7 @@ def anaerobic_reduced(thermalParams,warm_start=True):
 
 def chemostat(thermalParams, warm_start=True):
     df,new_params = format_input(thermalParams)
-    if warm_start:
-        mae = _mae
-    else:
-        mae = _mae_cobra
+    mae = pickle.load(open(os.path.join(path,'models/aerobic.pkl'),'rb'))
     exp_flux = chemostat_exp_data()['data']
     
     growth_id = 'r_2111'
@@ -270,10 +228,9 @@ def anaerobic_reduced_fva(thermalParams: candidateType, processes=1):
     """
     # thermalParams: a dictionary with ids like uniprotid_Topt 
     df,new_params = format_input(thermalParams)
-    mae = pickle.load(open(os.path.join(path,'models/anaerobic.pkl'),'rb'))
-    etc.solve_unboundedness(mae)
+    man = pickle.load(open(os.path.join(path,'models/anaerobic.pkl'),'rb'))
     sel_temp = [5.0,15.0,26.3,30.0,33.0,35.0,37.5,40.0]
-    ran = etc.simulate_fva(mae,np.array(sel_temp+273.15,df=df,sigma=0.5), processes=processes)
+    ran = etc.simulate_fva(man,np.array(sel_temp+273.15,df=df,sigma=0.5), processes=processes)
     return ran
 
 
@@ -286,7 +243,6 @@ def chemostat_fva(thermalParams, processes=1):
     """
     df,new_params = format_input(thermalParams)
     mae = pickle.load(open(os.path.join(path,'models/aerobic.pkl'),'rb'))
-    etc.solve_unboundedness(mae)
     growth_id = 'r_2111'
     glc_up_id = 'r_1714_REV'
     prot_pool_id = 'prot_pool_exchange'

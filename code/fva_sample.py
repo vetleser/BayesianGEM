@@ -4,7 +4,6 @@ import logging
 import GEMS
 import os
 import pandas as pd
-import cobra
 from etcpy import etc
 import pickle
 import GEMS
