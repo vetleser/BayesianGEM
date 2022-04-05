@@ -20,10 +20,9 @@ def aerobic_fva(thermalParams: candidateType):
         thermalParams: A dictionary of the model's thermal parameters
     """
     # thermalParams: a dictionary with ids like uniprotid_Topt
-    df,new_params = GEMS.format_input(thermalParams)
+    param_dict = GEMS.format_input(thermalParams)
     mae = pickle.load(open(os.path.join(path,'models/aerobic.pkl'),'rb'))
-    etc.solve_unboundedness(mae)
-    rae = etc.simulate_fva(mae,dfae_batch.index+273.15,df=df,sigma=0.5)
+    rae = etc.simulate_fva(mae,dfae_batch.index+273.15,param_dict=param_dict,sigma=0.5)
     rae["dataset"] = "aerobic"
     return rae
 
@@ -36,11 +35,10 @@ def anerobic_reduced_fva(thermalParams: candidateType):
         thermalParams: A dictionary of the model's thermal parameters
     """
     # thermalParams: a dictionary with ids like uniprotid_Topt 
-    df,new_params = GEMS.format_input(thermalParams)
+    param_dict = GEMS.format_input(thermalParams)
     mae = pickle.load(open(os.path.join(path,'models/anaerobic.pkl'),'rb'))
-    etc.solve_unboundedness(mae)
     sel_temp = [5.0,15.0,26.3,30.0,33.0,35.0,37.5,40.0]
-    ran = etc.simulate_fva(mae,np.array(sel_temp+273.15,df=df,sigma=0.5))
+    ran = etc.simulate_fva(mae,np.array(sel_temp+273.15,param_dict=param_dict,sigma=0.5))
     ran["dataset"] = "anaerobic"
     return ran
 
@@ -52,16 +50,15 @@ def chemostat_fva(thermalParams):
     Args:
         thermalParams: A dictionary of the model's thermal parameters
     """
-    df,new_params = GEMS.format_input(thermalParams)
+    param_dict = GEMS.format_input(thermalParams)
     mae = pickle.load(open(os.path.join(path,'models/aerobic.pkl'),'rb'))
-    etc.solve_unboundedness(mae)
     growth_id = 'r_2111'
     glc_up_id = 'r_1714_REV'
     prot_pool_id = 'prot_pool_exchange'
     dilut = 0.1
     sigma = 0.5
     
-    solution = etc.fva_chemostat(mae,dilut,new_params,dfchemo.index+273.15,
+    solution = etc.fva_chemostat(mae,dilut,param_dict,dfchemo.index+273.15,
                                             sigma,growth_id,glc_up_id,prot_pool_id)
     solution["dataset"] = "chemostat"
     return  solution

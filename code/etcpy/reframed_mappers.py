@@ -5,14 +5,14 @@ import pandas as pd
 from .thermal_parameters import *
 
 
-def map_fNT(model: CBModel,T: float,df: pd.DataFrame,Tadj: float=0):
+def map_fNT(model: CBModel,T: float,param_dict: dict,Tadj: float=0):
     '''
     # apply the fraction of enzymes in native state to each protein.
     # model, reframed model
     # T, temperature, in K, float
     # Tadj, This is to adjust the orginal denaturation curve by moving to left by
     # Tadj degrees.
-    # df, a dataframe containing thermal parameters of enzymes: dHTH, dSTS, dCpu
+    # param_dict, a dictionary containing thermal parameters of enzymes: dHTH, dSTS, dCpu, Topt
     #
     #
     # Gang Li, 2019-05-03
@@ -28,7 +28,7 @@ def map_fNT(model: CBModel,T: float,df: pd.DataFrame,Tadj: float=0):
     '''
 
     met: str = model.metabolites.prot_pool.id
-
+    cols = ['dHTH', 'dSTS','dCpu','Topt']
     rxn: reframed.CBReaction
     for rxn in model.reactions.values():
         # We would preferingly only iterate over reactions where
@@ -38,8 +38,8 @@ def map_fNT(model: CBModel,T: float,df: pd.DataFrame,Tadj: float=0):
         # this is to ignore reaction 'prot_pool_exchange': --> prot_pool
         if len(rxn.stoichiometry)<2: continue
         uniprot_id: str = rxn.id.split('_')[-1]
-        cols = ['dHTH', 'dSTS','dCpu','Topt']
-        [dHTH, dSTS,dCpu,topt] = df.loc[uniprot_id,cols]
+        parameter_entries = param_dict[uniprot_id]
+        [dHTH, dSTS,dCpu,topt]= [parameter_entries[parameter] for parameter in cols]
         fNT = get_fNT(T+Tadj,dHTH,dSTS,dCpu)
         if fNT < 1e-32: fNT = 1e-32
         new_coeff: float = rxn.stoichiometry[met]/fNT
@@ -48,13 +48,13 @@ def map_fNT(model: CBModel,T: float,df: pd.DataFrame,Tadj: float=0):
 
 
 
-def map_kcatT(model: CBModel,T: float,df: pd.DataFrame):
+def map_kcatT(model: CBModel,T: float,param_dict: dict):
     '''
     # Apply temperature effect on enzyme kcat.
     # based on trainsition state theory
     # model, reframed model
     # T, temperature, in K
-    # df, a dataframe containing thermal parameters of enzymes: dHTH, dSTS, dCpu, Topt
+    # param_dict, a dictionary containing thermal parameters of enzymes: dHTH, dSTS, dCpu, Topt, dCpt
     # Ensure that Topt is in K. Other parameters are in standard units.
     #
     # Gang Li, 2019-05-03
@@ -69,7 +69,8 @@ def map_kcatT(model: CBModel,T: float,df: pd.DataFrame):
             # ingore metabolite: prot_pool
             if met == 'prot_pool': continue
             uniprot_id = met.split('_')[1]
-            [dHTH, dSTS,dCpu,Topt,dCpt]=df.loc[uniprot_id,cols]
+            parameter_entries = param_dict[uniprot_id]
+            [dHTH, dSTS,dCpu,Topt,dCpt]= [parameter_entries[parameter] for parameter in cols]
             # Change kcat value.
             # pmet_r_0001 + 1.8518518518518518e-07 prot_P00044 + 1.8518518518518518e-07 prot_P32891 -->
             # 2.0 s_0710 + s_1399
