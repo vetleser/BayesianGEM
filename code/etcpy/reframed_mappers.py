@@ -53,9 +53,9 @@ def map_fNT(model: CBModel,T: float,param_dict: dict,Tadj: float=0, solver_insta
         if solver_instance is None:
             rxn.stoichiometry[met] = new_coeff
         else:
-            metabolite_stochiometry = lookup_table[met].copy()
-            metabolite_stochiometry[rxn.id] = new_coeff
-            solver_instance.add_constraint(constr_id=met,lhs=metabolite_stochiometry, update=True)
+            lookup_table[met][rxn.id] = new_coeff
+    if solver_instance is not None:
+        solver_instance.add_constraint(constr_id=met,lhs=lookup_table[met], update=False)
     return
 
 
@@ -78,6 +78,7 @@ def map_kcatT(model: CBModel,T: float,param_dict: dict, solver_instance: Solver=
     cols = ['dHTH', 'dSTS','dCpu','Topt','dCpt']
     if solver_instance is not None:
         lookup_table = model.metabolite_reaction_lookup()
+        metabolites_to_update = set()
     for rxn in model.reactions.values():
         rxn: reframed.CBReaction
         if rxn.id.startswith('draw_prot'): continue
@@ -105,9 +106,11 @@ def map_kcatT(model: CBModel,T: float,param_dict: dict, solver_instance: Solver=
             if solver_instance is None:
                 rxn.stoichiometry[met] = new_coeff
             else:
-                metabolite_stochiometry = lookup_table[met].copy()
-                metabolite_stochiometry[rxn.id] = new_coeff
-                solver_instance.add_constraint(constr_id=met,lhs=metabolite_stochiometry, update=True)
+                metabolites_to_update.add(met)
+                lookup_table[met][rxn.id] = new_coeff
+    if solver_instance is not None:
+        for met in metabolites_to_update:
+             solver_instance.add_constraint(constr_id=met,lhs=lookup_table[met], update=False)
     return
         
 

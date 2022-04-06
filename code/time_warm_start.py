@@ -12,7 +12,7 @@ import os
 import pandas as pd
 import logging
 import abc_etc as abc
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s') 
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 
 path = '../'
 params = pd.read_csv(os.path.join(path,'data/model_enzyme_params.csv'),index_col=0)

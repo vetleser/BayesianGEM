@@ -38,10 +38,10 @@ def simulate_growth(model: CBModel, Ts,sigma,param_dict,Tadj=0):
     for T in Ts:
         # map temperature constraints
         this_model = model.copy()
-        mappers = reframed_mappers
-        mappers.map_fNT(this_model,T,param_dict,solver_instance=None)
-        mappers.map_kcatT(this_model,T,param_dict,solver_instance=None)
         solver = reframed.solver_instance(this_model)
+        mappers = reframed_mappers
+        mappers.map_fNT(this_model,T,param_dict,solver_instance=solver)
+        mappers.map_kcatT(this_model,T,param_dict,solver_instance=solver)
         mappers.set_NGAMT(solver,T)
         mappers.set_sigma(solver,sigma)
         solver.update()
