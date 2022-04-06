@@ -21,7 +21,7 @@ class OptimizationError(Exception):
 
 
 
-def simulate_growth(model, Ts,sigma,param_dict,Tadj=0):
+def simulate_growth(model: CBModel, Ts,sigma,param_dict,Tadj=0):
     '''
     # model, reframed model
     # Ts, a list of temperatures in K
@@ -34,17 +34,19 @@ def simulate_growth(model, Ts,sigma,param_dict,Tadj=0):
     #
     '''
     rs = list()
-    solver: reframed.solvers.GurobiSolver = reframed.solver_instance(model)
+    # solver: reframed.solvers.GurobiSolver = reframed.solver_instance(model)
     for T in Ts:
+        this_model = model.copy()
+        solver = None
         # map temperature constraints
         mappers = reframed_mappers
-        mappers.map_fNT(model,T,param_dict,solver_instance=solver)
-        mappers.map_kcatT(model,T,param_dict,solver_instance=solver)
-        mappers.set_NGAMT(solver,T)
-        mappers.set_sigma(solver,sigma)
-
+        mappers.map_fNT(this_model,T,param_dict,solver_instance=solver)
+        mappers.map_kcatT(this_model,T,param_dict,solver_instance=solver)
+        mappers.set_NGAMT(this_model,T)
+        mappers.set_sigma(this_model,sigma)
+        solver: reframed.solvers.GurobiSolver = reframed.solver_instance(this_model)
         try:
-            solution = solver.solve()
+            solution = solver.solve(linear=model.get_objective(),minimize=False)
             if solution.status != reframed.solvers.solution.Status.OPTIMAL:
                 raise OptimizationError(f"Solver status is {solution.status.value}")
             r = solution.fobj
@@ -84,11 +86,15 @@ def simulate_chemostat(model,dilu,param_dict,Ts,sigma,growth_id,glc_up_id,prot_p
         mappers.map_kcatT(m0,T,param_dict,solver_instance=solver)
         mappers.set_NGAMT(solver,T)
         mappers.set_sigma(solver,sigma)
+        solver.update()
         try:
-            # Step 3: set objective function as minimizing glucose uptake rate and protein useage 
-            glc_min_flux = -solver.solve(linear={glc_up_id: -1}).fobj
-            solver.add_variable(var_id=glc_up_id,lb=0,ub=glc_min_flux*SLACK_FACTOR,update=False)
-            solution = solver.solve(linear= {prot_pool_id: -1})
+            # Step 3: set objective function as minimizing glucose uptake rate and protein useage
+            glc_flux_solution = solver.solve(linear={glc_up_id: 1}, minimize=True)
+            if glc_flux_solution.status != reframed.solvers.solution.Status.OPTIMAL:
+                raise OptimizationError(f"Solver status is {glc_flux_solution.status.value}")
+            glc_min_flux = glc_flux_solution.fobj
+            solver.add_variable(var_id=glc_up_id,lb=0,ub=glc_min_flux*SLACK_FACTOR,update=True)
+            solution = solver.solve(linear= {prot_pool_id: 1},minimize=True)
             if solution.status != reframed.solvers.solution.Status.OPTIMAL:
                 raise OptimizationError(f"Solver status is {solution.status.value}")
             solutions.append(solution.values)
