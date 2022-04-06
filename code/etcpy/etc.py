@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import time
 from reframed import CBModel
+from reframed.solvers.solver import Solver
 import reframed
 import logging
 
@@ -33,18 +34,17 @@ def simulate_growth(model, Ts,sigma,param_dict,Tadj=0):
     #
     '''
     rs = list()
+    solver: reframed.solvers.GurobiSolver = reframed.solver_instance(model)
     for T in Ts:
-        # Ensures we do not break anything important
-        opt_model = model.copy()
         # map temperature constraints
         mappers = reframed_mappers
-        mappers.map_fNT(opt_model,T,param_dict)
-        mappers.map_kcatT(opt_model,T,param_dict)
-        mappers.set_NGAMT(opt_model,T)
-        mappers.set_sigma(opt_model,sigma)
+        mappers.map_fNT(model,T,param_dict,solver_instance=solver)
+        mappers.map_kcatT(model,T,param_dict,solver_instance=solver)
+        mappers.set_NGAMT(solver,T)
+        mappers.set_sigma(solver,sigma)
 
         try:
-            solution = reframed.FBA(opt_model)
+            solution = solver.solve()
             if solution.status != reframed.solvers.solution.Status.OPTIMAL:
                 raise OptimizationError(f"Solver status is {solution.status.value}")
             r = solution.fobj
@@ -74,22 +74,21 @@ def simulate_chemostat(model,dilu,param_dict,Ts,sigma,growth_id,glc_up_id,prot_p
     '''
     solutions = list() # corresponding to Ts. a list of solutions from model.optimize()
     mappers = reframed_mappers
-
     # Step 1: fix growth rate
     m0 = model.copy()
     m0.reactions[growth_id].lb = dilu
+    solver: reframed.solvers.GurobiSolver = reframed.solver_instance(m0)
     for T in Ts:
-        m1 = m0.copy()
         # Step 2: map temperature constraints. 
-        mappers.map_fNT(m1,T,param_dict)
-        mappers.map_kcatT(m1,T,param_dict)
-        mappers.set_NGAMT(m1,T)
-        mappers.set_sigma(m1,sigma)
+        mappers.map_fNT(m0,T,param_dict,solver_instance=solver)
+        mappers.map_kcatT(m0,T,param_dict,solver_instance=solver)
+        mappers.set_NGAMT(solver,T)
+        mappers.set_sigma(solver,sigma)
         try:
             # Step 3: set objective function as minimizing glucose uptake rate and protein useage 
-            glc_min_flux = -reframed.FBA(m1, objective={glc_up_id: -1}).fobj
-            m1.reactions[glc_up_id].ub = glc_min_flux*SLACK_FACTOR
-            solution = reframed.FBA(m1, objective= {prot_pool_id: -1})
+            glc_min_flux = -solver.solve(linear={glc_up_id: -1}).fobj
+            solver.add_variable(var_id=glc_up_id,lb=0,ub=glc_min_flux*SLACK_FACTOR,update=False)
+            solution = solver.solve(linear= {prot_pool_id: -1})
             if solution.status != reframed.solvers.solution.Status.OPTIMAL:
                 raise OptimizationError(f"Solver status is {solution.status.value}")
             solutions.append(solution.values)

@@ -1,11 +1,13 @@
 import reframed
 from reframed import CBModel
+from reframed.solvers.solver import Solver
 import numpy as np
-import pandas as pd
+from sympy import solve
+
 from .thermal_parameters import *
 
 
-def map_fNT(model: CBModel,T: float,param_dict: dict,Tadj: float=0):
+def map_fNT(model: CBModel,T: float,param_dict: dict,Tadj: float=0, solver_instance: Solver=None):
     '''
     # apply the fraction of enzymes in native state to each protein.
     # model, reframed model
@@ -13,6 +15,8 @@ def map_fNT(model: CBModel,T: float,param_dict: dict,Tadj: float=0):
     # Tadj, This is to adjust the orginal denaturation curve by moving to left by
     # Tadj degrees.
     # param_dict, a dictionary containing thermal parameters of enzymes: dHTH, dSTS, dCpu, Topt
+    # solver_instance, Optional, a reframed solver instance assumed (without checking!) to stem from the model argument.
+    # When it is passed, this argument gets modified and the model argument is left untouched.
     #
     #
     # Gang Li, 2019-05-03
@@ -29,6 +33,8 @@ def map_fNT(model: CBModel,T: float,param_dict: dict,Tadj: float=0):
 
     met: str = model.metabolites.prot_pool.id
     cols = ['dHTH', 'dSTS','dCpu','Topt']
+    if solver_instance is not None:
+        lookup_table = model.metabolite_reaction_lookup()
     rxn: reframed.CBReaction
     for rxn in model.reactions.values():
         # We would preferingly only iterate over reactions where
@@ -42,25 +48,36 @@ def map_fNT(model: CBModel,T: float,param_dict: dict,Tadj: float=0):
         [dHTH, dSTS,dCpu,topt]= [parameter_entries[parameter] for parameter in cols]
         fNT = get_fNT(T+Tadj,dHTH,dSTS,dCpu)
         if fNT < 1e-32: fNT = 1e-32
+
         new_coeff: float = rxn.stoichiometry[met]/fNT
-        rxn.stoichiometry[met] = new_coeff
+        if solver_instance is None:
+            rxn.stoichiometry[met] = new_coeff
+        else:
+            metabolite_stochiometry = lookup_table[met].copy()
+            metabolite_stochiometry[rxn.id] = new_coeff
+            solver_instance.add_constraint(constr_id=met,lhs=metabolite_stochiometry, update=False)
     return
 
 
 
-def map_kcatT(model: CBModel,T: float,param_dict: dict):
+def map_kcatT(model: CBModel,T: float,param_dict: dict, solver_instance: Solver=None):
     '''
     # Apply temperature effect on enzyme kcat.
     # based on trainsition state theory
     # model, reframed model
     # T, temperature, in K
     # param_dict, a dictionary containing thermal parameters of enzymes: dHTH, dSTS, dCpu, Topt, dCpt
+    # solver_instance, Optional, a reframed solver instance assumed (without checking!) to stem from the model argument.
+    # When it is passed, this argument gets modified and the model argument is left untouched.
+    # The primary reason for this argument is performance which otherwise would be unattainable
     # Ensure that Topt is in K. Other parameters are in standard units.
     #
     # Gang Li, 2019-05-03
     #
     '''
     cols = ['dHTH', 'dSTS','dCpu','Topt','dCpt']
+    if solver_instance is not None:
+        lookup_table = model.metabolite_reaction_lookup()
     for rxn in model.reactions.values():
         rxn: reframed.CBReaction
         if rxn.id.startswith('draw_prot'): continue
@@ -85,7 +102,12 @@ def map_kcatT(model: CBModel,T: float,param_dict: dict):
             kcatT = calculate_kcatT(T,dHTH,dSTS,dCpu,kcatTopt,dCpt,Topt)
             if kcatT < 1e-32: kcatT = 1e-32
             new_coeff = -1/kcatT
-            rxn.stoichiometry[met] = new_coeff
+            if solver_instance is None:
+                rxn.stoichiometry[met] = new_coeff
+            else:
+                metabolite_stochiometry = lookup_table[met].copy()
+                metabolite_stochiometry[rxn.id] = new_coeff
+                solver_instance.add_constraint(constr_id=met,lhs=metabolite_stochiometry, update=False)
     return
         
 
@@ -93,14 +115,23 @@ def map_kcatT(model: CBModel,T: float,param_dict: dict):
 def set_NGAMT(model,T):
     # T is in K
     NGAM_T = getNGAMT(T)
-    rxn = model.reactions.NGAM
-    #ori_lb,ori_ub = rxn.lower_bound,rxn.upper_bound
-    rxn.lb = NGAM_T
-    rxn.ub = NGAM_T
+    if isinstance(model, CBModel):
+        rxn = model.reactions.NGAM
+        #ori_lb,ori_ub = rxn.lower_bound,rxn.upper_bound
+        rxn.lb = NGAM_T
+        rxn.ub = NGAM_T
+    elif isinstance(model, Solver):
+        model.add_variable(var_id='NGAM',lb=NGAM_T,ub=NGAM_T,update=False)
+    else:
+        raise Exception("Argument must be either a reframed model or solver instance")
 
 
 def set_sigma(model,sigma):
-    rxn = model.reactions.prot_pool_exchange
-    #ori_ub_sigma = rxn.upper_bound
-    rxn.ub = 0.17866*sigma
-
+    if isinstance(model, CBModel):
+        rxn = model.reactions.prot_pool_exchange
+        #ori_ub_sigma = rxn.upper_bound
+        rxn.ub = 0.17866*sigma
+    elif isinstance(model, Solver):
+        model.add_variable(var_id='prot_pool_exchange',lb=0,ub=0.17866*sigma,update=False)
+    else:
+        raise Exception("Argument must be either a reframed model or solver instance")

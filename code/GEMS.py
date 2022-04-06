@@ -214,7 +214,6 @@ def aerobic_fva(thermalParams: candidateType, processes=1):
     # thermalParams: a dictionary with ids like uniprotid_Topt
     param_dict = format_input(thermalParams)
     mae = pickle.load(open(os.path.join(path,'models/aerobic.pkl'),'rb'))
-    etc.solve_unboundedness(mae)
     rae = etc.simulate_fva(mae,dfae_batch.index+273.15,param_dict=param_dict,sigma=0.5, processes=processes)
     return rae
 
