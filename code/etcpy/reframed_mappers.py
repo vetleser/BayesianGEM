@@ -55,7 +55,7 @@ def map_fNT(model: CBModel,T: float,param_dict: dict,Tadj: float=0, solver_insta
         else:
             metabolite_stochiometry = lookup_table[met].copy()
             metabolite_stochiometry[rxn.id] = new_coeff
-            solver_instance.add_constraint(constr_id=met,lhs=metabolite_stochiometry, update=False)
+            solver_instance.add_constraint(constr_id=met,lhs=metabolite_stochiometry, update=True)
     return
 
 
@@ -107,7 +107,7 @@ def map_kcatT(model: CBModel,T: float,param_dict: dict, solver_instance: Solver=
             else:
                 metabolite_stochiometry = lookup_table[met].copy()
                 metabolite_stochiometry[rxn.id] = new_coeff
-                solver_instance.add_constraint(constr_id=met,lhs=metabolite_stochiometry, update=False)
+                solver_instance.add_constraint(constr_id=met,lhs=metabolite_stochiometry, update=True)
     return
         
 
@@ -121,7 +121,7 @@ def set_NGAMT(model,T):
         rxn.lb = NGAM_T
         rxn.ub = NGAM_T
     elif isinstance(model, Solver):
-        model.add_variable(var_id='NGAM',lb=NGAM_T,ub=NGAM_T,update=False)
+        model.add_variable(var_id='NGAM',lb=NGAM_T,ub=NGAM_T,update=True)
     else:
         raise Exception("Argument must be either a reframed model or solver instance")
 
@@ -132,6 +132,6 @@ def set_sigma(model,sigma):
         #ori_ub_sigma = rxn.upper_bound
         rxn.ub = 0.17866*sigma
     elif isinstance(model, Solver):
-        model.add_variable(var_id='prot_pool_exchange',lb=0,ub=0.17866*sigma,update=False)
+        model.add_variable(var_id='prot_pool_exchange',lb=0,ub=0.17866*sigma,update=True)
     else:
         raise Exception("Argument must be either a reframed model or solver instance")

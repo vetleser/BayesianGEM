@@ -23,9 +23,13 @@ for ind in params.index:
 
 # In[]
 tic = time.perf_counter()
-total_cold_start = GEMS.simulate_at_three_conditions_2(particle,warm_start=False)
+aerobic_cold_start = GEMS.aerobic(particle,warm_start=False)
 toc = time.perf_counter()
-print(f"Computed results at three conditions without warm start in {toc-tic} seconds.")
+print(f"Computed aerobic conditions without warm start in {toc-tic} seconds.")
+# tic = time.perf_counter()
+# total_cold_start = GEMS.simulate_at_three_conditions_2(particle,warm_start=False)
+# toc = time.perf_counter()
+# print(f"Computed results at three conditions without warm start in {toc-tic} seconds.")
 
 # In[]
 def junk():

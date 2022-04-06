@@ -34,17 +34,17 @@ def simulate_growth(model: CBModel, Ts,sigma,param_dict,Tadj=0):
     #
     '''
     rs = list()
-    # solver: reframed.solvers.GurobiSolver = reframed.solver_instance(model)
+    solver: reframed.solvers.GurobiSolver = reframed.solver_instance(model)
     for T in Ts:
-        this_model = model.copy()
-        solver = None
         # map temperature constraints
+        this_model = model.copy()
         mappers = reframed_mappers
-        mappers.map_fNT(this_model,T,param_dict,solver_instance=solver)
-        mappers.map_kcatT(this_model,T,param_dict,solver_instance=solver)
-        mappers.set_NGAMT(this_model,T)
-        mappers.set_sigma(this_model,sigma)
-        solver: reframed.solvers.GurobiSolver = reframed.solver_instance(this_model)
+        mappers.map_fNT(this_model,T,param_dict,solver_instance=None)
+        mappers.map_kcatT(this_model,T,param_dict,solver_instance=None)
+        solver = reframed.solver_instance(this_model)
+        mappers.set_NGAMT(solver,T)
+        mappers.set_sigma(solver,sigma)
+        solver.update()
         try:
             solution = solver.solve(linear=model.get_objective(),minimize=False)
             if solution.status != reframed.solvers.solution.Status.OPTIMAL:
