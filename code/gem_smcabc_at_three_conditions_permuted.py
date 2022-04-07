@@ -82,7 +82,7 @@ population_size = 100
 outdir = '../results/permuted_smcabc_res'
 if not os.path.exists(outdir):
     os.makedirs(outdir)
-candidate_frame['outfile'] = [f'{outdir}/smcabc_gem_three_conditions_{origin}_{status}_save_all_particles.pkl' for
+candidate_frame['outfile'] = [f'{outdir}/smcabc_gem_three_conditions_updated_{origin}_{status}_save_all_particles.pkl' for
  origin, status in zip(candidate_frame['origin'],candidate_frame['status'])]
 
 pickle.dump(file=open(file=f'{outdir}/simulation_skeleton.pkl',mode='wb'),obj=candidate_frame)
