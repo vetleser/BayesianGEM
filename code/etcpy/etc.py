@@ -13,7 +13,7 @@ from .thermal_parameters import calculate_thermal_params
 from sympy import Float
 
 T0 = 273.15
-SLACK_FACTOR = 1.001      
+SLACK_FACTOR = 1.0      
 
 class OptimizationError(Exception):
     def __init__(self, *args: object) -> None:
@@ -37,11 +37,9 @@ def simulate_growth(model: CBModel, Ts,sigma,param_dict,Tadj=0):
     solver: reframed.solvers.GurobiSolver = reframed.solver_instance(model)
     for T in Ts:
         # map temperature constraints
-        this_model = model.copy()
-        solver = reframed.solver_instance(this_model)
         mappers = reframed_mappers
-        mappers.map_fNT(this_model,T,param_dict,solver_instance=solver)
-        mappers.map_kcatT(this_model,T,param_dict,solver_instance=solver)
+        mappers.map_fNT(model,T,param_dict,solver_instance=solver)
+        mappers.map_kcatT(model,T,param_dict,solver_instance=solver)
         mappers.set_NGAMT(solver,T)
         mappers.set_sigma(solver,sigma)
         solver.update()
@@ -59,7 +57,7 @@ def simulate_growth(model: CBModel, Ts,sigma,param_dict,Tadj=0):
     return rs
 
 
-def simulate_chemostat(model,dilu,param_dict,Ts,sigma,growth_id,glc_up_id,prot_pool_id):
+def simulate_chemostat(model: CBModel,dilu,param_dict,Ts,sigma,growth_id,glc_up_id,prot_pool_id):
     '''
     # Do simulation on a given dilution and a list of temperatures. 
     # model: reframed model
@@ -103,6 +101,10 @@ def simulate_chemostat(model,dilu,param_dict,Ts,sigma,growth_id,glc_up_id,prot_p
             logging.info(f'Failed to solve the problem, problem: {str(err)}')
             #solutions.append(None)
             break # because model has been impaired. Further simulation won't give right output.
+        finally:
+            # Reset glucose flux bound
+            glc_default_bound = model.reactions[glc_up_id].ub
+            solver.add_variable(var_id=glc_up_id,lb=0,ub=glc_default_bound,update=True)
     return solutions
 
 def sample_data_uncertainty(params,columns=None):
