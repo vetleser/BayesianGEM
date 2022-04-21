@@ -1,7 +1,6 @@
 #!/bin/bash
 #SBATCH -J gem_smcabc_at_three_conditions               # sensible name for the job
-#SBATCH --nodes=8                    
-#SBATCH --ntasks-per-node=1     # 1 task per node
+#SBATCH --nodes=1                    
 #SBATCH -c 20
 #SBATCH -t 100:00:00             # Upper time limit for the job
 #SBATCH --array=0-7
