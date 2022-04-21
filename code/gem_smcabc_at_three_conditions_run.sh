@@ -10,7 +10,10 @@
 #SBATCH --mail-user=jakob.p.pettersen@ntnu.no
 #SBATCH -p CPUQ
 
-# module purge
-# module load Anaconda3/2020.07
+WORKDIR=${SLURM_SUBMIT_DIR}
+cd ${WORKDIR}
+module purge
+module load Anaconda3/2020.07
+source /cluster/apps/eb/software/Anaconda3/2020.07/etc/profile.d/conda.sh
 conda activate etcFBA
 python gem_smcabc_at_three_conditions_run.py &> "gem_smcabc_at_three_conditions_$SLURM_ARRAY_JOB_ID.log"
