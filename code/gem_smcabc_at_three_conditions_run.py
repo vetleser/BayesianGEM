@@ -14,13 +14,10 @@ import os
 import pandas as pd
 import pickle
 import logging
-#import mpi4py as MPI
 
 # In[]
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s') 
-#comm = MPI.COMM_WORLD
-#task_idx: int = comm.comm.Get_rank()
 task_idx = int(os.environ["SLURM_ARRAY_TASK_ID"])
 
 
