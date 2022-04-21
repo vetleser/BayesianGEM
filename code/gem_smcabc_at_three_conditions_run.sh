@@ -10,7 +10,7 @@
 #SBATCH --mail-user=jakob.p.pettersen@ntnu.no
 #SBATCH -p CPUQ
 
-module purge
-module load Anaconda3/2020.07
+# module purge
+# module load Anaconda3/2020.07
 conda activate etcFBA
 python gem_smcabc_at_three_conditions_run.py &> "gem_smcabc_at_three_conditions_$SLURM_ARRAY_JOB_ID.log"
