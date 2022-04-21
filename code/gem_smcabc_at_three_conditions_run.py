@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# This is a companion script to gem_smcabc_at_three_conditions.py
+# This is a companion script to gem_smcabc_at_three_conditions_prepare.py
 # Its rationale is to devide the jobs to the aforementioned script on serveral nodes
 # such that several nodes can work on the computations at once.
 # This process is so computationally expensive that it is difficult for a single node
@@ -14,11 +14,14 @@ import os
 import pandas as pd
 import pickle
 import logging
+#import mpi4py as MPI
 
 # In[]
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s') 
-
+#comm = MPI.COMM_WORLD
+#task_idx: int = comm.comm.Get_rank()
+task_idx = int(os.environ["SLURM_ARRAY_TASK_ID"])
 
 
 # In[2]:
@@ -41,23 +44,19 @@ Yobs = {'rae':Yobs_batch['data'],
 
 outdir = '../results/permuted_smcabc_res'
 candidate_frame: pd.DataFrame = pickle.load(file=open(file=f'{outdir}/simulation_skeleton.pkl',mode='rb'))
+entry = candidate_frame.iloc[task_idx]
 
-# In[]
 
-
-# Insert custom filtering here
-origin_to_pick = 'unpermuted'
-subsetted_frame = candidate_frame.query(f"origin == '{origin_to_pick}'")
 
 # In[]
 
 min_epsilon = -1.0 # equivalent to r2 score of 1
 population_size = 100
-models = []
-for priors, outfile in zip(subsetted_frame['priors'], subsetted_frame['outfile']):
-    if not os.path.exists(outfile):
-        logging.info('Initialize models')
-        models.append(abc.SMCABC(GEMS.simulate_at_three_conditions_2,
+logging.info('Initialize model')
+
+
+priors, origin, status, outfile, random_seed = entry[["priors", "origin", "status", "outfile","random_seed"]]
+model = abc.SMCABC(GEMS.simulate_at_three_conditions_2,
                                 priors=priors,
                                 min_epsilon=min_epsilon,
                                 population_size=population_size,
@@ -66,19 +65,15 @@ for priors, outfile in zip(subsetted_frame['priors'], subsetted_frame['outfile']
                                 outfile=outfile,
                                 generation_size=128,
                                  maxiter=500)
-        )
-    else:
-        models.append(pickle.load(open(outfile,'rb')))
-
-subsetted_frame['model'] = models
 
 
-# #### Run simulation
+
 
 # In[ ]:
+# #### Run simulation
 
-for origin, status, model in zip(subsetted_frame['origin'],subsetted_frame['status'], subsetted_frame['model']):
-    logging.info(f'Start simulations with prior parameter set {origin}, {status}')
-    model.run_simulation()
+np.random.seed(random_seed)
+logging.info(f'Start simulations with prior parameter set {origin}, {status}')
+model.run_simulation()
 
 logging.info(f'DONE')
