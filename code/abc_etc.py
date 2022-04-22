@@ -20,7 +20,7 @@ import numpy.typing as npt
 
 simResultType = Dict[str, Dict[str, npt.NDArray[np.float64]]]
 candidateType = Dict[str, float]
-prior_type = Dict[str, RV]
+priorType = Dict[str, RV]
 distanceArgType = Dict[str, npt.NDArray[np.float64]]
 
 # In[]
@@ -63,7 +63,7 @@ class RV:
 # In[ ]:
 
 class SMCABC:
-    def __init__(self,simulator: Callable[[candidateType], simResultType],priors: prior_type,min_epsilon: float,population_size: int,
+    def __init__(self,simulator: Callable[[candidateType], simResultType],priors: priorType,min_epsilon: float,population_size: int,
     distance_function: Callable[[distanceArgType, distanceArgType], float],
                  Yobs: distanceArgType,outfile: str,cores: int=cpu_count(),generation_size: int =128, maxiter: int=100000):
         '''
@@ -201,7 +201,7 @@ class SMCABC:
         
         
     def update_posterior(self):
-        logging.info('Updating prior')
+        logging.info('Updating posterior')
         parameters = dict()   # {'Protein_Tm':[]}
         for particle in self.population:
             for p,val in particle.items(): 

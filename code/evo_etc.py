@@ -6,36 +6,26 @@
 # In[1]:
 
 
-from copy import deepcopy
 import logging
-from math import sqrt
 from typing import Callable, Dict, Iterable, List
 import dill
 from inspyred.ec import replacers, variators
 from inspyred.ec.variators import mutators
-import multiprocess
 import numpy as np
 import numpy.typing as npt
-from numpy.random.mtrand import seed
 import time
-import scipy
 import scipy.stats as ss
 from scipy.stats import poisson
-import multiprocessing
-from multiprocessing import Process,cpu_count,Manager
-from decimal import Decimal
+from multiprocessing import cpu_count
 from random_sampler import RV
 import inspyred
 import inspyred.ec
 import inspyred.ec.variators as variators
-import inspyred.ec.evaluators as evaluators
 import inspyred.ec.selectors as selectors
-import os
-import GEMS
 import pathos
 
 simResultType = Dict[str, Dict[str, npt.NDArray[np.float64]]]
-individualType = Dict[str, RV]
+priorType = Dict[str, RV]
 candidateType = Dict[str, float]
 distanceArgType = Dict[str, npt.NDArray[np.float64]]
 
@@ -66,16 +56,15 @@ def default_rng(seed=None):
 
 # In[2]:
 
-def convert_to_raw_particle(particle: individualType) -> candidateType:
-    return {key: value.loc for key, value in particle.items()}
 
 
 
 class GA:
-    def __init__(self,simulator: Callable[[candidateType], simResultType], priors : individualType, min_epsilon: float,
+    def __init__(self,simulator: Callable[[candidateType], simResultType], priors : priorType, min_epsilon: float,
     distance_function: Callable[[distanceArgType, distanceArgType], float],
                  Yobs: distanceArgType, outfile: str,cores: int = cpu_count(),generation_size: int = 128, mutation_frequency: float = 1.,
-                  selection_proportion: float = 0.5, maxiter: int = 100000, rng: EvolutionGenerator = None, n_children : int = 2, mutation_prob: float = 1.):
+                  selection_proportion: float = 0.5, maxiter: int = 100000, rng: EvolutionGenerator = None, n_children : int = 2, mutation_prob: float = 1.,
+                  save_intermediate: bool = False):
         '''
         simulator:       a function that takes a dictionary of parameters as input. Ouput {'data':Ysim}
         priors:          a dictionary which use id of parameters as keys and RV class object as values
@@ -92,12 +81,14 @@ class GA:
         maxiter: The maximum number of generations to simulate
         n_children: The number of children to produce for each crossing
         mutation_prob: The probability that the mutator will apply mutation on a specific candidate solution
+        save_intermediate: Should intermediate results be saved for each iteration? If toggled on, computations can be resumed if interrupted prematurly, but this will come at a performance penalty which parallelism cannot alleviate.
 
         
         !!!Important: distance is to be minimized!!!
         '''
         self.simulator = simulator
         self.priors = priors
+        self.param_std: Dict[str, float] = {param: prior.scale for param, prior in priors.items()}
         if rng is None:
             default_seed = 1952
             self.rng = default_rng(default_seed)
@@ -123,8 +114,10 @@ class GA:
         self.generations = 0
         self.n_children = n_children
         self.mutation_prob = mutation_prob
+        self.save_intermediate = save_intermediate
 
-    
+        
+
         def archiver(random, population, archive, args):
             # We do not really care about the inspyred archive, but
             # have to handle it anyway
@@ -137,7 +130,9 @@ class GA:
             self.epsilons.append(max_generation_epsilon)
             logging.info(f"Model epsilon {max_generation_epsilon}")
             self.generations += 1
-            dill.dump(self,open(self.outfile,'wb'))
+
+            if self.save_intermediate:
+                    dill.dump(self,open(self.outfile,'wb'))
             return archive
 
 
@@ -152,7 +147,7 @@ class GA:
             distance = self.distance_function(Yobs, res)
             return res, distance """
 
-        def parallel_evaluation_mp(candidates: List[individualType], args: dict):
+        def parallel_evaluation_mp(candidates: List[candidateType], args: dict):
             # Copy-catted from https://github.com/aarongarrett/inspyred/blob/master/inspyred/ec/evaluators.py
             logger = args['_ec'].logger
             
@@ -215,7 +210,7 @@ class GA:
                 return all_distances
 
 
-        def generator(random: EvolutionGenerator, args):
+        def generator(random: EvolutionGenerator, args) -> candidateType:
             # def correct_validity(seed: individualType):
             #     seed = deepcopy(self.priors)
             #     # check Topt < Tm, if false, resample from prior
@@ -233,10 +228,16 @@ class GA:
             #             else:
             #                 break
             #     return seed
-                return mutate(random = random, candidate=deepcopy(self.priors), args=args)
+                candidate = {param: prior.loc for param, prior in self.priors.items()}
+                return mutate(random = random, candidate=candidate, args=args)
 
         # @variators.mutator
-        def mutate(random: EvolutionGenerator, candidate: individualType, args: dict) -> individualType:
+
+        def mutate(random: EvolutionGenerator, candidate: candidateType, args: dict) -> candidateType:
+
+            def mutate_param(entry: str):
+                candidate[entry] = random.normal(loc=candidate[entry], scale=self.param_std[entry])
+
             def correct_validity(entry: str) -> None:
                 # As we only change one parameter at a time, we only need to check
                 # the validity of the parameters of one enzyme
@@ -248,35 +249,25 @@ class GA:
                     Tm = candidate[Tm_key]
                     Topt = candidate[Topt_key]
                     if Tm < Topt:
-                        candidate[Tm_key] = Tm.mutate()
-                        candidate[Topt_key] = Topt.mutate()
+                        mutate_param(Tm_key)
+                        mutate_param(Topt_key)
                     else:
                         break
             if float(random.uniform(low=0, high=1)) < self.mutation_prob:
                 n_mutations = random.poisson(lam=self.mutation_frequency)
                 entries: list[str] = list(candidate.keys())
                 for _ in range(n_mutations):
-                    entry = random.choice(entries)
-                    candidate[entry] = candidate[entry].mutate()
+                    entry: str = random.choice(entries)
+                    mutate_param(entry)
                     correct_validity(entry)
             return candidate
 
 
         @variators.crossover
-        def cross(random: EvolutionGenerator, mom: individualType, dad: individualType, args: dict) -> Iterable[individualType]:
-            def merge_distributions(mom: RV, dad: RV):
-                if mom.dist_name != dad.dist_name:
-                    raise ValueError("Attemt to merge distributions of different types")
-                dist_name = mom.dist_name
-                # For normally distributed variables, the take the average of the variances
-                scale = sqrt((mom.scale**2 + dad.scale**2) / 2) if dist_name == 'normal' else (mom.scale + dad.scale) / 2
-                loc = (mom.loc + dad.loc) / 2
-                return RV(dist_name, loc, scale, rng=random)
-                
-
+        def cross(random: EvolutionGenerator, mom: candidateType, dad: candidateType, args: dict) -> Iterable[candidateType]:
             common_keys = set(mom.keys())
             common_keys.update(dad.keys())
-            return ({key: merge_distributions(mom[key], dad[key]) for key in common_keys} for _ in range(self.n_children))
+            return ({key: (mom[key] + dad[key]) / 2 for key in common_keys} for _ in range(self.n_children))
 
 
         self.archiver = archiver
@@ -288,6 +279,23 @@ class GA:
         self.parallel_evaluation_mp = parallel_evaluation_mp
     
 
+    def update_std(self):
+        """
+        This method updates the enzyme parameter preceived standard deviations. Corresponds to update_posterior() in abc_etc 
+        """
+        logging.info('Updating standard deviations to parameters')
+        parameters = dict()   # {'Protein_Tm':[]}
+        for particle in self.population:
+            for p,val in particle.items(): 
+                lst = parameters.get(p,[])
+                lst.append(val)
+                parameters[p] = lst
+        
+        for p, lst in parameters.items():
+            self.param_std[p] = np.std(lst)
+
+
+
     def simulate_one(self,particle,index,Q):
         '''
         particle:  parameters 
@@ -295,7 +303,7 @@ class GA:
         index:  the index in particles list
         '''
 
-        res = self.simulator(convert_to_raw_particle(particle=particle))
+        res = self.simulator(particle)
         # ysim = {simulated}
 
         Q.put((index,res))
@@ -312,7 +320,7 @@ class GA:
         self.rng = EvolutionGenerator.from_numpy_generator(self.rng)
         if self.generations > 0:
             # Restore computations from stored results
-            seeds : List[individualType] = [individual.candidate for individual  in self.population]
+            seeds : List[candidateType] = [individual.candidate for individual  in self.population]
         else:
             seeds = None
 

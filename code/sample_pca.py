@@ -15,17 +15,13 @@ def load_pickle(filename):
 def dump_pickle(obj,filename):
     return pickle.dump(obj=obj,file=open(file=filename, mode='wb'))
 
-def build_a_dataframe_for_all_particles(results, n_priors = 128, r2_threshold = 0.9, convert_results=False):
+def build_a_dataframe_for_all_particles(results, n_priors = 128, r2_threshold = 0.9):
     columns = list(results.all_particles[0].keys())
     columns.sort()
     print("Iterating over particles")
     data = list()
     for p in results.all_particles:
-        if convert_results:
-            p_refined = evo_etc.convert_to_raw_particle(p)
-        else:
-            p_refined = p
-        data.append([p_refined[k] for k in columns])
+        data.append([p[k] for k in columns])
     print("Creating Data Frame")
     df = pd.DataFrame(data=data,columns=columns)
     df['r2'] = results.all_distances

@@ -4,13 +4,11 @@
 # In[1]:
 
 
-import dill
 import evo_etc as evo
 import numpy as np
 import GEMS
 import os
 import pandas as pd
-import pickle
 import logging
 
 # In[]
@@ -51,7 +49,9 @@ def main():
 
     priors = dict()
     for ind in params.index: 
-        for col in ['Tm','Topt','dCpt']: 
+        for col in ['Tm','Topt','dCpt']:
+            # Note that we do not set any RNG here. This is because it is unnecessary as the evolutionary algorithm automatically takes
+            # responsibility for doing so 
             priors['{0}_{1}'.format(ind,col)] = evo.RV('normal',
                                                         loc=params.loc[ind,col],
                                                         scale=params.loc[ind,col+'_std'])
@@ -60,7 +60,6 @@ def main():
     # #### Define model settings
 
     # In[ ]:
-
     rng = evo.default_rng(39322)
     min_epsilon = -1.0 # equivalent to r2 score of 1
     population_size = 100
@@ -70,34 +69,32 @@ def main():
     # In[ ]:
 
 
-    if not os.path.exists(outfile):
-        logging.info('Initialize model')
-        # Parameters are set to generate 128 children per generation in order to provide 
-        # comparable results with the Bayesian fitting algorithm
-        model = evo.GA(simulator= GEMS.simulate_at_three_conditions_2,
-                            priors=priors,
-                            min_epsilon=min_epsilon,
-                            generation_size=population_size,
-                            distance_function=GEMS.distance_2,
-                            Yobs=Yobs,
-                            outfile=outfile,
-                            maxiter=500,
-                            rng=rng,
-                            mutation_frequency=100,
-                            mutation_prob=.5,
-                            selection_proportion=0.32,
-                            n_children=8)
-    else: 
-        model = dill.load(open(outfile,'rb'))
-
+    logging.info('Initialize model')
+    # Parameters are set to generate 128 children per generation in order to provide 
+    # comparable results with the Bayesian fitting algorithm
+    model = evo.GA(simulator= GEMS.simulate_at_three_conditions_2,
+                        priors=priors,
+                        min_epsilon=min_epsilon,
+                        generation_size=population_size,
+                        distance_function=GEMS.distance_2,
+                        Yobs=Yobs,
+                        outfile=outfile,
+                        maxiter=500,
+                        rng=rng,
+                        mutation_frequency=100,
+                        mutation_prob=.5,
+                        selection_proportion=0.32,
+                        n_children=8,
+                        save_intermediate=False)
 
     # #### Run simulation
 
     # In[ ]:
 
 
-    logging.info('start simulations')
+    logging.info('Start evolutionary simulations')
     model.run_simulation()
+    logging.info("DONE")
 
 
 if __name__ == '__main__':
