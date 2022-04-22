@@ -16,4 +16,5 @@ module purge
 module load Anaconda3/2020.07
 source /cluster/apps/eb/software/Anaconda3/2020.07/etc/profile.d/conda.sh
 conda activate etcFBA
+which python | echo
 python gem_smcevo_at_three_conditions.py &> "../results/gem_smcevo_at_three_conditions.log"
