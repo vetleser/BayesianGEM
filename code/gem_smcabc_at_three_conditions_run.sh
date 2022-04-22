@@ -10,8 +10,6 @@
 #SBATCH -p CPUQ
 #SBATCH --account=share-nv-ibt
 
-printenv | grep "SLURM"
-echo "Hallo from task ${SLURM_ARRAY_TASK_ID}"
 WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR}
 module purge
