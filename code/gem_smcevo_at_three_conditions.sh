@@ -2,7 +2,7 @@
 #SBATCH -J gem_smcevo_at_three_conditions               # sensible name for the job
 #SBATCH --output=gem_smcevo_at_three_conditions.out
 #SBATCH --nodes=1                    
-#SBATCH -c 40
+#SBATCH -c 20
 #SBATCH -t 100:00:00             # Upper time limit for the job
 #SBATCH --mail-type=begin
 #SBATCH --mail-type=end
