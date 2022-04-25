@@ -8,6 +8,9 @@ from etcpy import etc
 import pickle
 import GEMS
 import numpy as np
+import logging
+
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 
 candidateType = Dict[str, float]
 
@@ -101,5 +104,5 @@ start = timeit.timeit()
 #fba_sol = GEMS.aerobic(example_particle)
 fva_solution = aerobic_fva(example_particle)
 end = timeit.timeit()
-print(end-start)
+logging.info(end-start)
 # %%

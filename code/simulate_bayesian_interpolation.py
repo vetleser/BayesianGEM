@@ -11,11 +11,8 @@ from sympy import Float
 import abc_etc as abc
 import numpy as np
 import GEMS
-import os
 import pandas as pd
 import pickle
-import permute_parameters
-import logging
 import abc_etc as etc
 import numpy.typing as npt
 from itertools import combinations
@@ -57,9 +54,11 @@ def calculate_distances_parallel(particles):
                                for index,particle in enumerate(particles)]
         
         for p in jobs: p.start()
-        for p in jobs: p.join()
+        # The timeout is an emergency hatch designed to catch 
+        # processes which for some reason are caught in a deadlock
+        for p in jobs: p.join(timeout=1000)
         
-        distances = [None for _ in range(len(particles))]
+        distances = [np.inf for _ in range(len(particles))]
         simulated_data = [None for _ in range(len(particles))]
 
         while not Q.empty():
@@ -69,15 +68,6 @@ def calculate_distances_parallel(particles):
         
         # Q may not always contain the result of all jobs we passed to it,
         # this must be handled carefully
-        missing_indicies = [i for i, val in enumerate(distances) if val is None]
-        # Great care must be taken, deleting indicies must take place in
-        # decreasing order in order to not shift the indicies
-        missing_indicies.sort(reverse=True)
-        # We solve the problem by removing elements corresponding to missing
-        # values
-        for i in missing_indicies:
-            del simulated_data[i]
-            del distances[i]
         return distances,simulated_data
 
 # In[3]:

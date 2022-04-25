@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH -J gem_smcevo_at_three_conditions               # sensible name for the job
-#SBATCH --output=gem_smcevo_at_three_conditions.out
+#SBATCH -J gem_fva_at_three_conditions               # sensible name for the job
+#SBATCH --output=gem_fva_at_three_conditions.out
 #SBATCH --nodes=1                    
 #SBATCH -c 40
 #SBATCH -t 100:00:00             # Upper time limit for the job
@@ -17,4 +17,4 @@ module purge
 module load Anaconda3/2020.07
 source ~/.bash_profile
 conda activate etcFBA
-python gem_smcevo_at_three_conditions.py &> "../results/gem_smcevo_at_three_conditions.log"
+python gem_fva_at_three_conditions.py &> "../results/permuted_smcabc_res/gem_fva_at_three_conditions.log"
