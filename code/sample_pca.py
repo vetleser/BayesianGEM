@@ -50,7 +50,6 @@ def combine_dataframes_for_models(df_dict):
     for label, df in augmented_df_dict.items():
         df["origin"] = label[0]
         df["status"] = label[1]
-        df.reset_index()
     logging.info("Labelling done")
     return pd.concat(augmented_df_dict.values(), ignore_index=True)
 
@@ -65,6 +64,8 @@ def perform_pca_on_parameters(df):
     return PCS, pca.explained_variance_ratio_
 
 model_frame = load_pickle("../results/permuted_smcabc_res/simulation_skeleton.pkl")
+model_frame.set_index(["origin","status"], inplace=True)
+
 with multiprocessing.Pool(8) as p:
     particle_df_map = p.map(build_a_dataframe_for_all_particles,model_frame.outfile)
     model_frame["particle_df"] = list(particle_df_map)
