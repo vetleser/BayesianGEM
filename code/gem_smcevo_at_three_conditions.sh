@@ -9,12 +9,13 @@
 #SBATCH --mail-user=jakob.p.pettersen@ntnu.no
 #SBATCH -p CPUQ
 #SBATCH --account=nv-ibt
+#SBATCH --export=NONE
 
 WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR}
 module purge
 module load Anaconda3/2020.07
-source /cluster/apps/eb/software/Anaconda3/2020.07/etc/profile.d/conda.sh
+source ~/.bash_profile
 conda activate etcFBA
 which python
 python gem_smcevo_at_three_conditions.py &> "../results/gem_smcevo_at_three_conditions.log"
