@@ -17,7 +17,8 @@ def load_pickle(filename):
 def dump_pickle(obj,filename):
     return pickle.dump(obj=obj,file=open(file=filename, mode='wb'))
 
-def build_a_dataframe_for_all_particles(results, n_priors = 128, r2_threshold = 0.9):
+def build_a_dataframe_for_all_particles(file, n_priors = 128, r2_threshold = 0.9):
+    results = load_pickle(file)
     columns = list(results.all_particles[0].keys())
     columns.sort()
     logging.info("Iterating over particles")
@@ -63,9 +64,9 @@ def perform_pca_on_parameters(df):
     logging.info(pca.explained_variance_ratio_)
     return PCS, pca.explained_variance_ratio_
 
-model_frame = load_pickle("../results/permuted_smcabc_res/result_model_frame.pkl")
+model_frame = load_pickle("../results/permuted_smcabc_res/simulation_skeleton.pkl")
 with multiprocessing.Pool(8) as p:
-    particle_df_map = p.map(build_a_dataframe_for_all_particles,model_frame.model)
+    particle_df_map = p.map(build_a_dataframe_for_all_particles,model_frame.outfile)
     model_frame["particle_df"] = list(particle_df_map)
 
 dump_pickle(model_frame["particle_df"], "../results/permuted_smcabc_res/particle_df.pkl")
