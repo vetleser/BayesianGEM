@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -job-name="gem_smcabc_at_three_conditions"               # sensible name for the job
+#SBATCH --job-name="gem_smcabc_at_three_conditions"               # sensible name for the job
 #SBATCH --output=gem_smcabc_at_three_conditions.out
 #SBATCH --nodes=1                    
 #SBATCH -c 20
