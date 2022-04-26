@@ -163,15 +163,14 @@ class SMCABC:
     
     def simulate_a_generation(self):
         particles_t, simulated_data_t, distances_t = [], [], []
-        while len(particles_t) < self.generation_size:
-            self.simulations += self.cores
-            particles = [{idp: rv.rvfv() for idp,rv in self.posterior.items()} for i in range(self.cores)]
-            particles = self.check_t0_particles(particles)
-            distances,simulated_data = self.calculate_distances_parallel(particles)
-            
-            particles_t.extend(particles)
-            simulated_data_t.extend(simulated_data)
-            distances_t.extend(distances)
+        self.simulations += self.generation_size
+        particles = [{idp: rv.rvfv() for idp,rv in self.posterior.items()} for _ in range(self.generation_size)]
+        particles = self.check_t0_particles(particles)
+        distances,simulated_data = self.calculate_distances_parallel(particles)
+        
+        particles_t.extend(particles)
+        simulated_data_t.extend(simulated_data)
+        distances_t.extend(distances)
         
         return particles_t, simulated_data_t, distances_t
     

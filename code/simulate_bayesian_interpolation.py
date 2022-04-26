@@ -74,11 +74,8 @@ def calculate_distances_parallel(particles):
 
 def read_posterior_particles(filename: str):
     model: etc.SMCABC = pickle.load(open(file=filename,mode='rb'))
-    return get_posterior_particles(model=model)
+    return extract_posterior_particles(model=model)
 
-def get_posterior_particles(model: etc.SMCABC):
-    return [particle for particle, distance in
-     zip(model.all_particles,model.all_distances) if distance < -0.90]
 
 def extract_posterior_particles(model: abc.SMCABC, r2_threshold = 0.9):
     posterior_idxs = np.nonzero(np.array(model.all_distances) < -r2_threshold)[0]

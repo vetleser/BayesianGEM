@@ -2,7 +2,7 @@
 #SBATCH -J simulate_bayesian_interpolation               # sensible name for the job
 #SBATCH --output=simulate_bayesian_interpolation.out
 #SBATCH --nodes=1                    
-#SBATCH -c 20
+#SBATCH -c 11
 #SBATCH -t 100:00:00             # Upper time limit for the job
 #SBATCH --mail-type=begin
 #SBATCH --mail-type=end
