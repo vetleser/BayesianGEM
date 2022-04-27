@@ -14,15 +14,15 @@ import GEMS
 import pandas as pd
 import pickle
 import abc_etc as etc
-import numpy.typing as npt
 from itertools import combinations
-from multiprocessing import Process,cpu_count,Manager
+import multiprocessing
 
 # In[2]
 
 # Preliminary definitions and settings
 n_comparisons = 10
 random_seed = 249
+cores = multiprocessing.cpu_count()
 rng = np.random.default_rng(random_seed)
 simulator = GEMS.simulate_at_three_conditions_2
 distance_function = GEMS.distance_2
@@ -38,36 +38,11 @@ Yobs = {'rae':Yobs_batch['data'],
 
 
 def calculate_distances_parallel(particles):
-        def simulate_one(particle,index,Q):
-            '''
-            particle:  parameters 
-            Q:      a multiprocessing.Queue object
-            index:  the index in particles list
-            '''
-            res = simulator(particle)
-            # ysim = {simulated}
+        with multiprocessing.Pool(cores) as p:
+            res_map = p.map(simulator, particles)
+        simulated_data = list(res_map)
+        distances = [distance_function(Yobs, res) for res in simulated_data]
 
-            Q.put((index,res))
-
-        Q = Manager().Queue()
-        jobs = [Process(target=simulate_one,args=(particle,index,Q)) 
-                               for index,particle in enumerate(particles)]
-        
-        for p in jobs: p.start()
-        # The timeout is an emergency hatch designed to catch 
-        # processes which for some reason are caught in a deadlock
-        for p in jobs: p.join(timeout=1000)
-        
-        distances = [np.inf for _ in range(len(particles))]
-        simulated_data = [None for _ in range(len(particles))]
-
-        while not Q.empty():
-            index,res = Q.get(timeout=1)
-            distances[index] = distance_function(Yobs,res)
-            simulated_data[index] = res
-        
-        # Q may not always contain the result of all jobs we passed to it,
-        # this must be handled carefully
         return distances,simulated_data
 
 # In[3]:

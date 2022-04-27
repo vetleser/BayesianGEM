@@ -6,6 +6,7 @@
 # In[1]:
 
 
+import multiprocessing
 import numpy as np
 import scipy.stats as ss
 from multiprocessing import Process,cpu_count,Manager
@@ -103,38 +104,13 @@ class SMCABC:
         self.iterations = 0
         
     
-    def simulate_one(self,particle,index,Q):
-        '''
-        particle:  parameters 
-        Q:      a multiprocessing.Queue object
-        index:  the index in particles list
-        '''
-        res = self.simulator(particle)
-        # ysim = {simulated}
-
-        Q.put((index,res))
     
     def calculate_distances_parallel(self,particles):
-        Q = Manager().Queue()
-        jobs = [Process(target=self.simulate_one,args=(particle,index,Q)) 
-                               for index,particle in enumerate(particles)]
-        
-        for p in jobs: p.start()
-        # The timeout is an emergency hatch designed to catch 
-        # processes which for some reason are caught in a deadlock
-        for p in jobs: p.join(timeout=1000)
-        
-        distances = [np.inf for _ in range(len(particles))]
-        simulated_data = [None for _ in range(len(particles))]
+        with multiprocessing.Pool(self.cores) as p:
+            res_map = p.map(self.simulator, particles)
+        simulated_data = list(res_map)
+        distances = [self.distance_function(self.Yobs, res) for res in simulated_data]
 
-        while not Q.empty():
-            index,res = Q.get(timeout=1)
-            distances[index] = self.distance_function(self.Yobs,res)
-            simulated_data[index] = res
-        
-        # Q may not always contain the result of all jobs we passed to it,
-        # this must be handled carefully
-            
         # save all simulated results
         self.all_simulated_data.extend(simulated_data)
         self.all_distances.extend(distances)
