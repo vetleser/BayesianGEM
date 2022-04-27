@@ -17,7 +17,7 @@ import logging
 
 # In[]
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s') 
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 task_idx = int(os.environ["SLURM_ARRAY_TASK_ID"])
 
 

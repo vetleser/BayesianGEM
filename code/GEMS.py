@@ -214,7 +214,7 @@ def aerobic_fva(thermalParams: candidateType, processes=1):
     # thermalParams: a dictionary with ids like uniprotid_Topt
     param_dict = format_input(thermalParams)
     mae = pickle.load(open(os.path.join(path,'models/aerobic.pkl'),'rb'))
-    rae = etc.simulate_fva(mae,dfae_batch.index+273.15,param_dict=param_dict,sigma=0.5, processes=processes)
+    rae = etc.simulate_fva(mae,dfae_batch.index+273.15,param_dict=param_dict,sigma=0.5)
     return rae
 
 
@@ -229,7 +229,7 @@ def anaerobic_reduced_fva(thermalParams: candidateType, processes=1):
     param_dict = format_input(thermalParams)
     man = pickle.load(open(os.path.join(path,'models/anaerobic.pkl'),'rb'))
     sel_temp = [5.0,15.0,26.3,30.0,33.0,35.0,37.5,40.0]
-    ran = etc.simulate_fva(man,np.array(sel_temp+273.15,param_dict=param_dict,sigma=0.5), processes=processes)
+    ran = etc.simulate_fva(man,np.array(sel_temp+273.15,param_dict=param_dict,sigma=0.5))
     return ran
 
 

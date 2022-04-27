@@ -12,6 +12,8 @@ import numpy as np
 import GEMS
 import multiprocessing
 
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
+
 rng = np.random.default_rng(seed=46465)
 
 N_SAMPLES = 20

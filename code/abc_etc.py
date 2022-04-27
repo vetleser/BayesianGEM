@@ -6,12 +6,11 @@
 # In[1]:
 
 
+import multiprocessing
 import numpy as np
 import scipy.stats as ss
 from multiprocessing import Process,cpu_count,Manager
-from decimal import Decimal
 import pickle
-import os
 from random_sampler import RV
 import logging
 from typing import Callable, Dict, Iterable, List
@@ -105,38 +104,13 @@ class SMCABC:
         self.iterations = 0
         
     
-    def simulate_one(self,particle,index,Q):
-        '''
-        particle:  parameters 
-        Q:      a multiprocessing.Queue object
-        index:  the index in particles list
-        '''
-        res = self.simulator(particle)
-        # ysim = {simulated}
-
-        Q.put((index,res))
     
     def calculate_distances_parallel(self,particles):
-        Q = Manager().Queue()
-        jobs = [Process(target=self.simulate_one,args=(particle,index,Q)) 
-                               for index,particle in enumerate(particles)]
-        
-        for p in jobs: p.start()
-        # The timeout is an emergency hatch designed to catch 
-        # processes which for some reason are caught in a deadlock
-        for p in jobs: p.join(timeout=1000)
-        
-        distances = [np.inf for _ in range(len(particles))]
-        simulated_data = [None for _ in range(len(particles))]
+        with multiprocessing.Pool(self.cores) as p:
+            res_map = p.map(self.simulator, particles)
+        simulated_data = list(res_map)
+        distances = [self.distance_function(self.Yobs, res) for res in simulated_data]
 
-        while not Q.empty():
-            index,res = Q.get(timeout=1)
-            distances[index] = self.distance_function(self.Yobs,res)
-            simulated_data[index] = res
-        
-        # Q may not always contain the result of all jobs we passed to it,
-        # this must be handled carefully
-            
         # save all simulated results
         self.all_simulated_data.extend(simulated_data)
         self.all_distances.extend(distances)
@@ -165,15 +139,14 @@ class SMCABC:
     
     def simulate_a_generation(self):
         particles_t, simulated_data_t, distances_t = [], [], []
-        while len(particles_t) < self.generation_size:
-            self.simulations += self.cores
-            particles = [{idp: rv.rvfv() for idp,rv in self.posterior.items()} for i in range(self.cores)]
-            particles = self.check_t0_particles(particles)
-            distances,simulated_data = self.calculate_distances_parallel(particles)
-            
-            particles_t.extend(particles)
-            simulated_data_t.extend(simulated_data)
-            distances_t.extend(distances)
+        self.simulations += self.generation_size
+        particles = [{idp: rv.rvfv() for idp,rv in self.posterior.items()} for _ in range(self.generation_size)]
+        particles = self.check_t0_particles(particles)
+        distances,simulated_data = self.calculate_distances_parallel(particles)
+        
+        particles_t.extend(particles)
+        simulated_data_t.extend(simulated_data)
+        distances_t.extend(distances)
         
         return particles_t, simulated_data_t, distances_t
     

@@ -11,21 +11,18 @@ from sympy import Float
 import abc_etc as abc
 import numpy as np
 import GEMS
-import os
 import pandas as pd
 import pickle
-import permute_parameters
-import logging
 import abc_etc as etc
-import numpy.typing as npt
 from itertools import combinations
-from multiprocessing import Process,cpu_count,Manager
+import multiprocessing
 
 # In[2]
 
 # Preliminary definitions and settings
 n_comparisons = 10
 random_seed = 249
+cores = multiprocessing.cpu_count()
 rng = np.random.default_rng(random_seed)
 simulator = GEMS.simulate_at_three_conditions_2
 distance_function = GEMS.distance_2
@@ -41,54 +38,19 @@ Yobs = {'rae':Yobs_batch['data'],
 
 
 def calculate_distances_parallel(particles):
-        def simulate_one(particle,index,Q):
-            '''
-            particle:  parameters 
-            Q:      a multiprocessing.Queue object
-            index:  the index in particles list
-            '''
-            res = simulator(particle)
-            # ysim = {simulated}
+        with multiprocessing.Pool(cores) as p:
+            res_map = p.map(simulator, particles)
+        simulated_data = list(res_map)
+        distances = [distance_function(Yobs, res) for res in simulated_data]
 
-            Q.put((index,res))
-
-        Q = Manager().Queue()
-        jobs = [Process(target=simulate_one,args=(particle,index,Q)) 
-                               for index,particle in enumerate(particles)]
-        
-        for p in jobs: p.start()
-        for p in jobs: p.join()
-        
-        distances = [None for _ in range(len(particles))]
-        simulated_data = [None for _ in range(len(particles))]
-
-        while not Q.empty():
-            index,res = Q.get(timeout=1)
-            distances[index] = distance_function(Yobs,res)
-            simulated_data[index] = res
-        
-        # Q may not always contain the result of all jobs we passed to it,
-        # this must be handled carefully
-        missing_indicies = [i for i, val in enumerate(distances) if val is None]
-        # Great care must be taken, deleting indicies must take place in
-        # decreasing order in order to not shift the indicies
-        missing_indicies.sort(reverse=True)
-        # We solve the problem by removing elements corresponding to missing
-        # values
-        for i in missing_indicies:
-            del simulated_data[i]
-            del distances[i]
         return distances,simulated_data
 
 # In[3]:
 
 def read_posterior_particles(filename: str):
     model: etc.SMCABC = pickle.load(open(file=filename,mode='rb'))
-    return get_posterior_particles(model=model)
+    return extract_posterior_particles(model=model)
 
-def get_posterior_particles(model: etc.SMCABC):
-    return [particle for particle, distance in
-     zip(model.all_particles,model.all_distances) if distance < -0.90]
 
 def extract_posterior_particles(model: abc.SMCABC, r2_threshold = 0.9):
     posterior_idxs = np.nonzero(np.array(model.all_distances) < -r2_threshold)[0]

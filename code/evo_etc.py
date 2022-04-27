@@ -7,6 +7,7 @@
 
 
 import logging
+import multiprocessing
 from typing import Callable, Dict, Iterable, List
 import dill
 from inspyred.ec import replacers, variators
@@ -14,15 +15,12 @@ from inspyred.ec.variators import mutators
 import numpy as np
 import numpy.typing as npt
 import time
-import scipy.stats as ss
-from scipy.stats import poisson
 from multiprocessing import cpu_count
 from random_sampler import RV
 import inspyred
 import inspyred.ec
 import inspyred.ec.variators as variators
 import inspyred.ec.selectors as selectors
-import pathos
 
 simResultType = Dict[str, Dict[str, npt.NDArray[np.float64]]]
 priorType = Dict[str, RV]
@@ -151,63 +149,24 @@ class GA:
             # Copy-catted from https://github.com/aarongarrett/inspyred/blob/master/inspyred/ec/evaluators.py
             logger = args['_ec'].logger
             
-            try:
-                nprocs: int = args['mp_nprocs']
-            except KeyError:
-                nprocs = pathos.multiprocessing.cpu_count()
-                
-            pickled_args = {}
-            for key in args:
-                try:
-                    dill.dumps(args[key])
-                    pickled_args[key] = args[key]
-                except (TypeError, dill.PicklingError):
-                    logger.debug('unable to pickle args parameter {0} in parallel_evaluation_mp'.format(key))
-                    pass
-
             start = time.time()
             try:
                 # Use parallel backend such as in abc_etc.py
-                Q = pathos.helpers.mp.Manager().Queue()
-                jobs = [pathos.helpers.mp.Process(target=self.simulate_one,args=(particle,index,Q)) 
-                               for index,particle in enumerate(candidates)]
-                
-                for p in jobs: p.start()
-                # The timeout is an emergency hatch designed to catch 
-                # processes which for some reason are caught in a deadlock
-                for p in jobs: p.join(timeout=1000)
-
-                # Q may not always contain the result of all jobs we passed to it,
-                # this must be handled carefully
-                # We solve the problem by assuming that any jobs which fails to complete corresponds to zero fitness
-                result_list = [None for _ in range(len(candidates))]
-
-                while not Q.empty():
-                    index,res = Q.get(timeout=1)
-                    result_list[index] = res
-                
+                with multiprocessing.Pool(self.cores) as p:
+                    res_map = p.map(self.simulator, candidates)
             except (OSError, RuntimeError) as e:
                 logger.error('failed parallel_evaluation_mp: {0}'.format(str(e)))
                 raise
-            else:
-                all_simulated_data = []
-                all_distances = []
-                for entry in result_list:
-                    if entry is None:
-                        all_simulated_data.append(None)
-                        all_distances.append(np.inf)
-                    else:
-                        res = entry 
-                        distance = self.distance_function(self.Yobs,res)
-                        all_simulated_data.append(res)
-                        all_distances.append(distance)
-                self.all_distances.extend(all_distances)
-                self.all_simulated_data.extend(all_simulated_data)
-                self.all_particles.extend(candidates)
+            simulated_data = list(res_map)
+            distances = [self.distance_function(self.Yobs, res) for res in simulated_data]
 
-                end = time.time()
-                logger.debug('completed parallel_evaluation_mp in {0} seconds'.format(end - start))
-                return all_distances
+            # save all simulated results
+            self.all_simulated_data.extend(simulated_data)
+            self.all_distances.extend(distances)
+            self.all_particles.extend(candidates)
+            end = time.time()
+            logger.debug('completed parallel_evaluation_mp in {0} seconds'.format(end - start))
+            return distances
 
 
         def generator(random: EvolutionGenerator, args) -> candidateType:
@@ -295,18 +254,6 @@ class GA:
             self.param_std[p] = np.std(lst)
 
 
-
-    def simulate_one(self,particle,index,Q):
-        '''
-        particle:  parameters 
-        Q:      a multiprocessing.Queue object
-        index:  the index in particles list
-        '''
-
-        res = self.simulator(particle)
-        # ysim = {simulated}
-
-        Q.put((index,res))
 
     
     def run_simulation(self) -> None:
