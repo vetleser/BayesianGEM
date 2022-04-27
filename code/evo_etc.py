@@ -7,6 +7,7 @@
 
 
 import logging
+import multiprocessing
 from typing import Callable, Dict, Iterable, List
 import dill
 from inspyred.ec import replacers, variators
@@ -14,15 +15,12 @@ from inspyred.ec.variators import mutators
 import numpy as np
 import numpy.typing as npt
 import time
-import scipy.stats as ss
-from scipy.stats import poisson
 from multiprocessing import cpu_count
 from random_sampler import RV
 import inspyred
 import inspyred.ec
 import inspyred.ec.variators as variators
 import inspyred.ec.selectors as selectors
-import pathos
 
 simResultType = Dict[str, Dict[str, npt.NDArray[np.float64]]]
 priorType = Dict[str, RV]
@@ -154,7 +152,7 @@ class GA:
             start = time.time()
             try:
                 # Use parallel backend such as in abc_etc.py
-                with pathos.parallel.ParallelPool(self.cores) as p:
+                with multiprocessing.Pool(self.cores) as p:
                     res_map = p.map(self.simulator, candidates)
             except (OSError, RuntimeError) as e:
                 logger.error('failed parallel_evaluation_mp: {0}'.format(str(e)))
