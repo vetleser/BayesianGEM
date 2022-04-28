@@ -3,7 +3,7 @@
 #SBATCH --output=gem_smcabc_at_three_conditions_resume.out
 #SBATCH --nodes=1                    
 #SBATCH -c 20
-#SBATCH -t 100:00:00             # Upper time limit for the job
+#SBATCH -t 00:30:00             # Upper time limit for the job
 #SBATCH --mail-type=begin
 #SBATCH --mail-type=end
 #SBATCH --mail-user=jakob.p.pettersen@ntnu.no
