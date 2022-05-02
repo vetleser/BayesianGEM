@@ -204,7 +204,7 @@ def chemostat(thermalParams, warm_start=True):
 
 # In[]
 
-def aerobic_fva(thermalParams: candidateType, processes=1):
+def aerobic_fva(thermalParams: candidateType):
     """
     Run FVA on aerobic conditions
 
@@ -218,7 +218,7 @@ def aerobic_fva(thermalParams: candidateType, processes=1):
     return rae
 
 
-def anaerobic_reduced_fva(thermalParams: candidateType, processes=1):
+def anaerobic_reduced_fva(thermalParams: candidateType):
     """
     Run FVA under anaerobic conditions
 
@@ -233,7 +233,7 @@ def anaerobic_reduced_fva(thermalParams: candidateType, processes=1):
     return ran
 
 
-def chemostat_fva(thermalParams, processes=1):
+def chemostat_fva(thermalParams):
     """
     Run FVA under chemostat conditions
 
@@ -249,15 +249,15 @@ def chemostat_fva(thermalParams, processes=1):
     sigma = 0.5
     
     solution = etc.fva_chemostat(mae,dilut,param_dict,dfchemo.index+273.15,
-                                            sigma,growth_id,glc_up_id,prot_pool_id, processes=processes)
+                                            sigma,growth_id,glc_up_id,prot_pool_id)
     return  solution
 
 # In[]
 
-def run_fva_at_three_conditions(thermalParams, processes = 1):
+def run_fva_at_three_conditions(thermalParams):
     fva_functions = [aerobic_fva, anaerobic_reduced_fva, chemostat_fva]
     condition_names = ["aerobic", "anaerobic", "chemostat"]
-    fva_results: Iterable[pd.DataFrame] = starmap(lambda f, x: f(thermalParams, processes=processes).assign(condition=x), zip(fva_functions,condition_names))
+    fva_results: Iterable[pd.DataFrame] = starmap(lambda f, x: f(thermalParams).assign(condition=x), zip(fva_functions,condition_names))
     return pd.concat(fva_results)
 
 
