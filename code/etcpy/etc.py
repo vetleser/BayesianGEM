@@ -218,11 +218,18 @@ def simulate_fva(model: CBModel,Ts: List[float],sigma: float,param_dict: dict,Ta
         mappers.map_kcatT(opt_model,T,param_dict)
         mappers.set_NGAMT(opt_model,T)
         mappers.set_sigma(opt_model,sigma)
-        fva_solution = reframed.FVA(opt_model, obj_frac=0.999)
-        logging.info("Model solved successfully")
-        reactions, values = zip(*fva_solution.items())
-        minimum, maximum = zip(*values)
-        res_frame = pd.DataFrame({'reaction': reactions, 'minimum': minimum, 'maximum': maximum})
+        try:
+            # We have to take into consideration that the model might be infeasible as-is and
+            # reframed has no proper way to handling this case, causing a TypeError (!) in such cases
+            fva_solution = reframed.FVA(opt_model, obj_frac=0.999)
+        except Exception as err:
+            logging.info(f'Failed to solve the problem, problem: {str(err)}')
+            res_frame = pd.DataFrame({'reaction': model.reactions.keys(), 'minimum': np.nan, 'maximum': np.nan})
+        else:
+            logging.info("Model solved successfully")
+            reactions, values = zip(*fva_solution.items())
+            minimum, maximum = zip(*values)
+            res_frame = pd.DataFrame({'reaction': reactions, 'minimum': minimum, 'maximum': maximum})
         res_frame["T"] = T
         rs.append(res_frame)
     return pd.concat(rs)
@@ -230,7 +237,7 @@ def simulate_fva(model: CBModel,Ts: List[float],sigma: float,param_dict: dict,Ta
         
 
 def fva_chemostat(model: CBModel,dilu: float,param_dict: dict,Ts: List[Float],sigma: float,
-growth_id: str,glc_up_id: str,prot_pool_id: str, processes: int=1) -> pd.DataFrame:
+growth_id: str,glc_up_id: str,prot_pool_id: str) -> pd.DataFrame:
     '''
     # Do FVA simulation on a given dilution and a list of temperatures. 
     # model, reframed model
@@ -275,11 +282,9 @@ growth_id: str,glc_up_id: str,prot_pool_id: str, processes: int=1) -> pd.DataFra
             reactions, values = zip(*fva_solution.items())
             minimum, maximum = zip(*values)
             res_frame = pd.DataFrame({'reaction': reactions, 'minimum': minimum, 'maximum': maximum})
-            res_frame["T"] = T
-            solutions.append(res_frame)
-        except OptimizationError as err:
+        except Exception as err:
             logging.info(f'Failed to solve the problem, problem: {str(err)}')
-            #solutions.append(None)
-            break # because model has been impaired. Further simulation won't give right output.
-                
+            res_frame = pd.DataFrame({'reaction': model.reactions.keys(), 'minimum': np.nan, 'maximum': np.nan})
+        res_frame["T"] = T
+        solutions.append(res_frame)
     return pd.concat(solutions)
