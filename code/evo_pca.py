@@ -5,7 +5,6 @@ import pickle
 import pandas as pd
 import numpy as np
 from sklearn.decomposition import PCA
-import multiprocessing
 import logging
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
@@ -48,7 +47,7 @@ def combine_dataframes_for_models(df_dict):
     augmented_df_dict = {label: df.copy() for label, df in df_dict.items()}
     logging.info("Copying done")
     for label, df in augmented_df_dict.items():
-        df["origin"] = label[0]
+        df["model"] = label
     logging.info("Labelling done")
     return pd.concat(augmented_df_dict.values(), ignore_index=True)
 
@@ -61,3 +60,20 @@ def perform_pca_on_parameters(df):
     PCS = pca.fit_transform(X_n)
     logging.info(pca.explained_variance_ratio_)
     return PCS, pca.explained_variance_ratio_
+
+bayesian_model_frame: pd.DataFrame = load_pickle("../results/permuted_smcabc_res/simulation_skeleton.pkl")
+bayesian_model_frame.set_index(["origin","status"], inplace=True)
+bayesian_entry = bayesian_model_frame.loc[("unpermuted", "original")]
+bayesian_file = bayesian_entry["outfile"]
+bayesian_df = build_a_dataframe_for_all_particles(bayesian_file, n_priors=128)
+
+evolutionary_file = "../results/smcevo_gem_three_conditions_save_all_particles_refined.pkl"
+evolutionary_df = build_a_dataframe_for_all_particles(evolutionary_file, n_priors=100)
+dump_pickle(evolutionary_df,"../results/evo_particle_df")
+
+df_dict = {'Bayesian': bayesian_df, 'Evolutionary': evolutionary_df}
+combined_df = combine_dataframes_for_models(df_dict=df_dict)
+dump_pickle(combined_df, "../results/evo_combined_particle_df.pkl")
+pca_ordination = perform_pca_on_parameters(combined_df)
+dump_pickle(pca_ordination,"../results/evo_pca_full_ordination.pkl")
+logging.info("DONE")
