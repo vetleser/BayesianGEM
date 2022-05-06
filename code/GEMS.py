@@ -110,7 +110,7 @@ def format_input(thermalParams):
 # In[4]:
 
 
-def aerobic(thermalParams, warm_start=True):
+def aerobic(thermalParams):
     # thermalParams: a dictionary with ids like uniprotid_Topt 
     param_dict = format_input(thermalParams)
     mae = pickle.load(open(os.path.join(path,'models/aerobic.pkl'),'rb'))
@@ -129,7 +129,7 @@ def aerobic(thermalParams, warm_start=True):
 # In[ ]:
 
 
-def anaerobic(thermalParams, warm_start=True):
+def anaerobic(thermalParams):
     param_dict = format_input(thermalParams)
     man = pickle.load(open(os.path.join(path,'models/anaerobic.pkl'),'rb'))
     ran = etc.simulate_growth(man,dfan_batch.index+273.15,param_dict=param_dict,sigma=0.5)
@@ -145,7 +145,7 @@ def anaerobic(thermalParams, warm_start=True):
 # In[ ]:
 
 
-def anaerobic_reduced(thermalParams,warm_start=True):
+def anaerobic_reduced(thermalParams):
     param_dict = format_input(thermalParams)
     man = pickle.load(open(os.path.join(path,'models/anaerobic.pkl'),'rb'))
     
@@ -166,7 +166,7 @@ def anaerobic_reduced(thermalParams,warm_start=True):
 # In[ ]:
 
 
-def chemostat(thermalParams, warm_start=True):
+def chemostat(thermalParams):
     param_dict = format_input(thermalParams)
     mae = pickle.load(open(os.path.join(path,'models/aerobic.pkl'),'rb'))
     exp_flux = chemostat_exp_data()['data']
@@ -229,11 +229,11 @@ def anaerobic_reduced_fva(thermalParams: candidateType):
     param_dict = format_input(thermalParams)
     man = pickle.load(open(os.path.join(path,'models/anaerobic.pkl'),'rb'))
     sel_temp = [5.0,15.0,26.3,30.0,33.0,35.0,37.5,40.0]
-    ran = etc.simulate_fva(man,np.array(sel_temp+273.15,param_dict=param_dict,sigma=0.5))
+    ran = etc.simulate_fva(man,np.array(sel_temp)+273.15,param_dict=param_dict,sigma=0.5)
     return ran
 
 
-def chemostat_fva(thermalParams):
+def chemostat_fva(thermalParams: candidateType):
     """
     Run FVA under chemostat conditions
 
@@ -264,17 +264,17 @@ def run_fva_at_three_conditions(thermalParams):
 # In[ ]:
 
 
-def simulate_at_three_conditions(args,distance_function,Yobs,min_epsilon, warm_start=True):
+def simulate_at_three_conditions(args,distance_function,Yobs,min_epsilon):
     
-    data_batch = aerobic(args,warm_start=warm_start)['data']
+    data_batch = aerobic(args)['data']
     d_ae = distance_function(Yobs['rae'],data_batch)
     if d_ae < min_epsilon['rae']: return False, {}, {}
     
-    data_batch_an = anaerobic_reduced(args,warm_start=warm_start)['data']
+    data_batch_an = anaerobic_reduced(args)['data']
     d_an = distance_function(Yobs['ran'],data_batch_an)
     if d_an < min_epsilon['ran']: return False, {}, {}
     
-    data_chemo = chemostat(args,warm_start=warm_start)['data']
+    data_chemo = chemostat(args)['data']
     d_c = distance_function(Yobs['chemostat'],data_chemo)
     if d_c < min_epsilon['chemostat']: return False, {}, {}
     return True,{'rae':data_batch,'chemostat':data_chemo,'ran':data_batch_an},{'rae':d_ae,'chemostat':d_c,'ran':d_an}
@@ -283,10 +283,10 @@ def simulate_at_three_conditions(args,distance_function,Yobs,min_epsilon, warm_s
 # In[ ]:
 
 
-def simulate_at_three_conditions_2(args, warm_start=True):
-    data_batch = aerobic(args,warm_start=warm_start)['data']
-    data_batch_an = anaerobic_reduced(args,warm_start=warm_start)['data']
-    data_chemo = chemostat(args,warm_start=warm_start)['data']
+def simulate_at_three_conditions_2(args):
+    data_batch = aerobic(args)['data']
+    data_batch_an = anaerobic_reduced(args)['data']
+    data_chemo = chemostat(args)['data']
     
     return {'rae':data_batch,'chemostat':data_chemo,'ran':data_batch_an}
 

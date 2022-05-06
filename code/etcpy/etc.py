@@ -1,4 +1,4 @@
-from typing import List
+from typing import Iterable, List
 import numpy as np
 import pandas as pd
 import time
@@ -194,7 +194,7 @@ def sample_data_uncertainty_with_constraint(inpt,columns=None):
     return sampled_params
 
 
-def simulate_fva(model: CBModel,Ts: List[float],sigma: float,param_dict: dict,Tadj=0) -> pd.DataFrame:
+def simulate_fva(model: CBModel,Ts: Iterable[float],sigma: float,param_dict: dict,Tadj=0) -> pd.DataFrame:
     '''
     Simulate FVA on growth scenarios
     # model, reframed model
