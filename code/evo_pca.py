@@ -69,7 +69,7 @@ bayesian_df = build_a_dataframe_for_all_particles(bayesian_file, n_priors=128)
 
 evolutionary_file = "../results/smcevo_gem_three_conditions_save_all_particles_refined.pkl"
 evolutionary_df = build_a_dataframe_for_all_particles(evolutionary_file, n_priors=100)
-dump_pickle(evolutionary_df,"../results/evo_particle_df")
+dump_pickle(evolutionary_df,"../results/evo_particle_df.pkl")
 
 df_dict = {'Bayesian': bayesian_df, 'Evolutionary': evolutionary_df}
 combined_df = combine_dataframes_for_models(df_dict=df_dict)
