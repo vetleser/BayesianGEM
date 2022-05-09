@@ -226,7 +226,7 @@ def simulate_fva(model: CBModel,Ts: Iterable[float],sigma: float,param_dict: dic
             logging.info(f'Failed to solve the problem, problem: {str(err)}')
             res_frame = pd.DataFrame({'reaction': model.reactions.keys(), 'minimum': np.nan, 'maximum': np.nan})
         else:
-            logging.info("Model solved successfully")
+            logging.info('FVA problems solved successfully')
             reactions, values = zip(*fva_solution.items())
             minimum, maximum = zip(*values)
             res_frame = pd.DataFrame({'reaction': reactions, 'minimum': minimum, 'maximum': maximum})
