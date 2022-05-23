@@ -30,7 +30,7 @@ def perform_tsne_on_parameters(df, perplexity):
     return tsne.fit_transform(X_n)
 
 N_CORES = multiprocessing.cpu_count()
-cpu_pool = multiprocessing(processes=N_CORES)
+cpu_pool = multiprocessing.Pool(processes=N_CORES)
 perplexities = [5, 10, 30, 60, 100, 200, 300, 500, 1000, 2000, 5000, 10000]
 combined_df = load_pickle("../results/evo_combined_particle_df.pkl")
 tsne_frame = pd.DataFrame({"perplexity": perplexities})
