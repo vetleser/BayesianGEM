@@ -8,10 +8,10 @@ import pandas as pd
 import numpy as np
 from sklearn.manifold import TSNE
 import logging
-import multiprocessing
+import pathos
 
-N_CORES = multiprocessing.cpu_count()
-cpu_pool = multiprocessing.Pool(processes=N_CORES)
+N_CORES = pathos.helpers.cpu_count()
+cpu_pool = pathos.multiprocessing.Pool(processes=N_CORES)
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 
