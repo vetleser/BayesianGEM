@@ -3,7 +3,7 @@
 #SBATCH --output=evo_tsne.out
 #SBATCH --nodes=1                    
 #SBATCH -c 12
-#SBATCH --mem=25G
+#SBATCH --mem=100G
 #SBATCH -t 03:00:00             # Upper time limit for the job
 #SBATCH --mail-type=begin
 #SBATCH --mail-type=end
