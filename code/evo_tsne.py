@@ -3,15 +3,14 @@
 
 # This script is similar to evo_pca.py and has a direct dependence on it, but does t-SNE instead of PCA
 # t-SNE is repeated on 12 different perplexities which results are intended to be compared afterwards. 
+import multiprocessing
 import pickle
 import pandas as pd
 import numpy as np
 from sklearn.manifold import TSNE
+from functools import partial
 import logging
-import pathos
 
-N_CORES = pathos.helpers.cpu_count()
-cpu_pool = pathos.pools.ProcessPool(nodes=N_CORES)
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 
@@ -30,11 +29,12 @@ def perform_tsne_on_parameters(df, perplexity):
     tsne = TSNE(2, perplexity=perplexity, learning_rate="auto", init="pca")
     return tsne.fit_transform(X_n)
 
-
+N_CORES = multiprocessing.cpu_count()
+cpu_pool = multiprocessing(processes=N_CORES)
 perplexities = [5, 10, 30, 60, 100, 200, 300, 500, 1000, 2000, 5000, 10000]
 combined_df = load_pickle("../results/evo_combined_particle_df.pkl")
 tsne_frame = pd.DataFrame({"perplexity": perplexities})
-tsne_frame["ordination"] = cpu_pool.map(lambda perplexity:
- perform_tsne_on_parameters(combined_df,perplexity=perplexity), perplexities)
+
+tsne_frame["ordination"] = cpu_pool.map(partial(perform_tsne_on_parameters, combined_df),perplexities)
 dump_pickle(tsne_frame,"../results/evo_tsne_full_ordination.pkl")
 logging.info("DONE")
