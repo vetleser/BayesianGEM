@@ -11,7 +11,7 @@ import logging
 import pathos
 
 N_CORES = pathos.helpers.cpu_count()
-cpu_pool = pathos.multiprocessing.Pool(processes=N_CORES)
+cpu_pool = pathos.pools.ProcessPool(nodes=N_CORES)
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 
