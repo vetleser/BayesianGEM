@@ -2,9 +2,9 @@
 #SBATCH -J evo_tsne               # sensible name for the job
 #SBATCH --output=evo_tsne.out
 #SBATCH --nodes=1                    
-#SBATCH -c 12
-#SBATCH --mem=100G
-#SBATCH -t 03:00:00             # Upper time limit for the job
+#SBATCH -c 1
+#SBATCH --mem=25G
+#SBATCH -t 24:00:00             # Upper time limit for the job
 #SBATCH --mail-type=begin
 #SBATCH --mail-type=end
 #SBATCH --mail-user=jakob.p.pettersen@ntnu.no
