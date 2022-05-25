@@ -3,6 +3,7 @@
 
 # This script is similar to evo_pca.py and has a direct dependence on it, but does t-SNE instead of PCA
 # t-SNE is repeated on 12 different perplexities which results are intended to be compared afterwards. 
+# Remember to prepare the array jobs by running evo_tsne_prepare.py first
 import pickle
 import pandas as pd
 import numpy as np
