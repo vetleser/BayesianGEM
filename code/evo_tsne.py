@@ -7,7 +7,7 @@ import pickle
 import pandas as pd
 import numpy as np
 from sklearn.manifold import TSNE
-from functools import partial
+import os
 import logging
 
 
@@ -28,12 +28,16 @@ def perform_tsne_on_parameters(df, perplexity):
     tsne = TSNE(2, perplexity=perplexity, learning_rate="auto", init="pca")
     return tsne.fit_transform(X_n)
 
-perplexities = [5, 10, 30, 60, 100, 200, 300, 500, 1000, 2000, 5000, 10000]
+task_idx = int(os.environ["SLURM_ARRAY_TASK_ID"])
 logging.info("Loading data")
 combined_df = load_pickle("../results/evo_combined_particle_df.pkl")
-tsne_frame = pd.DataFrame({"perplexity": perplexities})
+tsne_frame = load_pickle("../results/evo_tsne_res/tsne_skeleton.pkl")
+logging.info(f"Task index is {task_idx}")
+perplexity = tsne_frame["perplexity"][task_idx]
+logging.info(f"Perplexity index is {perplexity}")
+outfile = tsne_frame["outfile"][task_idx]
+outfile = logging.info(f"Outfile is {outfile}")
 logging.info("Running t-SNE")
-ordinations = map(partial(perform_tsne_on_parameters, combined_df),perplexities)
-tsne_frame["ordination"] = list(ordinations)
-dump_pickle(tsne_frame,"../results/evo_tsne_full_ordination.pkl")
+ordination = perform_tsne_on_parameters(df=combined_df,perplexity=perplexity)
+dump_pickle(ordination,outfile)
 logging.info("DONE")
