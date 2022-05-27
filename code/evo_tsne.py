@@ -37,8 +37,9 @@ logging.info(f"Task index is {task_idx}")
 perplexity = tsne_frame["perplexity"][task_idx]
 logging.info(f"Perplexity index is {perplexity}")
 outfile = tsne_frame["outfile"][task_idx]
-outfile = logging.info(f"Outfile is {outfile}")
+logging.info(f"Outfile is {outfile}")
 logging.info("Running t-SNE")
 ordination = perform_tsne_on_parameters(df=combined_df,perplexity=perplexity)
+logging.info("Saving results")
 dump_pickle(ordination,outfile)
 logging.info("DONE")
