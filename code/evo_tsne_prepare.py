@@ -17,7 +17,7 @@ def load_pickle(filename):
 def dump_pickle(obj,filename):
     return pickle.dump(obj=obj,file=open(file=filename, mode='wb'))
 
-perplexities = [5, 10, 30, 60, 100, 200, 300, 500, 1000, 2000, 5000, 10000]
+perplexities = [5, 10, 30, 60, 100, 200, 300, 500, 1000, 2000]
 outdir = '../results/evo_tsne_res'
 tsne_frame = pd.DataFrame({"perplexity": perplexities})
 tsne_frame["outfile"] = [f"{outdir}/tsne_{i}.pkl" for i, _ in enumerate(perplexities)]
