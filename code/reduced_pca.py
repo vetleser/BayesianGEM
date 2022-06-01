@@ -30,7 +30,7 @@ def perform_pca_on_parameters(df):
     return PCS, pca.explained_variance_ratio_
 
 
-combined_df = pickle.load("../results/permuted_smcabc_res/combined_particle_df.pkl")
+combined_df = load_pickle("../results/permuted_smcabc_res/combined_particle_df.pkl")
 reduced_df = combined_df[combined_df["origin"] in ("unpermuted","permuted_0")]
 pca_ordination = perform_pca_on_parameters(reduced_df)
 dump_pickle(pca_ordination,"../results/permuted_smcabc_res/pca_reduced_ordination.pkl")
