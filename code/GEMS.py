@@ -14,6 +14,7 @@ import logging
 from sklearn.metrics import mean_squared_error as MSE
 from sklearn.metrics import r2_score
 from itertools import starmap
+from etcpy.thermal_parameters import format_input
 
 
 candidateType = Dict[str, float]
@@ -91,28 +92,13 @@ dfchemo = pd.read_csv(os.path.join(path,'data/Chemostat_exp_data.txt'),sep='\t',
 
 # ### Models 
 
-# In[ ]:
-
-
-def format_input(thermalParams):
-    new_params = params.copy()
-    for key,val in thermalParams.items():
-        [ind,col] = key.split('_')
-        new_params.loc[ind,col] = val
-    
-    # Update T90
-    new_params['T90'] = params['T90']-params['Tm'] + new_params['Tm']
-    df = etc.calculate_thermal_params(new_params)
-
-    return {id: {parameter: value for parameter, value in df.loc[id].iteritems()} for id in df.index}
-
 
 # In[4]:
 
 
 def aerobic(thermalParams):
     # thermalParams: a dictionary with ids like uniprotid_Topt 
-    param_dict = format_input(thermalParams)
+    param_dict = format_input(params,thermalParams)
     mae = pickle.load(open(os.path.join(path,'models/aerobic.pkl'),'rb'))
     rae = etc.simulate_growth(mae,dfae_batch.index+273.15,param_dict=param_dict,sigma=0.5)
     
@@ -130,7 +116,7 @@ def aerobic(thermalParams):
 
 
 def anaerobic(thermalParams):
-    param_dict = format_input(thermalParams)
+    param_dict = format_input(params,thermalParams)
     man = pickle.load(open(os.path.join(path,'models/anaerobic.pkl'),'rb'))
     ran = etc.simulate_growth(man,dfan_batch.index+273.15,param_dict=param_dict,sigma=0.5)
     ran = [0 if x is None else x for x in ran]
@@ -146,7 +132,7 @@ def anaerobic(thermalParams):
 
 
 def anaerobic_reduced(thermalParams):
-    param_dict = format_input(thermalParams)
+    param_dict = format_input(params,thermalParams)
     man = pickle.load(open(os.path.join(path,'models/anaerobic.pkl'),'rb'))
     
     sel_temp = [5.0,15.0,26.3,30.0,33.0,35.0,37.5,40.0]
@@ -167,7 +153,7 @@ def anaerobic_reduced(thermalParams):
 
 
 def chemostat(thermalParams):
-    param_dict = format_input(thermalParams)
+    param_dict = format_input(params,thermalParams)
     mae = pickle.load(open(os.path.join(path,'models/aerobic.pkl'),'rb'))
     exp_flux = chemostat_exp_data()['data']
     
@@ -212,7 +198,7 @@ def aerobic_fva(thermalParams: candidateType):
         thermalParams: A dictionary of the model's thermal parameters
     """
     # thermalParams: a dictionary with ids like uniprotid_Topt
-    param_dict = format_input(thermalParams)
+    param_dict = format_input(params,thermalParams)
     mae = pickle.load(open(os.path.join(path,'models/aerobic.pkl'),'rb'))
     rae = etc.simulate_fva(mae,dfae_batch.index+273.15,param_dict=param_dict,sigma=0.5)
     return rae
@@ -226,7 +212,7 @@ def anaerobic_reduced_fva(thermalParams: candidateType):
         thermalParams: A dictionary of the model's thermal parameters
     """
     # thermalParams: a dictionary with ids like uniprotid_Topt 
-    param_dict = format_input(thermalParams)
+    param_dict = format_input(params,thermalParams)
     man = pickle.load(open(os.path.join(path,'models/anaerobic.pkl'),'rb'))
     sel_temp = [5.0,15.0,26.3,30.0,33.0,35.0,37.5,40.0]
     ran = etc.simulate_fva(man,np.array(sel_temp)+273.15,param_dict=param_dict,sigma=0.5)
@@ -240,7 +226,7 @@ def chemostat_fva(thermalParams: candidateType):
     Args:
         thermalParams: A dictionary of the model's thermal parameters
     """
-    param_dict = format_input(thermalParams)
+    param_dict = format_input(params,thermalParams)
     mae = pickle.load(open(os.path.join(path,'models/aerobic.pkl'),'rb'))
     growth_id = 'r_2111'
     glc_up_id = 'r_1714_REV'

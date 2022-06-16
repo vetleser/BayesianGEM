@@ -8,6 +8,7 @@ import reframed
 import logging
 
 import etcpy.reframed_mappers as reframed_mappers
+import etcpy.thermal_parameters as thermal_parameters
 from .thermal_parameters import calculate_thermal_params
 
 from sympy import Float

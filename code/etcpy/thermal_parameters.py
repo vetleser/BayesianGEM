@@ -150,6 +150,20 @@ def getNGAMT(T):
 
     return NGAM_T
 
+
+def format_input(params, param_dict):
+    new_params = params.copy()
+    for key,val in param_dict.items():
+        [ind,col] = key.split('_')
+        new_params.loc[ind,col] = val
+    
+    # Update T90
+    new_params['T90'] = params['T90']-params['Tm'] + new_params['Tm']
+    df = calculate_thermal_params(new_params)
+
+    return {id: {parameter: value for parameter, value in df.loc[id].iteritems()} for id in df.index}
+
+
 def calculate_thermal_params(params):
     '''
     # params, a dataframe with at least following columns: Tm,T90,Length,dCpt,Topt,dCpt. All are in standard units.

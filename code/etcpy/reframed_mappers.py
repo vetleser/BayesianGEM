@@ -34,6 +34,8 @@ def map_fNT(model: CBModel,T: float,param_dict: dict,Tadj: float=0, solver_insta
     met: str = model.metabolites.prot_pool.id
     cols = ['dHTH', 'dSTS','dCpu','Topt']
     if solver_instance is not None:
+        # Updating a solver instance each time we add a protein drain is expensive
+        # Instead we create a temporary table of the stochiometry and update the solver instance at the end
         lookup_table = model.metabolite_reaction_lookup()
     rxn: reframed.CBReaction
     for rxn in model.reactions.values():
@@ -77,6 +79,9 @@ def map_kcatT(model: CBModel,T: float,param_dict: dict, solver_instance: Solver=
     '''
     cols = ['dHTH', 'dSTS','dCpu','Topt','dCpt']
     if solver_instance is not None:
+        # Updating a solver instance each time we add a constraint is expensive
+        # Instead we create a temporary table of the stochiometry, keep track of the affected reactions
+        # and update the solver instance at the end
         lookup_table = model.metabolite_reaction_lookup()
         metabolites_to_update = set()
     for rxn in model.reactions.values():
