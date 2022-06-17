@@ -23,9 +23,9 @@ evolutionary_particle_df["origin"] = "unpermuted"
 evolutionary_particle_df["status"] = "evolutionary"
 all_particle_df = (
     pd.concat((bayesian_particle_df,evolutionary_particle_df),ignore_index=True).
-    query("period == 'posterior'").
+    query("period == 'Posterior'").
     drop(columns=["r2","period"]).
-    assign(particle=lambda df: range(df.shape[1]))
+    assign(particle=lambda df: range(df.shape[0]))
     )
 long_particle_df = all_particle_df.melt(id_vars=["origin","status","particle"],var_name="reaction",value_name="value")
 all_standard_deviations = long_particle_df.drop(columns=["origin","status","particle"]).groupby("reaction").agg(np.std)["value"]
@@ -33,7 +33,7 @@ all_standard_deviations = long_particle_df.drop(columns=["origin","status","part
 all_standard_deviations[all_standard_deviations < epsilon] = epsilon
 result = (
     long_particle_df.set_index("particle").groupby(["origin","status","reaction"]).
-    apply(lambda df: (df["value"] - df["value"].mean()) / all_standard_deviations[df.name[2]]).
+    apply(lambda df: ((df["value"] - df["value"].mean()) / all_standard_deviations[df.name[2]])**2).
     reset_index(drop=False).
     groupby(["origin","status", "particle"]).
     apply(lambda df: np.sqrt(df["value"].mean())).
