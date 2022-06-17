@@ -10,6 +10,10 @@ import logging
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 
+# Note about the usage of the terms "origin" and "status": Origin is the prior used to seed the
+#  simulations (unpermuted, permuted_0, permuted_1 and permuted_2), whereas the status
+#  is which replicate where the difference is the random seed is used (original is Simulation 1, replicate is Simulation 2)
+
 # Convenient pickle wrappers
 def load_pickle(filename):
     return pickle.load(open(file=filename,mode='rb'))
