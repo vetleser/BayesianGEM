@@ -27,6 +27,8 @@ dump_pickle(combined_df_metadata,"../results/permuted_smcabc_res/combined_df_met
 evo_combined_df = load_pickle("../results/evo_combined_particle_df.pkl")
 evo_combined_df_metadata = evo_combined_df[["model","period"]]
 dump_pickle(evo_combined_df_metadata, "../results/evo_combined_df_metadata.pkl")
+
+
 simulation_skeleton = load_pickle("../results/permuted_smcabc_res/simulation_skeleton.pkl")
 
 def extract_distances_from_simulation(filename):

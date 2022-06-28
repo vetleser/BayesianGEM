@@ -26,7 +26,7 @@ etc.reframed_mappers.map_fNT(model,T,param_dict,solver_instance=None)
 ```
 model is the reframed model object. T is temperature in K. param_dict, the dictionary containing the following parameters of all enzymes in the model, solver_instance is an optional solver instance of type `reframed.solvers.Solver`. If a solver instance is provided, the solver instance will be updated in-place and the model argument will remain unchanged.
 
-1. temperature effect on kcat  
+2. temperature effect on kcat  
 ```python
 etc.reframed_mappers.map_kcatT(model,T,param_dict,solver_instance=None)
 ```
@@ -59,14 +59,14 @@ dHTH,dSTS,dCpu = etc.thermal_parameters.get_dH_dS_dCpu_from_TmLength(Tm,proteinL
 ```
 Make sure that dCpu obtained from `etc.thermal_parameters.get_dH_dS_dCpu_from_TmT90(Tm,T90)` must be positive. If not, use `etc.thermal_parameters.get_dH_dS_dCpu_from_TmLength(Tm,proteinLength)`. 
 
-1. Augment a dataframe `params` with the following columns: Tm,Tm_std,T90,dCpt,dCpt_std,Topt,Topt_std,Length with parameters from a dictionary `param_dict` containing some or all of the same parameters. This augmented dataframe is then converted to a dictionary of thermal parameters which can be used by `etc.simulate_growth`. Note that supplying an empty dictionary is equivalent to using the parameters in the dataframe as-is.
+7. Augment a dataframe `params` with the following columns: Tm,Tm_std,T90,dCpt,dCpt_std,Topt,Topt_std,Length with parameters from a dictionary `param_dict` containing some or all of the same parameters. This augmented dataframe is then converted to a dictionary of thermal parameters which can be used by `etc.simulate_growth`. Note that supplying an empty dictionary is equivalent to using the parameters in the dataframe as-is.
   ```python
   params = pd.read_csv('./model_enzyme_params.csv',index_col=0) # contains at least Tm,T90,dCpt,Topt,Length
   param_dict = etc.thermal_parameters.format_input(params, param_dict)
   ```
 
 
-8. sample the uncertainties in the thermal parameters Tm,Topt and dCpt. Given a dataframe containing following columns:Tm,Tm_std,T90,dCpt,dCpt_std,Topt,Topt_std,Length. Randomly generate a new value from a normal distribution N(Tm,Tm_std) taking Tm as an example. 
+9. sample the uncertainties in the thermal parameters Tm,Topt and dCpt. Given a dataframe containing following columns:Tm,Tm_std,T90,dCpt,dCpt_std,Topt,Topt_std,Length. Randomly generate a new value from a normal distribution N(Tm,Tm_std) taking Tm as an example. 
 ```python 
 new_params = etc.sample_data_uncertainty(params) # One can also specify columns to be sampled. The default is to sample all columns: [Tm,dCpt,Topt]
 thermalparams = etc.calculate_thermal_params(new_params)
@@ -74,8 +74,8 @@ thermalparams = etc.calculate_thermal_params(new_params)
 Then ```thermalparams``` could be used to simulate growth rate ```etc.simulate_growth(model,Ts,sigma,thermalparams)```
 
 
-8. simulate chemostat data.  
-(1) fix growth rate, set objective function as minimizing glucose uptatke rate  
+10. simulate chemostat data.  
+(1) fix growth rate, set objective function as minimizing glucose uptake rate  
 (2) map temperature parameters  
 (3) get minimal glucose uptake rate, then fix glucose uptake rate to this minimal value (\*1.001 for simulation purpose)  
 (4) minimize enzyme usage
@@ -90,4 +90,27 @@ growth_id = 'r_2111'
 glc_up_id = 'r_1714_REV'
 prot_pool_id = 'prot_pool_exchange'
 solutions = etc.simulate_chemostat(model,0.1,param_dict,Ts,0.5,growth_id,glc_up_id,prot_pool_id)
+```
+
+11. Determine batch flux variability at optimal growth rate
+```python
+etc.simulate_fva(model,Ts,sigma,param_dict)
+```
+
+12.  Determine chemostat flux variability at optimial solution  
+(1) fix growth rate, set objective function as minimizing glucose uptake rate  
+(2) map temperature parameters  
+(3) get minimal glucose uptake rate, then fix glucose uptake rate to this minimal value (\*1.001 for simulation purpose)  
+(4) minimize enzyme usage, then fix this enzyme usage as a constraint
+(5) Run FVA and obtain fva_res= `FVA(model)`
+```python 
+%%time
+params = pd.read_csv('./model_enzyme_params.csv',index_col=0) # contains at least Tm,T90,dCpt,Topt,Length
+
+param_dict = etc.thermal_parameters.format_input(params, {}) # Note the empty dictionary as the last argument
+Ts = np.array([30,40,42,43,44,45,50])+273.15
+growth_id = 'r_2111'
+glc_up_id = 'r_1714_REV'
+prot_pool_id = 'prot_pool_exchange'
+fva_solution = etc.fva_chemostat(model,0.1,param_dict,Ts,0.5,growth_id,glc_up_id,prot_pool_id)
 ```

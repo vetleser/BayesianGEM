@@ -1,58 +1,59 @@
 ### Description
-This folder contains the scripts that carry out all analysis reported in the paper.
+This folder contains the scripts that carry out all analysis reported in the paper. Some scripts assumes the job is run under the SLURM workload manager. While these scripts will require some modification to run under your perferred computing environment, such modifications should be relatively feasible to carry out.
 
-#### Fundmental scripts
-* `etcpy` - the script for incorporating temperature parameters into the enzyme constrained Yeast 7.6 model, the detail introduction can be found from `etcpy/README.md`.
-* `GEMS.py` - the function for simulating the aerobic, anaerobic growth rate in batch cultivation and aerobic fluxes in chemostat cultivation, as well as a list of distance functions used for SMC-ABC approach.
-* `abc_etc.py` - the function to perform SMC-ABC approach.
+#### Backend scripts
+* `etcpy` - the scripts for incorporating temperature parameters into the enzyme constrained Yeast 7.6 model, the detail introduction can be found from `etcpy/README.md`.
+* `GEMS.py` - the functionality for simulating the aerobic, anaerobic growth rate in batch cultivation and aerobic fluxes in chemostat cultivation, as well as a list of distance functions used for SMC-ABC and the evolutionary approach. It also includes corresponding FVA functionality for the batch and chemostat cultivations.
+* `abc_etc.py` - the functionality to perform SMC-ABC approach.
+* `evo_etc` - Like `abc_etc.py`, but uses an evolutionary algorithm instead of SMC-ABC
+* `permute_parameters.py` - Utility script for shuffling parameters and thus creating permuted priors
+* `random_sampler.py` - Utility script for creating random numbers for SMC-ABC and evolutionary algorithm
 
-#### Simulations with initial parameters without considering uncertainties
-* `simulate_with_start_params.ipynb` - script contains the function for visualization (**Fig S2**), this script can run run on PC or laptop.
 
-#### SMC-ABC approach updates model parameters
-Three experimental datasets under different temperatures are used in this section:
+#### Experimental data
+Three experimental datasets (contained in `../data`) under different temperatures are used in this section:
 - `ExpGrowth.tsv` - the maximal specific growth rate in aerobic (Caspeta L., et al. Mbio, 2015) and anaerobic (Zakhartsev M., et al. J. Therm. Biol., 2015) batch cultivations
 
 - `Chemostat_exp_data.txt` - fluxes of carbon dioxide (CO2), ethanol and glucose in chemostat cultivations (Postmus J., J. Biol. Chem., 2008)  
 
-- `model_enzyme_params.csv` - 
+- `model_enzyme_params.csv` - File containing the enzyme parameters as determined by (Li, G *et al.*, Nature Communications, 2021). This file provides the basis for the unpermuted priors.
 
-Cross-validation scripts:
-* `gem_smcabc_at_three_conditions_cv1.py`
-* `gem_smcabc_at_three_conditions_cv2.py`
-* `gem_smcabc_at_three_conditions_cv3.py`
-The results can be visualized with `visualize_cv.ipynb`. (**Figs S3, S4**)  
-* `gem_smcabc_at_three_conditions.py` - SMC-ABC approach update parameter space with all three observed datasets.
+# Computational scripts
 
-Above scripts need be run on high-performance cluster, and may take a few days.
+The computational scripts can be divided into three groups depending on their mode of operation:
 
-* `visualization.ipynb` - the analysis of resulted Posterior models were analyzed with (**Figs 2abcdefi, 3abc; S5, S6, S7, S8**)
+- SLURM array jobs intended to be run on multiple nodes (with correspoinding SLURM script which most likely needs some modifications to run): `gem_smcabc_at_three_conditions_run.py` (`gem_smcabc_at_three_conditions_run.sh`) and `evo_tsne.py` (`evo_tsne.sh`). Each of these scripts require their own preparation scripts `gem_smcabc_at_three_conditions_run.py` and `evo_tsne_prepare.py` to be run beforehand.
+- Jobs which are indended to be run under SLURM, but where the script allows to be run the usual way on a single node: `evo_fva.py`, `evo_pca.py`, `gem_fva_at_three_conditions.py`, `gem_smcevo_at_three_conditions.py`, `reduced_pca.py` and `sample_pca.py`. The SLURM scripts have the same names just that they end in `.sh`.
+- Jobs which are so small that no SLURM script is written, run them as usual scripts: `benchmark_performance.py`, `compute_particle_distances.py`, `reduce_data_size.py`, `gem_smcabc_at_three_conditions_prepare.py` and `evo_tsne_prepare.py`.
 
-#### Machine learning applied to identify the most important thermal parameters
-* `machine_learning_on_particles.py`
+Also note that the script must be run in a topologically sorted order to satisfy data dependencies. An attempt to illustrate the workflow is shown in `master_script.sh` which should in theory replicate the results, but it is written more for inspiration rather than actually being run. The script `benchmark_performance.py` is somewhat different and is described on its own section.
 
+## SMC-ABC and evolutionary approach updates model parameters
 
-#### Study the effect of different processes individually on yeast cell growth rate
-* `split_factors_population.py`
+These are the main scripts for fitting the parameter
 
+* `gem_smcabc_at_three_conditions_prepare.py` - Prepare priors for the SMC-ABC. Output: `../results/permuted_smcabc_res/simulation_skeleton.pkl`
+* `gem_smcabc_at_three_conditions_run.py` - SMC-ABC update parameter space with all three observed datasets. Requires: `../results/simulation_skeleton.pkl`. Output: `../results/permuted_smcabc_res/smcabc_gem_three_conditions_updated_{origin}_{status}_save_all_particles.pkl`
+* `gem_smcevo_at_three_conditions.py` - Evolutionary approach update parameter space with all three observed datasets. Output: `../results/smcevo_gem_three_conditions_save_all_particles_refined.pkl`
 
-#### Simulate the metabolic shift in chemostat cultivation
-* `simulate_chostat_metabolic_shift.py`
-* `simulate_chemostat_double_protein_limt.ipynb`
-* `simulate_chemostat_stable_mitochodria.ipynb`
+Above scripts need be run on high-performance clusters, and may take a few days.
 
-#### Identify most rate-limiting enzymes at 42 °C based on flux control coefficients
-* `fcc_population.py` Calculate the FCC for all enzymes at 42 °C
-* `resucue_ERG1.py` Simulate the specific growth rate with Posterior models with/without a temperature-insensitive ERG1
-* `simulate_down_regulation_of_ERG_genes.ipynb` Simulate the down-regulation of ERG pathway
-* `remove_temperature_constraints_sequentially_based_on_ind_fcc_BS.py` At each step, calculate FCC for all enzymes and identify the one with the highest FCC, remove the temperature constraint for that enzyme. Then repeat until temperature contraint has been removed for all enzymes.
+## PCA and t-SNE ordinations
+* `sample_pca.py` - Create PCA ordination for all Bayesian simulations. Requires: `../results/permuted_smcabc_res/simulation_skeleton.pkl` and `../results/permuted_smcabc_res/smcabc_gem_three_conditions_updated_{origin}_{status}_save_all_particles.pkl`. Output: `../results/permuted_smcabc_res/particle_df.pkl`, `../results/permuted_smcabc_res/combined_particle_df.pkl` and `../results/permuted_smcabc_res/pca_full_ordination.pkl`.
+* `reduced_pca.py` - Created PCA ordination for Bayesian unpermuted prior simulation 1 and 2 and Bayesian permuted prior 1 simulation 1 and 2. Requires: `../results/permuted_smcabc_res/combined_particle_df.pkl`. Output: `../results/permuted_smcabc_res/pca_reduced_ordination.pkl`.
+* `evo_pca.py` - Creates PCA ordination for Bayesian unpermuted prior simulation 1 and the evolutionary simulation. Requires: `../results/permuted_smcabc_res/simulation_skeleton.pkl`, `../results/permuted_smcabc_res/smcabc_gem_three_conditions_updated_{origin}_{status}_save_all_particles.pkl` and `../results/smcevo_gem_three_conditions_save_all_particles_refined.pkl`. Output: `../results/evo_pca_full_ordination.pkl`, `../results/evo_combined_particle_df.pkl` and `../results/evo_combined_particle_df.pkl`.
+* `evo_tsne_prepare.py` - Prepares t-SNE ordinations. Output: `../results/evo_tsne_res/tsne_skeleton.pkl`.
+* `evo_tsne.py` - Creates t-SNE ordinations for Bayesian unpermuted prior simulation 1 and the evolutionary simulation. Requires: `../results/evo_combined_particle_df.pkl` and `../results/evo_tsne_res/tsne_skeleton.pkl`. Output: `../results/evo_tsne_res/tsne_{i}.pkl`
 
 
-#### Visualization
-* `visualization.ipynb` : **Figs 2abcdefi, 3ab; 5abde; S5, S6, S7, S10, S11a**
-* `additional_plots.ipynb`: - additional plots (**Figs 2gh, S13**)
-* `visualize_cv.ipynb`: **Fig S3, S4**
-* `visualize_temperature_on_enzymes_posterior.ipynb`: **Fig 3cdef**
-* `visualize_chemostat_metabolic_shift.ipynb`: **Fig 4abc, S9**
-* `expdata.ipynb`: **Fig 5c, S11b**
-* `single_enzyme.ipynb`: **Fig S8**
+## FVA analysis
+* `gem_fva_at_three_conditions.py` - Run FVA on posterior particles from SMC-ABC. Requires: `../results/permuted_smcabc_res/simulation_skeleton.pkl` and `../results/permuted_smcabc_res/smcabc_gem_three_conditions_updated_{origin}_{status}_save_all_particles.pkl`. Output: `../results/permuted_smcabc_res/fva_at_three_conditions.pkl`.
+* `evo_fva.py` - Run FVA on posterior particles from the evolutionary algorithm. Requires: `../results/smcevo_gem_three_conditions_save_all_particles_refined.pkl`. Output: `../results/evo_fva.pkl`.
+
+## Summarize and visualize results
+
+* `compute_particle_distances.py` - Computer weighted RMSD results for all particles. Requires: `../results/permuted_smcabc_res/combined_particle_df.pkl` and `../results/evo_particle_df.pkl`. Output: `../results/full_particle_RMSD.pkl`
+* `reduce_data_size.py` - Utility script for stipping the computational results down to the bare minimum for creating visualizations. Requires: `../results/permuted_smcabc_res/simulation_skeleton.pkl` `../results/permuted_smcabc_res/smcabc_gem_three_conditions_updated_{origin}_{status}_save_all_particles.pkl`, `../results/evo_combined_particle_df.pkl`, `../results/permuted_smcabc_res/combined_particle_df.pkl`, `../results/smcevo_gem_three_conditions_save_all_particles_refined.pkl`, `../results/permuted_smcabc_res/fva_at_three_conditions.pkl` and `../results/evo_fva.pkl`.  Output: `../results/permuted_smcabc_res/combined_df_metadata.pkl`, `../results/evo_combined_df_metadata.pkl`, `../results/permuted_smcabc_res/distance_frame.pkl`, `../results/evo_distances.pkl` and `../results/aggregated_fva_res.pkl`
+* `visualization_for_manuscript.ipynb` - A Jupyter notebook used for visualizing the results. Due to the bulk of the work offloaded to the other scripts this notebook should be light enough to use on any laptop or desktop computer. Requires: `../results/permuted_smcabc_res/distance_frame.pkl`, `../results/permuted_smcabc_res/combined_df_metadata.pkl`, `../results/permuted_smcabc_res/pca_full_ordination.pkl`, `../results/evo_combined_df_metadata.pkl`, `../results/evo_pca_full_ordination.pkl`, `../results/permuted_smcabc_res/pca_reduced_ordination.pkl`, `../results/evo_distances.pkl`, `../results/evo_tsne_res/tsne_skeleton.pkl`, `../results/evo_tsne_res/tsne_{i}.pkl`, `../results/full_particle_RMSD.pkl`, `../results/aggregated_fva_res.pkl`. Output: All plots used in the publication.
+
+##
