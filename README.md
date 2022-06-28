@@ -11,6 +11,7 @@
 #### Dependences
 ```
 austin                      3.3.0
+cobra                       0.25.0
 numpy                       1.21.0  
 pandas                      1.3.3
 scikit-learn                1.0.0
