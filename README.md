@@ -35,6 +35,6 @@ Since the Bayesian and evolutionary approach is computational expensive, all scr
 ```
 tar -xzvf results.tar.gz
 ```
-Then the figures in the manuscript can be reproduced by using Jupyter notebook
+Then the figures in the manuscript can be reproduced by using Jupyter notebook, Note that the result repository does not contain the heavy intermediate files which are not directly required for creating the figures.
 
 One can also recompute those results by following the introductions in `code/README.md`, but again this might be infeasible on a usual desktop computer.
