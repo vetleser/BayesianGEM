@@ -11,7 +11,7 @@
 #### Dependences
 ```
 austin                      3.3.0
-cobra                       0.25.0
+cobra                       0.21.0
 numpy                       1.21.0  
 pandas                      1.3.3
 scikit-learn                1.0.0
@@ -23,7 +23,7 @@ jupyter                     1.0.0
 matplotlib                  3.5.2
 Gurobi                      9.1.2
 ```
-The repository was tested with Python 3.8.12. The easiest way to install the dependencies is through the Conda package manager. Using Conda, the environment can be set up by running `conda env create --file .condaconfig.yml`.
+The repository was tested with Python 3.8.12 and Ubuntu 20.04.4. The easiest way to install the dependencies is through the Conda package manager. Using Conda, the environment can be set up by running `conda env create --file .condaconfig.yml`.
 
 #### Hardware
 Since the Bayesian and evolutionary approach is computational expensive, all scripts except the visualization Jupyter notebook may be too heavy to run of a desktop computer. Some of those scripts have been designed for parallel computation through the use of SLURM. The visualization notebook takes several seconds or minutes on a normal PC.

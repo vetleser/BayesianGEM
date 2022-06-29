@@ -1,7 +1,7 @@
-### Description
+## Description
 This folder contains the scripts that carry out all analysis reported in the paper. Some scripts assumes the job is run under the SLURM workload manager. While these scripts will require some modification to run under your perferred computing environment, such modifications should be relatively feasible to carry out.
 
-#### Backend scripts
+## Backend scripts
 * `etcpy` - the scripts for incorporating temperature parameters into the enzyme constrained Yeast 7.6 model, the detail introduction can be found from `etcpy/README.md`.
 * `GEMS.py` - the functionality for simulating the aerobic, anaerobic growth rate in batch cultivation and aerobic fluxes in chemostat cultivation, as well as a list of distance functions used for SMC-ABC and the evolutionary approach. It also includes corresponding FVA functionality for the batch and chemostat cultivations.
 * `abc_etc.py` - the functionality to perform SMC-ABC approach.
@@ -10,7 +10,7 @@ This folder contains the scripts that carry out all analysis reported in the pap
 * `random_sampler.py` - Utility script for creating random numbers for SMC-ABC and evolutionary algorithm
 
 
-#### Experimental data
+## Experimental data
 Three experimental datasets (contained in `../data`) under different temperatures are used in this section:
 - `ExpGrowth.tsv` - the maximal specific growth rate in aerobic (Caspeta L., et al. Mbio, 2015) and anaerobic (Zakhartsev M., et al. J. Therm. Biol., 2015) batch cultivations
 
@@ -56,5 +56,8 @@ Above scripts need be run on high-performance clusters, and may take a few days.
 * `reduce_data_size.py` - Utility script for stipping the computational results down to the bare minimum for creating visualizations. Requires: `../results/permuted_smcabc_res/simulation_skeleton.pkl` `../results/permuted_smcabc_res/smcabc_gem_three_conditions_updated_{origin}_{status}_save_all_particles.pkl`, `../results/evo_combined_particle_df.pkl`, `../results/permuted_smcabc_res/combined_particle_df.pkl`, `../results/smcevo_gem_three_conditions_save_all_particles_refined.pkl`, `../results/permuted_smcabc_res/fva_at_three_conditions.pkl` and `../results/evo_fva.pkl`.  Output: `../results/permuted_smcabc_res/combined_df_metadata.pkl`, `../results/evo_combined_df_metadata.pkl`, `../results/permuted_smcabc_res/distance_frame.pkl`, `../results/evo_distances.pkl` and `../results/aggregated_fva_res.pkl`
 * `visualization_for_manuscript.ipynb` - A Jupyter notebook used for visualizing the results. Due to the bulk of the work offloaded to the other scripts this notebook should be light enough to use on any laptop or desktop computer. Requires: `../results/permuted_smcabc_res/distance_frame.pkl`, `../results/permuted_smcabc_res/combined_df_metadata.pkl`, `../results/permuted_smcabc_res/pca_full_ordination.pkl`, `../results/evo_combined_df_metadata.pkl`, `../results/evo_pca_full_ordination.pkl`, `../results/permuted_smcabc_res/pca_reduced_ordination.pkl`, `../results/evo_distances.pkl`, `../results/evo_tsne_res/tsne_skeleton.pkl`, `../results/evo_tsne_res/tsne_{i}.pkl`, `../results/full_particle_RMSD.pkl`, `../results/aggregated_fva_res.pkl`. Output: All plots used in the publication.
 
-## Reproduce benchmarking
+## Reproduce particle evaluation benchmarking
+
+The script `benchmark_performance.py` benchmarks the performance of particle evaluation with reframed. Profiling with COBRApy is more tricky as it was used with an old version of the package and is now removed. However, fear not, the original particle evaluation framework is still in the git history in the branch `cobrapy_profile`. Run the script `benchmark_performance.sh` for automatically running the benchmarking procedure for both frameworks, it automatically handling swiching back and forth in git history.
+
 

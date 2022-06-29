@@ -8,7 +8,7 @@ channels:
 dependencies:
   - austin=3.3.0
   - autopep8=1.6.0
-  - cobra=0.25.0
+  - cobra=0.21.0
   - debugpy=1.4.1
   - dill=0.3.4
   - gurobi=9.1.2
