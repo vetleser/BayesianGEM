@@ -6,7 +6,7 @@
 conda activate etcFBA
 echo "Benchmarking with reframed"
 python benchmark_performance.py
-git checkout cfe99d7142e93ca12a36d8bb64d0a746d21c230f # Takes us back to the time the etcFBA framework used cobrapy
-echo "Benchmarking with cobrapy"
+git checkout cobrapy_profile # Takes us back to the time the etcFBA framework used cobrapy
+echo "Benchmarking with COBRApy"
 python benchmark_performance.py
 git switch -

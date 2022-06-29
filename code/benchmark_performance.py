@@ -12,7 +12,7 @@ import os
 import pandas as pd
 import logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
-N_ITERATIONS = 1
+N_ITERATIONS = 10
 
 path = '../'
 params = pd.read_csv(os.path.join(path,'data/model_enzyme_params.csv'),index_col=0)
@@ -26,4 +26,4 @@ tic = time.perf_counter()
 for _ in range(N_ITERATIONS):
     total_res = GEMS.simulate_at_three_conditions_2(particle)
 toc = time.perf_counter()
-print(f"Computed results at three conditions with an average of {(toc-tic)/N_ITERATIONS} seconds.")
+print(f"Computed results at three conditions with reframed with an average of {(toc-tic)/N_ITERATIONS} seconds.")
