@@ -86,7 +86,6 @@ def map_kcatT(model: CBModel,T: float,param_dict: dict, solver_instance: Solver=
         metabolites_to_update = set()
     rxn: reframed.CBReaction
     for rxn in model.reactions.values():
-        
         if rxn.id.startswith('draw_prot'): continue
         for met in rxn.stoichiometry:
             if not met.startswith('prot_'): continue
