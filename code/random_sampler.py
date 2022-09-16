@@ -1,8 +1,10 @@
+from types import ModuleType
 import numpy as np
 import scipy.stats as ss
+from typing import Union
 
 class RV:
-    def __init__(self, dist_name: str,loc: float, scale: float, rng: np.random.RandomState = None):
+    def __init__(self, dist_name: str,loc: float, scale: float, rng: np.random.Generator = None):
         '''
         dist_name: 'norm' or 'uniform'
         loc, scale: the same as used in scipy.stats
@@ -13,6 +15,7 @@ class RV:
         self.scale = scale
         self.rng = rng
 
+        random_source: Union[np.random.Generator, ModuleType]
         if rng is not None:
             random_source = rng
         else:
@@ -52,6 +55,6 @@ class RV:
         '''
         return RV(dist_name=self.dist_name, loc=self.rvfv(), scale=self.scale, rng=self.rng)
     
-    def set_rng(self, rng: np.random.RandomState):
+    def set_rng(self, rng: np.random.Generator):
         self.rvf = rng.uniform if self.dist_name == "uniform" else rng.normal
 

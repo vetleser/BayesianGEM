@@ -87,30 +87,6 @@ def get_dH_dS_dCpu_from_TmLength(Tm,N):
     dCpu = fsolve(func,10000)[0]
     return dHTH,dSTS,dCpu
 
-def get_dGu(T: float,dHTH: float,dSTS: float,dCpu: float):
-    '''
-    # calculate the deltaG of unfolding process at temperature T
-    # dHTH, dSTS are enthalpy and entropy at TH and TS, repspectively
-    # dCpu is the heat capacity change unpoin unfolding
-    '''
-    TH = 373.5
-    TS = 385
-
-    dGu: float = dHTH +dCpu*(T-TH) -T*dSTS-T*dCpu*np.log(T/TS);
-    return dGu
-
-
-def get_fNT(T: float,dHTH: float,dSTS: float,dCpu: float):
-    '''
-    # Calculate the fraction of enzyme in native state
-    # dHTH, dSTS are enthalpy and entropy at TH and TS, repspectively
-    # dCpu is the heat capacity change unpoin unfolding
-    # T, temeperature, a single value or a numpy array, in K
-    '''
-    R = 8.314;
-    dGu = get_dGu(T,dHTH,dSTS,dCpu);
-    f: float = 1/(1+np.exp(-dGu/R/T));
-    return f
 
 def get_dGu(T: float,dHTH: float,dSTS: float,dCpu: float):
     '''

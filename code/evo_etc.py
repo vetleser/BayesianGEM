@@ -6,51 +6,25 @@
 # In[1]:
 
 
+from itertools import repeat
 import logging
 import multiprocessing
-from typing import Callable, Dict, Iterable, List
+from typing import Callable, Dict, Iterable, List, Set
 import dill
-from inspyred.ec import replacers, variators
-from inspyred.ec.variators import mutators
 import numpy as np
 import numpy.typing as npt
+import scipy.stats
 import time
 from multiprocessing import cpu_count
 from random_sampler import RV
-import inspyred
-import inspyred.ec
-import inspyred.ec.variators as variators
-import inspyred.ec.selectors as selectors
 
-simResultType = Dict[str, Dict[str, npt.NDArray[np.float64]]]
+simResultType = Dict[str, npt.NDArray[np.float64]]
 priorType = Dict[str, RV]
 candidateType = Dict[str, float]
 distanceArgType = Dict[str, npt.NDArray[np.float64]]
 
 
-# In[]
 
-# This is a really ugly trick to use a numpy RNG
-# when inspyred expects the generator to be of
-# type random.Random
-# For this to work, we must alias random.Random.sample
-# using np.random.Generator.choice
-class EvolutionGenerator(np.random.Generator):
-
-    def __init__(self, bit_generator: np.random.BitGenerator) -> None:
-        super().__init__(bit_generator)
-    
-    def sample(self, population, k, *, counts=None):
-        return self.choice(a=population, size=k)
-
-    @classmethod
-    def from_numpy_generator(cls, generator: np.random.Generator):
-        return cls(generator.bit_generator)
-
-
-
-def default_rng(seed=None):
-    return EvolutionGenerator(np.random.PCG64(seed))
 
 # In[2]:
 
@@ -61,7 +35,7 @@ class GA:
     def __init__(self,simulator: Callable[[candidateType], simResultType], priors : priorType, min_epsilon: float,
     distance_function: Callable[[distanceArgType, distanceArgType], float],
                  Yobs: distanceArgType, outfile: str,cores: int = cpu_count(),generation_size: int = 128, mutation_frequency: float = 1.,
-                  selection_proportion: float = 0.5, maxiter: int = 100000, rng: EvolutionGenerator = None, n_children : int = 2, mutation_prob: float = 1.,
+                  selection_proportion: float = 0.5, maxiter: int = 100000, rng: np.random.Generator = None, n_children : int = 2, mutation_prob: float = 1.,
                   save_intermediate: bool = False):
         '''
         simulator:       a function that takes a dictionary of parameters as input. Ouput {'data':Ysim}
@@ -89,154 +63,121 @@ class GA:
         self.param_std: Dict[str, float] = {param: prior.scale for param, prior in priors.items()}
         if rng is None:
             default_seed = 1952
-            self.rng = default_rng(default_seed)
+            self.rng = np.random.Generator(np.random.PCG64(default_seed))
         else:
             self.rng = rng
         # Ensures random state is respected
         for item in self.priors.values():
-            item.set_rng(rng=rng)
+            item.set_rng(rng=self.rng)
         self.distance_function = distance_function
         self.min_epsilon = min_epsilon
         self.Yobs = Yobs
         self.outfile = outfile
-        self.population: List[inspyred.ec.Individual] = []
+        # Compared to SMC-ABC this seems a bit odd. The reationale is indirection.
+        # The indicies in the list specify which of the particles in self.all_particles is part of the current population
+        self.population: List[List[int]] = []
         self.cores = cores    
-        self.epsilons = [np.inf]          # min distance in each generation
+        self.epsilons: List[float] = []          # min distance in each generation
         self.generation_size = generation_size   # number of particles to be simulated at each generation
         self.mutation_frequency = mutation_frequency
         self.selection_proportion = selection_proportion
         self.maxiter = maxiter
-        self.all_simulated_data = []
-        self.all_distances = []
-        self.all_particles = []
-        self.generations = 0
+        # NOTE: all_simulated_data, all_distances, all_particles and birth_generation MUST be aligned
+        self.all_simulated_data: List[simResultType] = []
+        self.all_distances: List[float] = []
+        self.all_particles: List[candidateType] = []
+        # Specifies the generation each of the particles are born in
+        self.birth_generation: List[int] = []
+        self.generation = 0
         self.n_children = n_children
         self.mutation_prob = mutation_prob
         self.save_intermediate = save_intermediate
 
         
+    def evaluate_candiates(self, candidates: List[candidateType]):
+        # This function both evaluates newly born individuals and store them into the archive
+        start = time.time()
+        try:
+            # Use parallel backend such as in abc_etc.py
+            with multiprocessing.Pool(self.cores) as p:
+                res_map = p.map(self.simulator, candidates)
+        except (OSError, RuntimeError) as e:
+            logging.error('failed parallel_evaluation_mp: {0}'.format(str(e)))
+            raise
+        simulated_data = list(res_map)
+        distances = [self.distance_function(self.Yobs, res) for res in simulated_data]
 
-        def archiver(random, population, archive, args):
-            # We do not really care about the inspyred archive, but
-            # have to handle it anyway
-            if archive is None:
-                archive = []
-            else:
-                archive.append(None)
-            self.population = population
-            max_generation_epsilon = max(p.fitness for p in population)
-            self.epsilons.append(max_generation_epsilon)
-            logging.info(f"Model epsilon {max_generation_epsilon}")
-            self.generations += 1
-
-            if self.save_intermediate:
-                    dill.dump(self,open(self.outfile,'wb'))
-            return archive
-
-
-        def terminator(population, num_generations, num_evaluations, args) -> bool:
-            n_generations = self.generations
-            logging.info(f"Running generation {n_generations+1} of {self.maxiter}")
-            return self.epsilons[-1] <= self.min_epsilon or self.generations > self.maxiter
-
-        # @evaluators.evaluator
-        """ def evaluator(candidate: individualType, args: dict) -> float:
-            res = self.simulator(args = {key: value.loc for key, value in candidate.items()})
-            distance = self.distance_function(Yobs, res)
-            return res, distance """
-
-        def parallel_evaluation_mp(candidates: List[candidateType], args: dict):
-            # Copy-catted from https://github.com/aarongarrett/inspyred/blob/master/inspyred/ec/evaluators.py
-            logger = args['_ec'].logger
-            
-            start = time.time()
-            try:
-                # Use parallel backend such as in abc_etc.py
-                with multiprocessing.Pool(self.cores) as p:
-                    res_map = p.map(self.simulator, candidates)
-            except (OSError, RuntimeError) as e:
-                logger.error('failed parallel_evaluation_mp: {0}'.format(str(e)))
-                raise
-            simulated_data = list(res_map)
-            distances = [self.distance_function(self.Yobs, res) for res in simulated_data]
-
-            # save all simulated results
-            self.all_simulated_data.extend(simulated_data)
-            self.all_distances.extend(distances)
-            self.all_particles.extend(candidates)
-            end = time.time()
-            logger.debug('completed parallel_evaluation_mp in {0} seconds'.format(end - start))
-            return distances
+        # save all simulated results
+        self.all_simulated_data.extend(simulated_data)
+        self.all_distances.extend(distances)
+        self.all_particles.extend(candidates)
+        self.birth_generation.extend(repeat(self.generation,len(candidates)))
+        end = time.time()
+        logging.debug('Completed parallel evaluation of candiates in {0} seconds'.format(end - start))
+        return
 
 
-        def generator(random: EvolutionGenerator, args) -> candidateType:
-            # def correct_validity(seed: individualType):
-            #     seed = deepcopy(self.priors)
-            #     # check Topt < Tm, if false, resample from prior
-            #     protein_ids = set(entry.split('_')[0] for entry in seed)
-            #     for id in protein_ids:
-            #         Tm_key = id + "_Tm"
-            #         Topt_key = id + "_Topt"
-            #         for _ in range(10):
-            #             # We try to get things right 10 times before we give up
-            #             Tm = seed[Tm_key]
-            #             Topt = seed[Topt_key]
-            #             if Tm < Topt:
-            #                 seed[Tm_key] = Tm.mutate()
-            #                 seed[Topt_key] = Topt.mutate()
-            #             else:
-            #                 break
-            #     return seed
-                candidate = {param: prior.loc for param, prior in self.priors.items()}
-                return mutate(random = random, candidate=candidate, args=args)
-
-        # @variators.mutator
-
-        def mutate(random: EvolutionGenerator, candidate: candidateType, args: dict) -> candidateType:
-
-            def mutate_param(entry: str):
-                candidate[entry] = random.normal(loc=candidate[entry], scale=self.param_std[entry])
-
-            def correct_validity(entry: str) -> None:
-                # As we only change one parameter at a time, we only need to check
-                # the validity of the parameters of one enzyme
-                protein_id = entry.split('_')[0]
-                Tm_key = protein_id + "_Tm"
-                Topt_key = protein_id + "_Topt"
-                for _ in range(10):
-                    # We try to get things right 10 times before we give up
-                    Tm = candidate[Tm_key]
-                    Topt = candidate[Topt_key]
-                    if Tm < Topt:
-                        mutate_param(Tm_key)
-                        mutate_param(Topt_key)
-                    else:
-                        break
-            if float(random.uniform(low=0, high=1)) < self.mutation_prob:
-                n_mutations = random.poisson(lam=self.mutation_frequency)
-                entries: list[str] = list(candidate.keys())
-                for _ in range(n_mutations):
-                    entry: str = random.choice(entries)
-                    mutate_param(entry)
-                    correct_validity(entry)
-            return candidate
+    def generator(self) -> candidateType:
+            candidate = {param: prior.loc for param, prior in self.priors.items()}
+            return self.mutate(candidate=candidate)
 
 
-        @variators.crossover
-        def cross(random: EvolutionGenerator, mom: candidateType, dad: candidateType, args: dict) -> Iterable[candidateType]:
-            common_keys = set(mom.keys())
-            common_keys.update(dad.keys())
-            return ({key: (mom[key] + dad[key]) / 2 for key in common_keys} for _ in range(self.n_children))
+    def mutate(self, candidate: candidateType):
+
+        def mutate_param(entry: str):
+            candidate[entry] = self.rng.normal(loc=candidate[entry], scale=self.param_std[entry])
+
+        def correct_validity(entry: str) -> None:
+            # As we only change one parameter at a time, we only need to check
+            # the validity of the parameters of one enzyme
+            protein_id = entry.split('_')[0]
+            Tm_key = protein_id + "_Tm"
+            Topt_key = protein_id + "_Topt"
+            for _ in range(10):
+                # We try to get things right 10 times before we give up
+                Tm = candidate[Tm_key]
+                Topt = candidate[Topt_key]
+                if Tm < Topt:
+                    mutate_param(Tm_key)
+                    mutate_param(Topt_key)
+                else:
+                    break
+        if float(self.rng.uniform(low=0, high=1)) < self.mutation_prob:
+            n_mutations = self.rng.poisson(lam=self.mutation_frequency)
+            entries: List[str] = list(candidate.keys())
+            for _ in range(n_mutations):
+                entry: str = self.rng.choice(entries)
+                mutate_param(entry)
+                correct_validity(entry)
 
 
-        self.archiver = archiver
-        self.terminator = terminator
-        # self.evaluator = evaluator
-        self.generator = generator
-        self.mutator = mutators.mutator(mutate)
-        self.crossover = cross
-        self.parallel_evaluation_mp = parallel_evaluation_mp
-    
+    def create_offspring(self, mom: candidateType, dad: candidateType):
+        children = self.cross(mom, dad)
+        for child in children:
+            self.mutate(child)
+        return children
+
+
+
+    def cross(self, mom: candidateType, dad: candidateType) -> Iterable[candidateType]:
+        common_keys = set(mom.keys())
+        common_keys.update(dad.keys())
+        return ({key: (mom[key] + dad[key]) / 2 for key in common_keys} for _ in range(self.n_children))
+
+    def generate_children(self,parents: npt.NDArray[np.int64]):
+        if len(parents) % 2 != 0:
+                # If we have an add number of parents, remove the last one
+                parents = parents[:-1]
+        moms = parents[0::2]
+        dads = parents[1::2]
+        # Generate children
+        logging.info(f"Generating {self.n_children*len(moms)} children")
+        children = []
+        for mom, dad in zip(moms, dads):
+            children.extend(self.create_offspring(mom,dad))
+        logging.info(f"Evaluating fitness of children")
+        self.evaluate_candiates(children)
+
 
     def update_std(self):
         """
@@ -244,7 +185,7 @@ class GA:
         """
         logging.info('Updating standard deviations to parameters')
         parameters = dict()   # {'Protein_Tm':[]}
-        for particle in self.population:
+        for particle in self.population[-1]:
             for p,val in particle.items(): 
                 lst = parameters.get(p,[])
                 lst.append(val)
@@ -253,25 +194,92 @@ class GA:
         for p, lst in parameters.items():
             self.param_std[p] = np.std(lst)
 
+    
+    def select_parents(self, current_population: npt.NDArray[np.int64]) -> npt.NDArray[np.int64]:
+        population_fitness = np.array(self.all_distances)[current_population]
+        n_parents = int(self.selection_proportion * self.generation_size)
+        logging.info(f"Selecting {n_parents} parents to generating children")
+        population_ranks = scipy.stats.rankdata(-population_fitness,method = "average") # Remember, this is a minimization problem, so lower values should have higher ranks
+        parents = self.rng.choice(current_population, size=n_parents, replace=False, p=population_ranks / np.sum(population_ranks))
+        return parents
 
+
+
+    def replace_population(self,combined_population: npt.NDArray[np.int64]):
+        individuals_to_replace = self.generation_size - len(combined_population)
+        alive_individuals: Set[int] = set(combined_population)
+        logging.info(f"Replacing {individuals_to_replace} individuals in the population")
+        # Remove individuals until population size is reached
+        while individuals_to_replace > 0:
+            # Does a local tournament
+            first = self.rng.choice(combined_population)
+            if first not in alive_individuals:
+                continue
+            distance_to_first = {other: self.particle_distance(first,other) for other in alive_individuals if first != other}
+            nearest_neighbor = min(distance_to_first, key=lambda x: distance_to_first[x])
+            if self.all_distances[first] > self.all_distances[nearest_neighbor]:
+                alive_individuals.remove(first)
+            else:
+                alive_individuals.remove(nearest_neighbor)
+            individuals_to_replace -= 1
+        logging.info(f"Updating population")
+        self.population.append(list(alive_individuals))
+            
+    
+    def particle_distance(self, idx_1: int, idx_2: int):
+        epsilon = 1e-8
+        particle_1 = self.all_particles[idx_1]
+        particle_2 = self.all_particles[idx_2]
+        return sum([(particle_1[key] - particle_2[key])**2 / (self.param_std[key]**2 + epsilon) for key in self.param_std.keys()])
+
+    
+    def simulate_generation(self):
+            current_population = np.array(list(self.population[-1]))
+            parents = self.select_parents(current_population=current_population)
+            self.generate_children(parents=parents)
+            children_idxs = np.flatnonzero(np.array(self.birth_generation) == self.generation)
+            combined_population = np.concatenate(current_population,children_idxs)
+            self.replace_population(combined_population)
+            self.update_std()
+            max_generation_epsilon = max(self.all_distances[p] for p in self.population[-1])
+            self.epsilons.append(max_generation_epsilon)
+            logging.info(f"Model epsilon {max_generation_epsilon}")
+        
 
     
     def run_simulation(self) -> None:
-        algorithm = inspyred.ec.EvolutionaryComputation(self.rng)
-        algorithm.terminator = self.terminator
-        algorithm.archiver = self.archiver
-        algorithm.variator = [self.crossover, self.mutator]
-        algorithm.selector = selectors.tournament_selection
-        algorithm.replacer = replacers.truncation_replacement
-        # Restore rng. This is a workaround due to https://github.com/uqfoundation/dill/issues/442
-        self.rng = EvolutionGenerator.from_numpy_generator(self.rng)
-        if self.generations > 0:
-            # Restore computations from stored results
-            seeds : List[candidateType] = [individual.candidate for individual  in self.population]
+        
+        if self.generation == 0:
+            # Generating initial population
+            logging.info("Generating initial population")
+            initial_population = [self.generator() for _ in range(self.generation_size)]
+            logging.info("Evaluating initial population")
+            self.evaluate_candiates(initial_population)
+            # Assign all individuals to be part of the first generation
+            self.population.append(list(range(self.generation_size)))
+            self.update_std()
+            max_generation_epsilon = max(self.all_distances[p] for p in self.population[-1])
+            self.epsilons.append(max_generation_epsilon)
+            logging.info(f"Model epsilon {max_generation_epsilon}")
+            self.generation += 1
+            if self.save_intermediate:
+                    dill.dump(self,open(self.outfile,'wb'))
+        
+        
+        while self.generation <= self.maxiter:
+            if max_generation_epsilon < self.min_epsilon:
+                logging.info(f"Fitness objective reached at generation {self.generation}")
+                logging.info(f"Exiting evolution")
+                break
+            
+            logging.info(f"Running generation {self.generation} of {self.maxiter}")
+            self.simulate_generation()
+            self.generation += 1
+            if self.save_intermediate:
+                    dill.dump(self,open(self.outfile,'wb'))
         else:
-            seeds = None
-
-
-        kwargsdict = {'mp_nprocs': self.cores, 'num_selected': int(self.generation_size * self.selection_proportion)}
-        algorithm.evolve(generator=self.generator, evaluator=self.parallel_evaluation_mp, maximize=False, seeds = seeds, pop_size=self.generation_size, **kwargsdict)
+            # This else-clause belongs to the main evolution loop
+            logging.info("Fitness objective not reached after maximum number of generations")
+            logging.info("Exiting evolution")
+        
         dill.dump(self, file=open(self.outfile,mode='wb'))

@@ -237,7 +237,7 @@ def simulate_fva(model: CBModel,Ts: Iterable[float],sigma: float,param_dict: dic
 
         
 
-def fva_chemostat(model: CBModel,dilu: float,param_dict: dict,Ts: List[Float],sigma: float,
+def fva_chemostat(model: CBModel,dilu: float,param_dict: dict,Ts: List[float],sigma: float,
 growth_id: str,glc_up_id: str,prot_pool_id: str) -> pd.DataFrame:
     '''
     # Do FVA simulation on a given dilution and a list of temperatures. 
