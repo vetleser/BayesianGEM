@@ -4,7 +4,7 @@
 # In[1]:
 
 
-from typing import Dict, Iterable
+from typing import Dict, Iterable, List, Optional
 import pandas as pd
 import numpy as np
 import pickle
@@ -190,7 +190,7 @@ def chemostat(thermalParams):
 
 # In[]
 
-def aerobic_fva(thermalParams: candidateType):
+def aerobic_fva(thermalParams: candidateType, reactions: Optional[List[str]]=None):
     """
     Run FVA on aerobic conditions
 
@@ -200,11 +200,11 @@ def aerobic_fva(thermalParams: candidateType):
     # thermalParams: a dictionary with ids like uniprotid_Topt
     param_dict = format_input(params,thermalParams)
     mae = pickle.load(open(os.path.join(path,'models/aerobic.pkl'),'rb'))
-    rae = etc.simulate_fva(mae,dfae_batch.index+273.15,param_dict=param_dict,sigma=0.5)
+    rae = etc.simulate_fva(mae,dfae_batch.index+273.15,param_dict=param_dict,sigma=0.5, reactions=reactions)
     return rae
 
 
-def anaerobic_reduced_fva(thermalParams: candidateType):
+def anaerobic_reduced_fva(thermalParams: candidateType,reactions: Optional[List[str]]=None):
     """
     Run FVA under anaerobic conditions
 
@@ -215,11 +215,11 @@ def anaerobic_reduced_fva(thermalParams: candidateType):
     param_dict = format_input(params,thermalParams)
     man = pickle.load(open(os.path.join(path,'models/anaerobic.pkl'),'rb'))
     sel_temp = [5.0,15.0,26.3,30.0,33.0,35.0,37.5,40.0]
-    ran = etc.simulate_fva(man,np.array(sel_temp)+273.15,param_dict=param_dict,sigma=0.5)
+    ran = etc.simulate_fva(man,np.array(sel_temp)+273.15,param_dict=param_dict,sigma=0.5,reactions=reactions)
     return ran
 
 
-def chemostat_fva(thermalParams: candidateType):
+def chemostat_fva(thermalParams: candidateType,reactions: Optional[List[str]]=None):
     """
     Run FVA under chemostat conditions
 
@@ -235,15 +235,15 @@ def chemostat_fva(thermalParams: candidateType):
     sigma = 0.5
     
     solution = etc.fva_chemostat(mae,dilut,param_dict,dfchemo.index+273.15,
-                                            sigma,growth_id,glc_up_id,prot_pool_id)
+                                            sigma,growth_id,glc_up_id,prot_pool_id,reactions=reactions)
     return  solution
 
 # In[]
 
-def run_fva_at_three_conditions(thermalParams):
+def run_fva_at_three_conditions(thermalParams, reactions: Optional[List[str]]=None):
     fva_functions = [aerobic_fva, anaerobic_reduced_fva, chemostat_fva]
     condition_names = ["aerobic", "anaerobic", "chemostat"]
-    fva_results: Iterable[pd.DataFrame] = starmap(lambda f, x: f(thermalParams).assign(condition=x), zip(fva_functions,condition_names))
+    fva_results: Iterable[pd.DataFrame] = starmap(lambda f, x: f(thermalParams, reactions).assign(condition=x), zip(fva_functions,condition_names))
     return pd.concat(fva_results)
 
 

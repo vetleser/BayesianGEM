@@ -1,4 +1,4 @@
-from typing import Iterable, List
+from typing import Iterable, List, Optional
 import numpy as np
 import pandas as pd
 import time
@@ -195,7 +195,7 @@ def sample_data_uncertainty_with_constraint(inpt,columns=None):
     return sampled_params
 
 
-def simulate_fva(model: CBModel,Ts: Iterable[float],sigma: float,param_dict: dict,Tadj=0) -> pd.DataFrame:
+def simulate_fva(model: CBModel,Ts: Iterable[float],sigma: float,param_dict: dict,Tadj=0, reactions: Optional[List[str]]=None) -> pd.DataFrame:
     '''
     Simulate FVA on growth scenarios
     # model, reframed model
@@ -222,7 +222,7 @@ def simulate_fva(model: CBModel,Ts: Iterable[float],sigma: float,param_dict: dic
         try:
             # We have to take into consideration that the model might be infeasible as-is and
             # reframed has no proper way to handling this case, causing a TypeError (!) in such cases
-            fva_solution = reframed.FVA(opt_model, obj_frac=0.999)
+            fva_solution = reframed.FVA(opt_model, obj_frac=0.999,reactions=reactions)
         except Exception as err:
             logging.info(f'Failed to solve the problem, problem: {str(err)}')
             res_frame = pd.DataFrame({'reaction': model.reactions.keys(), 'minimum': np.nan, 'maximum': np.nan})
@@ -238,7 +238,7 @@ def simulate_fva(model: CBModel,Ts: Iterable[float],sigma: float,param_dict: dic
         
 
 def fva_chemostat(model: CBModel,dilu: float,param_dict: dict,Ts: List[float],sigma: float,
-growth_id: str,glc_up_id: str,prot_pool_id: str) -> pd.DataFrame:
+growth_id: str,glc_up_id: str,prot_pool_id: str, reactions: Optional[List[str]]=None) -> pd.DataFrame:
     '''
     # Do FVA simulation on a given dilution and a list of temperatures. 
     # model, reframed model
@@ -278,7 +278,7 @@ growth_id: str,glc_up_id: str,prot_pool_id: str) -> pd.DataFrame:
             m1.reactions[glc_up_id].ub = solution1.fobj*1.001
             m1.set_objective({prot_pool_id: -1})
             
-            fva_solution = reframed.FVA(m1, obj_frac=0.999)
+            fva_solution = reframed.FVA(m1, obj_frac=0.999, reactions=reactions)
             logging.info('FVA problems solved successfully')
             reactions, values = zip(*fva_solution.items())
             minimum, maximum = zip(*values)
