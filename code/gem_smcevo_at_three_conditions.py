@@ -57,7 +57,7 @@ def main():
             'chemostat':Yobs_chemo['data'],
             'ran':Yobs_batch_an['data']}
 
-    outdir = '../results/permuted_smcabc_res'
+    outdir = '../results/permuted_smcevo_res'
     candidate_frame: pd.DataFrame = pickle.load(file=open(file=f'{outdir}/simulation_skeleton.pkl',mode='rb'))
     entry = candidate_frame.iloc[task_idx]
 
