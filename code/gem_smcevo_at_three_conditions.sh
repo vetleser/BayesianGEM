@@ -4,7 +4,7 @@
 #SBATCH --nodes=1                    
 #SBATCH -c 20
 #SBATCH -t 100:00:00             # Upper time limit for the job
-#SBATCH --array=0-7
+#SBATCH --array=0-15
 #SBATCH --mail-type=begin
 #SBATCH --mail-type=end
 #SBATCH --mail-user=jakob.p.pettersen@ntnu.no
@@ -18,4 +18,4 @@ module purge
 module load Anaconda3/2020.07
 source ~/.bash_profile
 conda activate etcFBA
-python gem_smcevo_at_three_conditions_run.py &> "../results/permuted_smcevo_res/gem_smcevo_at_three_conditions_$SLURM_ARRAY_TASK_ID.log"
+python gem_smcevo_at_three_conditions.py &> "../results/permuted_smcevo_res/gem_smcevo_at_three_conditions_$SLURM_ARRAY_TASK_ID.log"
