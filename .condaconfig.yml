@@ -12,7 +12,6 @@ dependencies:
   - debugpy=1.4.1
   - dill=0.3.4
   - gurobi=9.1.2
-  - inspyred=1.0.1
   - ipython=7.28.0
   - jupyter=1.0.0
   - jupyter-server-mathjax=0.2.3

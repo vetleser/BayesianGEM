@@ -17,7 +17,6 @@ pandas                      1.3.3
 scikit-learn                1.0.0
 scipy                       1.7.1
 reframed                    1.2.1
-inspyred                    1.0.1
 dill                        0.3.4  
 jupyter                     1.0.0
 matplotlib                  3.5.2

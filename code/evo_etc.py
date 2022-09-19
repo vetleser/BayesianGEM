@@ -119,7 +119,8 @@ class GA:
 
     def generator(self) -> candidateType:
             candidate = {param: prior.loc for param, prior in self.priors.items()}
-            return self.mutate(candidate=candidate)
+            self.mutate(candidate=candidate)
+            return candidate
 
 
     def mutate(self, candidate: candidateType):
@@ -162,7 +163,7 @@ class GA:
     def cross(self, mom: candidateType, dad: candidateType) -> Iterable[candidateType]:
         common_keys = set(mom.keys())
         common_keys.update(dad.keys())
-        return ({key: (mom[key] + dad[key]) / 2 for key in common_keys} for _ in range(self.n_children))
+        return [{key: (mom[key] + dad[key]) / 2 for key in common_keys} for _ in range(self.n_children)]
 
     def generate_children(self,parents: npt.NDArray[np.int64]):
         if len(parents) % 2 != 0:
@@ -174,7 +175,7 @@ class GA:
         logging.info(f"Generating {self.n_children*len(moms)} children")
         children = []
         for mom, dad in zip(moms, dads):
-            children.extend(self.create_offspring(mom,dad))
+            children.extend(self.create_offspring(self.all_particles[mom],self.all_particles[dad]))
         logging.info(f"Evaluating fitness of children")
         self.evaluate_candiates(children)
 
@@ -185,7 +186,8 @@ class GA:
         """
         logging.info('Updating standard deviations to parameters')
         parameters = dict()   # {'Protein_Tm':[]}
-        for particle in self.population[-1]:
+        for particle_idx in self.population[-1]:
+            particle = self.all_particles[particle_idx]
             for p,val in particle.items(): 
                 lst = parameters.get(p,[])
                 lst.append(val)
@@ -206,7 +208,7 @@ class GA:
 
 
     def replace_population(self,combined_population: npt.NDArray[np.int64]):
-        individuals_to_replace = self.generation_size - len(combined_population)
+        individuals_to_replace = len(combined_population) - self.generation_size
         alive_individuals: Set[int] = set(combined_population)
         logging.info(f"Replacing {individuals_to_replace} individuals in the population")
         # Remove individuals until population size is reached
@@ -238,7 +240,7 @@ class GA:
             parents = self.select_parents(current_population=current_population)
             self.generate_children(parents=parents)
             children_idxs = np.flatnonzero(np.array(self.birth_generation) == self.generation)
-            combined_population = np.concatenate(current_population,children_idxs)
+            combined_population = np.concatenate([current_population,children_idxs])
             self.replace_population(combined_population)
             self.update_std()
             max_generation_epsilon = max(self.all_distances[p] for p in self.population[-1])
