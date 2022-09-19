@@ -66,9 +66,6 @@ class GA:
             self.rng = np.random.Generator(np.random.PCG64(default_seed))
         else:
             self.rng = rng
-        # Ensures random state is respected
-        for item in self.priors.values():
-            item.set_rng(rng=self.rng)
         self.distance_function = distance_function
         self.min_epsilon = min_epsilon
         self.Yobs = Yobs
@@ -250,6 +247,10 @@ class GA:
 
     
     def run_simulation(self) -> None:
+        
+        # Ensures random state is respected
+        for item in self.priors.values():
+            item.set_rng(rng=self.rng)
         
         if self.generation == 0:
             # Generating initial population

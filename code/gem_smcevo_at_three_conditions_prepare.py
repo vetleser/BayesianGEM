@@ -4,7 +4,7 @@
 # In[1]:
 
 
-import abc_etc as abc
+from random_sampler import RV
 import numpy as np
 import GEMS
 import os
@@ -63,7 +63,7 @@ for prior_name in candidate_frame.prior_name:
     prior = dict()
     for ind in params.index: 
         for col in ['Tm','Topt','dCpt']: 
-            prior['{0}_{1}'.format(ind,col)] = abc.RV('normal',
+            prior['{0}_{1}'.format(ind,col)] = RV('normal',
                                                           loc=combined_params[prior_name].loc[ind,col],
                                                           scale=combined_params[prior_name].loc[ind,col+'_std'])
     priors.append(prior)

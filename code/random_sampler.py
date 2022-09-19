@@ -57,4 +57,3 @@ class RV:
     
     def set_rng(self, rng: np.random.Generator):
         self.rvf = rng.uniform if self.dist_name == "uniform" else rng.normal
-
