@@ -101,7 +101,7 @@ def main():
                         mutation_prob=.5,
                         selection_proportion=0.5,
                         n_children=1,
-                        save_intermediate=True)
+                        save_intermediate=False)
 
     # #### Run simulation
 
