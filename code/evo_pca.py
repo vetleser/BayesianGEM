@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import multiprocessing
 import pickle
 import pandas as pd
 import numpy as np
@@ -61,19 +62,23 @@ def perform_pca_on_parameters(df):
     logging.info(pca.explained_variance_ratio_)
     return PCS, pca.explained_variance_ratio_
 
-bayesian_model_frame: pd.DataFrame = load_pickle("../results/permuted_smcabc_res/simulation_skeleton.pkl")
-bayesian_model_frame.set_index(["origin","status"], inplace=True)
-bayesian_entry = bayesian_model_frame.loc[("unpermuted", "original")]
-bayesian_file = bayesian_entry["outfile"]
-bayesian_df = build_a_dataframe_for_all_particles(bayesian_file, n_priors=128)
 
-evolutionary_file = "../results/smcevo_gem_three_conditions_save_all_particles_refined.pkl"
-evolutionary_df = build_a_dataframe_for_all_particles(evolutionary_file, n_priors=100)
-dump_pickle(evolutionary_df,"../results/evo_particle_df.pkl")
 
-df_dict = {'Bayesian': bayesian_df, 'Evolutionary': evolutionary_df}
-combined_df = combine_dataframes_for_models(df_dict=df_dict)
-dump_pickle(combined_df, "../results/evo_combined_particle_df.pkl")
+model_frame = load_pickle("../results/permuted_smcevo_res/simulation_skeleton.pkl")
+
+model_frame.set_index(["prior_name","simulation"], inplace=True)
+
+particle_df_map = map(build_a_dataframe_for_all_particles,model_frame.outfile)
+model_frame["particle_df"] = list(particle_df_map)
+
+dump_pickle(model_frame["particle_df"], "../results/permuted_smcevo_res/particle_df.pkl")
+
+
+full_particle_df_dict = {distribution: df for distribution, df in model_frame["particle_df"].iteritems()}
+combined_df = combine_dataframes_for_models(full_particle_df_dict)
+dump_pickle(combined_df, "../results/permuted_smcevo_res/combined_particle_df.pkl")
+
 pca_ordination = perform_pca_on_parameters(combined_df)
-dump_pickle(pca_ordination,"../results/evo_pca_full_ordination.pkl")
+dump_pickle(pca_ordination,"../results/permuted_smcevo_res/pca_full_ordination.pkl")
+
 logging.info("DONE")
