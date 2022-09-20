@@ -3,7 +3,7 @@
 #SBATCH --output=gem_smcevo_at_three_conditions.out
 #SBATCH --nodes=1                    
 #SBATCH -c 20
-#SBATCH -t 100:00:00             # Upper time limit for the job
+#SBATCH -t 50:00:00             # Upper time limit for the job
 #SBATCH --array=0-15
 #SBATCH --mem=50G
 #SBATCH --mail-type=begin
