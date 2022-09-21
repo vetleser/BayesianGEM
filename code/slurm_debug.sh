@@ -12,3 +12,12 @@
 #SBATCH -p CPUQ
 #SBATCH --account=share-nv-ibt
 #SBATCH --export=NONE
+
+WORKDIR=${SLURM_SUBMIT_DIR}
+cd ${WORKDIR}
+module purge
+module load Anaconda3/2020.07
+source ~/.bash_profile
+conda activate etcFBA
+python slurm_debug.py &> "slurm_debug_$SLURM_ARRAY_TASK_ID.log"
+
