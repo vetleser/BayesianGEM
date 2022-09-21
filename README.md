@@ -21,6 +21,7 @@ dill                        0.3.4
 jupyter                     1.0.0
 matplotlib                  3.5.2
 Gurobi                      9.1.2
+pebble                      5.0.0
 ```
 The repository was tested with Python 3.8.12 and Ubuntu 20.04.4. The easiest way to install the dependencies is through the Conda package manager. Using Conda, the environment can be set up by running `conda env create --file .condaconfig.yml`.
 
