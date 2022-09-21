@@ -285,4 +285,5 @@ class GA:
             logging.info("Fitness objective not reached after maximum number of generations")
             logging.info("Exiting evolution")
         
+        logging.info(f"Saving results to {self.outfile}")
         dill.dump(self, file=open(self.outfile,mode='wb'))
