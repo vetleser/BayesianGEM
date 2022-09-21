@@ -3,7 +3,7 @@
 #SBATCH --output=slurm_debug.out
 #SBATCH --nodes=1                    
 #SBATCH -c 1
-#SBATCH -t 50:00:00             # Upper time limit for the job
+#SBATCH -t 00:01:00             # Upper time limit for the job
 #SBATCH --array=0-15
 #SBATCH --mem=50G
 #SBATCH --mail-type=begin
