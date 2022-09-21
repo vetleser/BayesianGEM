@@ -72,8 +72,8 @@ def main():
     # In[ ]:
     rng = np.random.default_rng(random_seed)
     min_epsilon = -1.0 # equivalent to r2 score of 1
-    population_size = 1
-    maxiter = 1
+    population_size = 128
+    maxiter = 500
 
 
     # In[ ]:
