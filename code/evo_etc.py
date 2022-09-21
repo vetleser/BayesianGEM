@@ -16,6 +16,8 @@ import numpy.typing as npt
 import scipy.stats
 import time
 from multiprocessing import cpu_count
+from pebble.concurrent.process import TimeoutError
+import pebble
 from random_sampler import RV
 
 simResultType = Dict[str, npt.NDArray[np.float64]]
@@ -92,23 +94,38 @@ class GA:
 
         
     def evaluate_candiates(self, candidates: List[candidateType]):
+        # Specifying timeout of 30 minutes
+        timeout = 30*60
         # This function both evaluates newly born individuals and store them into the archive
         start = time.time()
+        simulated_data = []
         try:
-            # Use parallel backend such as in abc_etc.py
-            with multiprocessing.Pool(self.cores) as p:
-                res_map = p.map(self.simulator, candidates)
+            # This code takes care of stalled parallel processes
+            with pebble.ProcessPool(self.cores) as p:
+                res_iter = p.map(self.simulator, candidates,timeout=timeout).result()
+                while True:
+                    try:
+                        raw_res = res_iter.next()
+                    except StopIteration:
+                        # We have now iterated over all particles
+                        break
+                    except TimeoutError:
+                        logging.info("Evaluation of particle time out")
+                    else:
+                        logging.info("Evaluation of particle ran successfully")
+                        simulated_data.append(raw_res)
         except (OSError, RuntimeError) as e:
             logging.error('failed parallel_evaluation_mp: {0}'.format(str(e)))
             raise
-        simulated_data = list(res_map)
+        
+        
         distances = [self.distance_function(self.Yobs, res) for res in simulated_data]
 
         # save all simulated results
         self.all_simulated_data.extend(simulated_data)
         self.all_distances.extend(distances)
         self.all_particles.extend(candidates)
-        self.birth_generation.extend(repeat(self.generation,len(candidates)))
+        self.birth_generation.extend(repeat(self.generation,len(simulated_data)))
         end = time.time()
         logging.debug('Completed parallel evaluation of candiates in {0} seconds'.format(end - start))
         return
@@ -258,8 +275,9 @@ class GA:
             initial_population = [self.generator() for _ in range(self.generation_size)]
             logging.info("Evaluating initial population")
             self.evaluate_candiates(initial_population)
-            # Assign all individuals to be part of the first generation
-            self.population.append(list(range(self.generation_size)))
+            # Assign all individuals to be part of the first generation,
+            # but beware, some of the evaluation tasks may have timed out
+            self.population.append(list(range(len(self.all_particles))))
             self.update_std()
             max_generation_epsilon = max(self.all_distances[p] for p in self.population[-1])
             self.epsilons.append(max_generation_epsilon)

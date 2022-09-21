@@ -64,12 +64,6 @@ def main():
 
 
     # In[]
-
-    min_epsilon = -1.0 # equivalent to r2 score of 1
-    population_size = 100
-    logging.info('Initialize model')
-
-
     priors, simulation,prior_name, outfile, random_seed = entry[["priors", "simulation", "prior_name", "outfile","random_seed"]]
 
 
@@ -78,8 +72,8 @@ def main():
     # In[ ]:
     rng = np.random.default_rng(random_seed)
     min_epsilon = -1.0 # equivalent to r2 score of 1
-    population_size = 128
-    outfile = '../results/smcevo_gem_three_conditions_save_all_particles_refined.pkl'
+    population_size = 1
+    maxiter = 1
 
 
     # In[ ]:
@@ -95,7 +89,7 @@ def main():
                         distance_function=GEMS.distance_2,
                         Yobs=Yobs,
                         outfile=outfile,
-                        maxiter=500,
+                        maxiter=maxiter,
                         rng=rng,
                         mutation_frequency=100,
                         mutation_prob=.5,
