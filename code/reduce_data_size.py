@@ -44,7 +44,6 @@ dump_pickle(bayesian_simulation_skeleton, "../results/permuted_smcabc_res/distan
 evo_simulation_skeleton = load_pickle("../results/permuted_smcevo_res/simulation_skeleton.pkl")
 
 evo_simulation_skeleton["all_distances"], evo_simulation_skeleton["population"] = zip(*list(map(extract_distances_and_population_from_simulation, evo_simulation_skeleton["outfile"])))
-evo_simulation_skeleton["population"] = list(map(extract_distances_from_simulation,evo_simulation_skeleton["outfile"]))
 
 dump_pickle(evo_simulation_skeleton, "../results/permuted_smcevo_res/distance_frame.pkl")
 
