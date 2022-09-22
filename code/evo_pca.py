@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import multiprocessing
 import pickle
 import pandas as pd
 import numpy as np
 from sklearn.decomposition import PCA
 import logging
+from evo_etc import GA
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 
@@ -17,8 +17,8 @@ def load_pickle(filename):
 def dump_pickle(obj,filename):
     return pickle.dump(obj=obj,file=open(file=filename, mode='wb'))
 
-def build_a_dataframe_for_all_particles(file, n_priors = 128, r2_threshold = 0.9):
-    results = load_pickle(file)
+def build_a_dataframe_for_all_particles(file, r2_threshold = 0.9):
+    results: GA = load_pickle(file)
     columns = list(results.all_particles[0].keys())
     columns.sort()
     logging.info("Iterating over particles")
@@ -32,9 +32,11 @@ def build_a_dataframe_for_all_particles(file, n_priors = 128, r2_threshold = 0.9
     
     
     logging.info("Doing filtering and labelling of Data Frame")
+    # We need to negate the results due to the fact that they 
+    # are orignally taken to mean distances which are to be minimized
     df['r2'] = -df['r2']
     df["period"] = "Intermediate"
-    df.loc[:n_priors,"period"] = "Prior"
+    df.loc[np.array(results.birth_generation) == 0,"period"] = "Prior"
     df.loc[df["r2"] > r2_threshold,"period"] = 'Posterior'
     # Remove samples with a R2 score smaller than -3
     sel_index = df.index[df['r2']>-3]    
@@ -78,6 +80,7 @@ full_particle_df_dict = {distribution: df for distribution, df in model_frame["p
 combined_df = combine_dataframes_for_models(full_particle_df_dict)
 dump_pickle(combined_df, "../results/permuted_smcevo_res/combined_particle_df.pkl")
 
+logging.info("Performing PCA")
 pca_ordination = perform_pca_on_parameters(combined_df)
 dump_pickle(pca_ordination,"../results/permuted_smcevo_res/pca_full_ordination.pkl")
 
