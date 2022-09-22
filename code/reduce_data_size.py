@@ -24,8 +24,8 @@ bayesian_combined_df = load_pickle("../results/permuted_smcabc_res/combined_part
 bayesian_combined_df_metadata = bayesian_combined_df[["period","origin","status"]]
 dump_pickle(bayesian_combined_df_metadata,"../results/permuted_smcabc_res/combined_df_metadata.pkl")
 
-evo_combined_df = load_pickle("../results/evo_combined_particle_df.pkl")
-evo_combined_df_metadata = evo_combined_df[["model","period"]]
+evo_combined_df = load_pickle("../results/permuted_smcevo_res/combined_particle_df.pkl")
+evo_combined_df_metadata = evo_combined_df[["period","prior_name","simulation"]]
 dump_pickle(evo_combined_df_metadata, "../results/evo_combined_df_metadata.pkl")
 
 def extract_distances_from_simulation(filename):
@@ -33,8 +33,6 @@ def extract_distances_from_simulation(filename):
     return sim_res.all_distances
 
 bayesian_simulation_skeleton = load_pickle("../results/permuted_smcabc_res/simulation_skeleton.pkl")
-
-
 
 bayesian_simulation_skeleton["all_distances"] = list(map(extract_distances_from_simulation,bayesian_simulation_skeleton["outfile"]))
 dump_pickle(bayesian_simulation_skeleton, "../results/permuted_smcabc_res/distance_frame.pkl")
