@@ -8,7 +8,6 @@
 
 from itertools import repeat
 import logging
-import multiprocessing
 from typing import Callable, Dict, Iterable, List, Set
 import dill
 import numpy as np
