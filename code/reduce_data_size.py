@@ -45,22 +45,26 @@ dump_pickle(evo_simulation_skeleton, "../results/permuted_smcevo_res/distance_fr
 
 
 bayesian_fva_results = load_pickle("../results/permuted_smcabc_res/fva_at_three_conditions.pkl")
-# evo_fva_results = load_pickle("../results/evo_fva.pkl")
 flattened_df_list = []
 for _, row in bayesian_fva_results.drop(columns=["particle"]).iterrows():
     df = row["fva_res"].copy()
-    df[""] = row["origin"]
+    df["origin"] = row["origin"]
     df["status"] = row["status"]
     flattened_df_list.append(df)
 
-aggregated_fva_res = (bayesian_fva_results.assign(range= lambda df: df["maximum"] - df["minimum"],
+combined_fva_frame = (
+    pd.concat(flattened_df_list).
+    assign(range= lambda df: df["maximum"] - df["minimum"],
                                                          midpoint= lambda df: (df["maximum"] + df["minimum"]) / 2).
-    drop(columns=["minimum", "maximum"]).
-    replace([np.inf, -np.inf],np.nan).
+    drop(columns=["minimum", "maximum"])
+        )
+
+aggregated_fva_res = (
+    combined_fva_frame.replace([np.inf, -np.inf],np.nan).
     dropna(how="all").
     groupby(["origin","status","condition","reaction","T"]).
     agg(["mean","min","max","std","count"])
-        )
-
+                     )
 
 dump_pickle(aggregated_fva_res,"../results/aggregated_fva_res.pkl")
+
