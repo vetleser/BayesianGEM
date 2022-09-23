@@ -28,8 +28,9 @@ def build_a_dataframe_for_all_particles(file, r2_threshold = 0.9):
     logging.info("Creating Data Frame")
     df = pd.DataFrame(data=data,columns=columns)
     df['r2'] = results.all_distances
+    # Running number assigned to particles to keep track of them when comparing with original data
+    df['ID'] = list(range(len(results.all_particles)))
     logging.info(df.shape)
-    
     
     logging.info("Doing filtering and labelling of Data Frame")
     # We need to negate the results due to the fact that they 
@@ -57,7 +58,7 @@ def combine_dataframes_for_models(df_dict):
 
 def perform_pca_on_parameters(df):
     # 1. normalize all columns to a standard normal distribution
-    X = df.values[:,:-3]
+    X = df.values[:,:-4]
     X_n = np.zeros_like(X)    
     for i in range(X_n.shape[1]): X_n[:,i] = (X[:,i]-np.mean(X[:,i]))/np.std(X[:,i])
     pca = PCA(n_components=2)
