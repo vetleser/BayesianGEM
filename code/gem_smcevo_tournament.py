@@ -26,7 +26,7 @@ def main():
     candidate_frame: pd.DataFrame = pickle.load(file=open(file=f'{outdir}/simulation_skeleton.pkl',mode='rb'))
     entry = candidate_frame.iloc[task_idx]
     simulation, outfile, random_seed, locality = entry[["simulation", "outfile","random_seed","locality"]]
-    maxiter = 2
+    maxiter = 500
     Yobs_batch = GEMS.aerobic_exp_data()
     Yobs_chemo = GEMS.chemostat_exp_data()
     #Yobs_batch_an = GEMS.anaerobic_exp_data()
