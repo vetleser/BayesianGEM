@@ -85,8 +85,8 @@ class GA(ABC):
         self.all_simulated_data: List[simResultType] = []
         self.all_distances: List[float] = []
         self.all_particles: List[candidateType] = []
-        # Only applicable for tournament replacers: The number of time particles has been in tournament
-        # For truncation-like replacers: The number of times the particles has been selected at random without being one of the elites
+        # For tournament replacers: The number of time particles has been in tournament
+        # For truncation-like replacers: The number of times the particles has been alive and not being one of the elites
         self.times_challenged: List[int] = []
         # Specifies the generation each of the particles are born in
         self.birth_generation: List[int] = []
@@ -313,6 +313,8 @@ class TruncationGA(GA):
         combined_population_fitness: npt.NDArray[np.int64] = np.array(self.all_distances)[combined_population]
         elites = combined_population[np.argsort(combined_population_fitness)[:self.num_elites]]
         non_elites = np.setdiff1d(combined_population,elites)
+        for non_elite in non_elites:
+            self.times_challenged[non_elite] +=1
         lucky_freeloaders = self.rng.choice(non_elites,size= self.generation_size - len(elites))
         return np.concatenate((elites,lucky_freeloaders))
 
@@ -335,6 +337,8 @@ class TournamentGA(GA):
             distance_to_first = np.array([self.particle_distance(first,other) for other in other_particles])
             particles_to_select = other_particles[np.argsort(distance_to_first)[:self.locality]]
             selected_particle = self.rng.choice(particles_to_select)
+            self.times_challenged[first] += 1
+            self.times_challenged[selected_particle] += 1
 
             if self.all_distances[first] > self.all_distances[selected_particle]:
                 alive_individuals.remove(first)
