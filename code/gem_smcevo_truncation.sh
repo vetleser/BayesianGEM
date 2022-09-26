@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --job-name="gem_smcevo_at_three_conditions"               # sensible name for the job
-#SBATCH --output=gem_smcevo_at_three_conditions.out
+#SBATCH --job-name="gem_smcevo_truncation"               # sensible name for the job
+#SBATCH --output=gem_smcevo_truncation.out
 #SBATCH --nodes=1                    
 #SBATCH -c 20
 #SBATCH -t 50:00:00             # Upper time limit for the job
-#SBATCH --array=0-15
+#SBATCH --array=0-7
 #SBATCH --mem=50G
 #SBATCH --mail-type=begin
 #SBATCH --mail-type=end
@@ -19,4 +19,4 @@ module purge
 module load Anaconda3/2020.07
 source ~/.bash_profile
 conda activate etcFBA
-python gem_smcevo_at_three_conditions.py &> "../results/permuted_smcevo_res/gem_smcevo_at_three_conditions_$SLURM_ARRAY_TASK_ID.log"
+python gem_smcevo_truncation.py &> "../results/evo_truncation/gem_smcevo_gem_smcevo_truncation_$SLURM_ARRAY_TASK_ID.log"
