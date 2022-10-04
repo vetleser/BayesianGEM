@@ -46,19 +46,9 @@ def build_a_dataframe_for_all_particles(file, r2_threshold = 0.9):
 
     return df
 
-def combine_dataframes_for_models(df_dict):
-    # augmented_df_list =[ df.assign(model = lambda df: label)  for df, label in zip(df_list, index)]
-    augmented_df_dict = {label: df.copy() for label, df in df_dict.items()}
-    logging.info("Copying done")
-    for label, df in augmented_df_dict.items():
-        df["num_elites"] = label[0]
-        df["simulation"] = label[1]
-    logging.info("Labelling done")
-    return pd.concat(augmented_df_dict.values(), ignore_index=True)
-
 def perform_pca_on_parameters(df):
     # 1. normalize all columns to a standard normal distribution
-    X = df.values[:,:-4]
+    X = df.values[:,:-3]
     X_n = np.zeros_like(X)    
     for i in range(X_n.shape[1]): X_n[:,i] = (X[:,i]-np.mean(X[:,i]))/np.std(X[:,i])
     pca = PCA(n_components=2)
@@ -79,7 +69,7 @@ model_frame["particle_df"] = list(particle_df_map)
 logging.info("Performing PCA")
 pca_ordination = map(perform_pca_on_parameters,particle_df_map)
 model_frame["pca_ordination"] = list(pca_ordination)
-dump_pickle(pca_ordination,f"{outdir}/pca_full_ordination.pkl")
+dump_pickle(pca_ordination,f"{outdir}/pca_all_ordination.pkl")
 
 dump_pickle(model_frame["particle_df"], f"{outdir}/particle_df.pkl")
 
