@@ -76,7 +76,7 @@ model_frame.set_index(["locality","simulation"], inplace=True)
 particle_df_map = map(build_a_dataframe_for_all_particles,model_frame.outfile)
 model_frame["particle_df"] = list(particle_df_map)
 logging.info("Performing PCA")
-pca_ordination = map(perform_pca_on_parameters,perform_pca_on_parameters(particle_df_map))
+pca_ordination = map(perform_pca_on_parameters,particle_df_map)
 model_frame["pca_ordination"] = list(pca_ordination)
 dump_pickle(pca_ordination,f"{outdir}/pca_full_ordination.pkl")
 
