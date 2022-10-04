@@ -41,11 +41,17 @@ bayesian_simulation_skeleton = load_pickle("../results/permuted_smcabc_res/simul
 bayesian_simulation_skeleton["all_distances"] = list(map(extract_distances_from_simulation,bayesian_simulation_skeleton["outfile"]))
 dump_pickle(bayesian_simulation_skeleton, "../results/permuted_smcabc_res/distance_frame.pkl")
 
-evo_simulation_skeleton = load_pickle("../results/permuted_smcevo_res/simulation_skeleton.pkl")
+evo_truncation_simulation_skeleton = load_pickle("../results/evo_truncation/simulation_skeleton.pkl")
 
-evo_simulation_skeleton["all_distances"], evo_simulation_skeleton["population"] = zip(*list(map(extract_distances_and_population_from_simulation, evo_simulation_skeleton["outfile"])))
+evo_truncation_simulation_skeleton["all_distances"], evo_truncation_simulation_skeleton["population"] = zip(*list(map(extract_distances_and_population_from_simulation, evo_truncation_simulation_skeleton["outfile"])))
 
-dump_pickle(evo_simulation_skeleton, "../results/permuted_smcevo_res/distance_frame.pkl")
+dump_pickle(evo_truncation_simulation_skeleton, "../results/evo_truncation/distance_frame.pkl")
+
+evo_tournament_simulation_skeleton = load_pickle("../results/evo_tournament/simulation_skeleton.pkl")
+
+evo_tournament_simulation_skeleton["all_distances"], evo_tournament_simulation_skeleton["population"] = zip(*list(map(extract_distances_and_population_from_simulation, evo_tournament_simulation_skeleton["outfile"])))
+
+dump_pickle(evo_tournament_simulation_skeleton, "../results/evo_tournament/distance_frame.pkl")
 
 
 bayesian_fva_results = load_pickle("../results/permuted_smcabc_res/fva_at_three_conditions.pkl")

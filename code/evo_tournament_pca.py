@@ -45,7 +45,7 @@ def build_a_dataframe_for_all_particles(file, r2_threshold = 0.9):
     logging.info(df.shape)
 
     return df
-    
+
 
 def perform_pca_on_parameters(df):
     # 1. normalize all columns to a standard normal distribution
@@ -64,14 +64,15 @@ model_frame = load_pickle(f"{outdir}/simulation_skeleton.pkl")
 
 model_frame.set_index(["locality","simulation"], inplace=True)
 
-particle_df_map = map(build_a_dataframe_for_all_particles,model_frame.outfile)
-model_frame["particle_df"] = list(particle_df_map)
+particle_df_map = list(map(build_a_dataframe_for_all_particles,model_frame.outfile))
+model_frame["particle_df"] = particle_df_map
+dump_pickle(model_frame["particle_df"], f"{outdir}/particle_df.pkl")
 logging.info("Performing PCA")
-pca_ordination = map(perform_pca_on_parameters,particle_df_map)
+pca_ordination = list(map(perform_pca_on_parameters,particle_df_map))
 model_frame["pca_ordination"] = list(pca_ordination)
 dump_pickle(pca_ordination,f"{outdir}/pca_all_ordination.pkl")
 
-dump_pickle(model_frame["particle_df"], f"{outdir}/particle_df.pkl")
+
 
 
 logging.info("DONE")
