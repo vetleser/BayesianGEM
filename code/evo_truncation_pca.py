@@ -51,7 +51,7 @@ def combine_dataframes_for_models(df_dict):
     augmented_df_dict = {label: df.copy() for label, df in df_dict.items()}
     logging.info("Copying done")
     for label, df in augmented_df_dict.items():
-        df["prior_name"] = label[0]
+        df["num_elites"] = label[0]
         df["simulation"] = label[1]
     logging.info("Labelling done")
     return pd.concat(augmented_df_dict.values(), ignore_index=True)
@@ -68,22 +68,19 @@ def perform_pca_on_parameters(df):
 
 
 
-model_frame = load_pickle("../results/permuted_smcevo_res/simulation_skeleton.pkl")
+outdir = '../results/evo_truncation'
+model_frame = load_pickle(f"{outdir}/simulation_skeleton.pkl")
 
-model_frame.set_index(["prior_name","simulation"], inplace=True)
+model_frame.set_index(["num_elites","simulation"], inplace=True)
+
 
 particle_df_map = map(build_a_dataframe_for_all_particles,model_frame.outfile)
 model_frame["particle_df"] = list(particle_df_map)
-
-dump_pickle(model_frame["particle_df"], "../results/permuted_smcevo_res/particle_df.pkl")
-
-
-full_particle_df_dict = {distribution: df for distribution, df in model_frame["particle_df"].iteritems()}
-combined_df = combine_dataframes_for_models(full_particle_df_dict)
-dump_pickle(combined_df, "../results/permuted_smcevo_res/combined_particle_df.pkl")
-
 logging.info("Performing PCA")
-pca_ordination = perform_pca_on_parameters(combined_df)
-dump_pickle(pca_ordination,"../results/permuted_smcevo_res/pca_full_ordination.pkl")
+pca_ordination = map(perform_pca_on_parameters,perform_pca_on_parameters(particle_df_map))
+model_frame["pca_ordination"] = list(pca_ordination)
+dump_pickle(pca_ordination,f"{outdir}/pca_full_ordination.pkl")
+
+dump_pickle(model_frame["particle_df"], f"{outdir}/particle_df.pkl")
 
 logging.info("DONE")
