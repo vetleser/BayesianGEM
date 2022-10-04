@@ -48,10 +48,11 @@ def build_a_dataframe_for_all_particles(file, r2_threshold = 0.9):
 
 
 def perform_pca_on_parameters(df):
+    epsilon = 1e-6
     # 1. normalize all columns to a standard normal distribution
     X = df.values[:,:-3]
     X_n = np.zeros_like(X)    
-    for i in range(X_n.shape[1]): X_n[:,i] = (X[:,i]-np.mean(X[:,i]))/np.std(X[:,i])
+    for i in range(X_n.shape[1]): X_n[:,i] = (X[:,i]-np.mean(X[:,i]))/(np.std(X[:,i]) + epsilon)
     pca = PCA(n_components=2)
     PCS = pca.fit_transform(X_n)
     logging.info(pca.explained_variance_ratio_)
