@@ -19,4 +19,4 @@ module purge
 module load Anaconda3/2020.07
 source ~/.bash_profile
 conda activate etcFBA
-python gem_smcevo_tournament.py &> "../results/evo_tournament/gem_smcevo_gem_smcevo_tournament_$SLURM_ARRAY_TASK_ID.log"
+python gem_smcevo_tournament.py &> "../results/evo_tournament/gem_smcevo_tournament_$SLURM_ARRAY_TASK_ID.log"

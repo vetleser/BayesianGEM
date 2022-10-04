@@ -22,28 +22,30 @@ Three experimental datasets (contained in `../data`) under different temperature
 
 The computational scripts can be divided into three groups depending on their mode of operation:
 
-- SLURM array jobs intended to be run on multiple nodes (with correspoinding SLURM script which most likely needs some modifications to run): `gem_smcabc_at_three_conditions_run.py` (`gem_smcabc_at_three_conditions_run.sh`), `gem_smcevo_tournament.py` (`gem_smcevo_tournament.sh`) and `gem_smcevo_truncation.py` (`gem_smcevo_truncation.sh`). Each of these scripts require their own preparation scripts `gem_smcabc_at_three_conditions_run.py`, `gem_smcevo_tournament_prepare.py` and `gem_smcevo_truncation_prepare.sh` and `evo_tsne_prepare.py` to be run beforehand.
-- Jobs which are indended to be run under SLURM, but where the script allows to be run the usual way on a single node: `evo_fva.py`, `evo_pca.py`, `gem_fva_at_three_conditions.py`, `reduced_pca.py` and `sample_pca.py`. The SLURM scripts have the same names just that they end in `.sh`.
-- Jobs which are so small that no SLURM script is written, run them as usual scripts: `benchmark_performance.py`, `compute_particle_distances.py`, `reduce_data_size.py`, `gem_smcabc_at_three_conditions_prepare.py` and `evo_tsne_prepare.py`.
+- SLURM array jobs intended to be run on multiple nodes (with correspoinding SLURM script which most likely needs some modifications to run): `gem_smcabc_at_three_conditions_run.py` (`gem_smcabc_at_three_conditions_run.sh`), `gem_smcevo_tournament.py` (`gem_smcevo_tournament.sh`) and `gem_smcevo_truncation.py` (`gem_smcevo_truncation.sh`). Each of these scripts require their own preparation scripts `gem_smcabc_at_three_conditions_run.py`, `gem_smcevo_tournament_prepare.py` and `gem_smcevo_truncation_prepare.sh` to be run beforehand.
+- Jobs which are indended to be run under SLURM, but where the script allows to be run the usual way on a single node: `evo_truncation_pca.py`, `evo_tournament_pca.py`, `gem_fva_at_three_conditions.py`, `reduced_pca.py` and `sample_pca.py`. The SLURM scripts have the same names just that they end in `.sh`.
+- Jobs which are so small that no SLURM script is written, run them as usual scripts: `benchmark_performance.py`, `compute_particle_distances.py` and `reduce_data_size.py`.
 
 Also note that the script must be run in a topologically sorted order to satisfy data dependencies. An attempt to illustrate the workflow is shown in `master_script.sh` which should in theory replicate the results, but it is written more for inspiration rather than actually being run. The script `benchmark_performance.py` is somewhat different and is described on its own section.
 
 ## SMC-ABC and evolutionary approach updates model parameters
 
-These are the main scripts for fitting the parameter
+These are the main scripts for fitting the parameters
 
 * `gem_smcabc_at_three_conditions_prepare.py` - Prepare priors for the SMC-ABC. Output: `../results/permuted_smcabc_res/simulation_skeleton.pkl`
-* `gem_smcabc_at_three_conditions_run.py` - SMC-ABC update parameter space with all three observed datasets. Requires: `../results/simulation_skeleton.pkl`. Output: `../results/permuted_smcabc_res/smcabc_gem_three_conditions_updated_{origin}_{status}_save_all_particles.pkl`
-* `gem_smcevo_at_three_conditions.py` - Evolutionary approach update parameter space with all three observed datasets. Output: `../results/smcevo_gem_three_conditions_save_all_particles_refined.pkl`
+* `gem_smcabc_at_three_conditions_run.py` - SMC-ABC update parameter space with all three observed datasets. Requires: `../results/permuted_smcabc_res/simulation_skeleton.pkl`. Output: `../results/permuted_smcabc_res/smcabc_gem_three_conditions_updated_{prior}_{simulation}_save_all_particles.pkl`
+* `gem_smcabc_tournament_prepare.py` - Prepare evolutionary simulations with tournament replacement for the evolutionary algorithm. Output: `../results/evo_tournament/simulation_skeleton.pkl`
+* * `gem_smcabc_truncation_prepare.py` - Prepare evolutionary simulations with truncation replacement for the evolutionary algorithm. Output: `../results/evo_truncation/simulation_skeleton.pkl`
+* `gem_smcabc_tournament.py` - Fits parameters with the evolutionary algorithm using tournament replacement. The `locality` parameter refers to the numbers of nearest neighbors to consider in the replacement. Requires: `../results/evo_tournament/simulation_skeleton.pkl`. Output: `../results/evo_tournament/smcevo_gem_tournament_{locality}_{simulation}.pkl`
+* `gem_smcabc_truncation.py` - Fits parameters with the evolutionary algorithm using truncation replacement. The `num_elites` parameters refers to the number of the elites in the replacement, while the rest are picked on random. Requires: `../results/evo_truncation/simulation_skeleton.pkl`. Output: `../results/evo_truncation/smcevo_gem_truncation_{num_elites}_{simulation}.pkl`
+
 
 Above scripts need be run on high-performance clusters, and may take a few days.
 
 ## PCA and t-SNE ordinations
-* `sample_pca.py` - Create PCA ordination for all Bayesian simulations. Requires: `../results/permuted_smcabc_res/simulation_skeleton.pkl` and `../results/permuted_smcabc_res/smcabc_gem_three_conditions_updated_{origin}_{status}_save_all_particles.pkl`. Output: `../results/permuted_smcabc_res/particle_df.pkl`, `../results/permuted_smcabc_res/combined_particle_df.pkl` and `../results/permuted_smcabc_res/pca_full_ordination.pkl`.
+* `sample_pca.py` - Create PCA ordination for all Bayesian simulations. Requires: `../results/permuted_smcabc_res/simulation_skeleton.pkl` and `../results/permuted_smcabc_res/smcabc_gem_three_conditions_updated_{prior}_{simulation}_save_all_particles.pkl`. Output: `../results/permuted_smcabc_res/particle_df.pkl`, `../results/permuted_smcabc_res/combined_particle_df.pkl` and `../results/permuted_smcabc_res/pca_full_ordination.pkl`.
 * `reduced_pca.py` - Created PCA ordination for Bayesian unpermuted prior simulation 1 and 2 and Bayesian permuted prior 1 simulation 1 and 2. Requires: `../results/permuted_smcabc_res/combined_particle_df.pkl`. Output: `../results/permuted_smcabc_res/pca_reduced_ordination.pkl`.
 * `evo_pca.py` - Creates PCA ordination for Bayesian unpermuted prior simulation 1 and the evolutionary simulation. Requires: `../results/permuted_smcabc_res/simulation_skeleton.pkl`, `../results/permuted_smcabc_res/smcabc_gem_three_conditions_updated_{origin}_{status}_save_all_particles.pkl` and `../results/smcevo_gem_three_conditions_save_all_particles_refined.pkl`. Output: `../results/evo_pca_full_ordination.pkl`, `../results/evo_combined_particle_df.pkl` and `../results/evo_combined_particle_df.pkl`.
-* `evo_tsne_prepare.py` - Prepares t-SNE ordinations. Output: `../results/evo_tsne_res/tsne_skeleton.pkl`.
-* `evo_tsne.py` - Creates t-SNE ordinations for Bayesian unpermuted prior simulation 1 and the evolutionary simulation. Requires: `../results/evo_combined_particle_df.pkl` and `../results/evo_tsne_res/tsne_skeleton.pkl`. Output: `../results/evo_tsne_res/tsne_{i}.pkl`
 
 
 ## FVA analysis
