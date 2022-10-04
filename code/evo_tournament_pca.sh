@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH -J evo_pca               # sensible name for the job
-#SBATCH --output=evo_pca.out
+#SBATCH -J evo_tournament_pca               # sensible name for the job
+#SBATCH --output=evo_tournament_pca.out
 #SBATCH --nodes=1                    
 #SBATCH -c 1
 #SBATCH --mem=120G
@@ -18,4 +18,4 @@ module purge
 module load Anaconda3/2020.07
 source ~/.bash_profile
 conda activate etcFBA
-python evo_pca.py &> "../results/permuted_smcevo_res/evo_pca.log"
+python evo_tournament_pca.py &> "../results/evo_tournament/evo_tournament_pca.log"
