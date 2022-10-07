@@ -32,7 +32,6 @@ def read_posterior_particles(filename: str):
 
 def get_posterior_particles(model: evo.GA):
     Yobs_batch = GEMS.aerobic_exp_data()
-    Yobs_chemo = GEMS.chemostat_exp_data()
     dfae_batch,dfan_batch =GEMS.load_exp_batch_data('../data/ExpGrowth.tsv')
     sel_temp = [5.0,15.0,26.3,30.0,33.0,35.0,37.5,40.0]
     Yobs_batch_an = {'data':dfan_batch.loc[sel_temp,'r_an'].values}

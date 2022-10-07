@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 from sklearn.decomposition import PCA
 import logging
+import GEMS
 from evo_etc import GA
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
@@ -27,7 +28,14 @@ def build_a_dataframe_for_all_particles(file, r2_threshold = 0.9):
         data.append([p[k] for k in columns])
     logging.info("Creating Data Frame")
     df = pd.DataFrame(data=data,columns=columns)
-    df['r2'] = results.all_distances
+    Yobs_batch = GEMS.aerobic_exp_data()
+    dfae_batch,dfan_batch =GEMS.load_exp_batch_data('../data/ExpGrowth.tsv')
+    sel_temp = [5.0,15.0,26.3,30.0,33.0,35.0,37.5,40.0]
+    Yobs_batch_an = {'data':dfan_batch.loc[sel_temp,'r_an'].values}
+    Yobs = {'rae':Yobs_batch['data'],
+            'ran':Yobs_batch_an['data']}
+    reduced_distances = [GEMS.distance_2(Yobs,res) for res in results.all_simulated_data]
+    df['r2'] = reduced_distances
     # Running number assigned to particles to keep track of them when comparing with original data
     df['particle_ID'] = list(range(len(results.all_particles)))
     logging.info(df.shape)
@@ -47,7 +55,7 @@ def build_a_dataframe_for_all_particles(file, r2_threshold = 0.9):
     return df
 
 def combine_dataframes(df_dict):
-    for label, df in df_dict:
+    for label, df in df_dict.items():
         df["method"] = label[0]
         df["frame_ID"] = label[1]
     return pd.concat(df_dict.values(),ignore_index=True)
