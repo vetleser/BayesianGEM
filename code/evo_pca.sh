@@ -4,7 +4,7 @@
 #SBATCH --nodes=1                    
 #SBATCH -c 1
 #SBATCH --mem=120G
-#SBATCH -t 00:02:00             # Upper time limit for the job
+#SBATCH -t 02:00:00             # Upper time limit for the job
 #SBATCH --mail-type=begin
 #SBATCH --mail-type=end
 #SBATCH --mail-user=jakob.p.pettersen@ntnu.no
