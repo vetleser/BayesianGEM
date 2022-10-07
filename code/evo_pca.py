@@ -29,7 +29,7 @@ def build_a_dataframe_for_all_particles(file, r2_threshold = 0.9):
     df = pd.DataFrame(data=data,columns=columns)
     df['r2'] = results.all_distances
     # Running number assigned to particles to keep track of them when comparing with original data
-    df['ID'] = list(range(len(results.all_particles)))
+    df['particle_ID'] = list(range(len(results.all_particles)))
     logging.info(df.shape)
     
     logging.info("Doing filtering and labelling of Data Frame")
@@ -46,11 +46,18 @@ def build_a_dataframe_for_all_particles(file, r2_threshold = 0.9):
 
     return df
 
+def combine_dataframes(df_dict):
+    for label, df in df_dict:
+        df["method"] = label[0]
+        df["frame_ID"] = label[1]
+    return pd.concat(df_dict.values(),ignore_index=True)
+
+
 
 def perform_pca_on_parameters(df):
     epsilon = 1e-6
     # 1. normalize all columns to a standard normal distribution
-    X = df.values[:,:-3]
+    X = df.values[:,:-5]
     X_n = np.zeros_like(X)    
     for i in range(X_n.shape[1]): X_n[:,i] = (X[:,i]-np.mean(X[:,i]))/(np.std(X[:,i]) + epsilon)
     pca = PCA(n_components=2)
@@ -60,20 +67,24 @@ def perform_pca_on_parameters(df):
 
 
 
-outdir = '../results/evo_tournament'
-model_frame = load_pickle(f"{outdir}/simulation_skeleton.pkl")
+outdirs = {'tournament': '../results/evo_tournament', 'truncation': '../results/evo_truncation'}
+model_frames = {method: load_pickle(f"{outdir}/simulation_skeleton.pkl") for method, outdir in outdirs.items()}
+model_frames['tournament'].set_index(["locality","simulation"], inplace=True)
+model_frames['truncation'].set_index(["num_elites","simulation"], inplace=True)
+logging.info("Loading data")
+particle_dfs = {method: list(map(build_a_dataframe_for_all_particles,model_frame.outfile)) for method, model_frame in model_frames.items()}
+logging.info("Augmenting data labeling")
+df_dict = {}
+for method, df in model_frames.items():
+    for i, particle_df in enumerate(particle_dfs[method]):
+        df_dict[(method,i)] = particle_df
 
-model_frame.set_index(["locality","simulation"], inplace=True)
+logging.info("Combining dataframes")
+combined_df = combine_dataframes(df_dict)
+dump_pickle(combined_df,f"evo_combined_df.pkl")
 
-particle_df_map = list(map(build_a_dataframe_for_all_particles,model_frame.outfile))
-model_frame["particle_df"] = particle_df_map
-dump_pickle(model_frame["particle_df"], f"{outdir}/particle_df.pkl")
 logging.info("Performing PCA")
-pca_ordination = list(map(perform_pca_on_parameters,particle_df_map))
-model_frame["pca_ordination"] = list(pca_ordination)
-dump_pickle(pca_ordination,f"{outdir}/pca_all_ordination.pkl")
-
-
-
+pca_ordination = list(map(perform_pca_on_parameters,combined_df))
+dump_pickle(pca_ordination,f"evo_pca.pkl")
 
 logging.info("DONE")
