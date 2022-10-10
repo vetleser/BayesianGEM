@@ -26,8 +26,6 @@ def dump_pickle(obj,filename):
 rng = np.random.default_rng(seed=16501)
 
 N_SAMPLES = 20
-N_CORES = multiprocessing.cpu_count()
-cpu_pool = multiprocessing.Pool(processes=N_CORES)
 signature_reactions = {'PDH': 'r_0961No1', 'FBA': 'r_0450No1', 'FCO': 'r_0438No1', 'PSP': 'r_0917No1', 'SHK': 'r_0997No1', 'GRW': 'r_2111'}
 
 candidateType = Dict[str, float]
@@ -54,22 +52,22 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 logging.info("Reading data")
 outdirs = {'tournament': '../results/evo_tournament', 'truncation': '../results/evo_truncation'}
 model_frames = {method: load_pickle(f"{outdir}/simulation_skeleton.pkl") for method, outdir in outdirs.items()}
-reduced_frames = {method: frame.loc[:, ["locality" if method == "tournament" else "num_elites", "simulation","outfile"]] for method, frame in model_frames}
+reduced_frames = {method: frame.loc[:, ["locality" if method == "tournament" else "num_elites", "simulation","outfile"]] for method, frame in model_frames.items()}
 
 logging.info("Loading data")
 for frame in reduced_frames.values():
     frame["posterior_particles"] = list(map(read_posterior_particles,frame.outfile))
 
-for frame in reduced_frames:
+for frame in reduced_frames.values():
     frame["sampled_particles"] = [rng.choice(a=particle_collection,size=min(N_SAMPLES,len(particle_collection)),replace=False) for
  particle_collection in frame["posterior_particles"]]
 logging.info("Running FVA")
 fva_frames = {}
-for method, frame in reduced_frames:
+for method, frame in reduced_frames.items():
     fva_frames[method] = (frame[["prior_name","simulation", "sampled_particles"]].
     explode("sampled_particles",ignore_index=True).
     rename(columns={"sampled_particles": "particle"}).
-    assign(fva_res = lambda df: cpu_pool.map(func=fva_functional,iterable=df.particle))
+    assign(fva_res = lambda df: list(map(fva_functional,df.particle)))
     )
 logging.info("Saving results")
 pickle.dump(obj=fva_frames, file=open("../results/evo_fva.pkl",'wb'))
