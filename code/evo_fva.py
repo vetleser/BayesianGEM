@@ -8,7 +8,6 @@ import logging
 from typing import Dict
 import pandas as pd
 import pickle
-from evo_pca import load_pickle
 import evo_etc as evo
 import numpy as np
 import GEMS
@@ -16,6 +15,13 @@ from functools import partial
 import multiprocessing
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
+
+# Convenient pickle wrappers
+def load_pickle(filename):
+    return pickle.load(open(file=filename,mode='rb'))
+
+def dump_pickle(obj,filename):
+    return pickle.dump(obj=obj,file=open(file=filename, mode='wb'))
 
 rng = np.random.default_rng(seed=16501)
 
@@ -55,7 +61,7 @@ for frame in reduced_frames.values():
     frame["posterior_particles"] = list(map(read_posterior_particles,frame.outfile))
 
 for frame in reduced_frames:
-    frame["sampled_particles"] = [rng.choice(a=particle_collection,size=N_SAMPLES,replace=False) for
+    frame["sampled_particles"] = [rng.choice(a=particle_collection,size=min(N_SAMPLES,len(particle_collection)),replace=False) for
  particle_collection in frame["posterior_particles"]]
 logging.info("Running FVA")
 fva_frames = {}

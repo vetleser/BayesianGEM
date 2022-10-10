@@ -3,7 +3,7 @@
 #SBATCH --output=evo_fva.out
 #SBATCH --nodes=1                    
 #SBATCH -c 20
-#SBATCH -t 20:00:00             # Upper time limit for the job
+#SBATCH -t 10:00:00             # Upper time limit for the job
 #SBATCH --mem=120G
 #SBATCH --mail-type=begin
 #SBATCH --mail-type=end

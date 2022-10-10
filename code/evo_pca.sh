@@ -3,8 +3,8 @@
 #SBATCH --output=evo_pca.out
 #SBATCH --nodes=1                    
 #SBATCH -c 1
-#SBATCH --mem=120G
-#SBATCH -t 02:00:00             # Upper time limit for the job
+#SBATCH --mem=140G
+#SBATCH -t 10:00:00             # Upper time limit for the job
 #SBATCH --mail-type=begin
 #SBATCH --mail-type=end
 #SBATCH --mail-user=jakob.p.pettersen@ntnu.no
