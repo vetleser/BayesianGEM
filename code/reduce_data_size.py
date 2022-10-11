@@ -62,10 +62,9 @@ dump_pickle(evo_tournament_simulation_skeleton, "../results/evo_tournament/dista
 
 bayesian_fva_results = load_pickle("../results/permuted_smcabc_res/fva_at_three_conditions.pkl")
 flattened_df_list = []
-signature_reactions_ids = list({'PDH': 'r_0961No1', 'FBA': 'r_0450No1', 'FCO': 'r_0438No1', 'PSP': 'r_0917No1', 'SHK': 'r_0997No1', 'GRW': 'r_2111'}.values())
 for _, row in bayesian_fva_results.drop(columns=["particle"]).iterrows():
     raw_df = row["fva_res"]
-    df = raw_df[np.isin(raw_df["reaction"],signature_reactions_ids)]
+    df = raw_df
     df["origin"] = row["origin"]
     df["status"] = row["status"]
     flattened_df_list.append(df)
@@ -85,3 +84,29 @@ aggregated_fva_res = (
                      )
 
 dump_pickle(aggregated_fva_res,"../results/aggregated_fva_res.pkl")
+
+evo_fva_results = load_pickle("../results/evo_fva.pkl")
+evo_flattened_df_list = []
+for _, row in evo_fva_results.drop(columns=["particle"]).iterrows():
+    raw_df = row["fva_res"]
+    df = raw_df
+    df["origin"] = row["origin"]
+    df["status"] = row["status"]
+    flattened_df_list.append(df)
+
+combined_fva_frame = (
+    pd.concat(flattened_df_list).
+    assign(range= lambda df: df["maximum"] - df["minimum"],
+                                                         midpoint= lambda df: (df["maximum"] + df["minimum"]) / 2).
+    drop(columns=["minimum", "maximum"])
+        )
+
+aggregated_fva_res = (
+    combined_fva_frame.replace([np.inf, -np.inf],np.nan).
+    dropna(how="all").
+    groupby(["origin","status","condition","reaction","T"]).
+    agg(["mean","min","max","std","count"])
+                     )
+
+dump_pickle(aggregated_fva_res,"../results/aggregated_fva_res.pkl")
+

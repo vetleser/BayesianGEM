@@ -89,10 +89,10 @@ for method, df in model_frames.items():
 
 logging.info("Combining dataframes")
 combined_df = combine_dataframes(df_dict)
-dump_pickle(combined_df,f"evo_combined_df.pkl")
+dump_pickle(combined_df,f"../results/evo_combined_df.pkl")
 
 logging.info("Performing PCA")
 pca_ordination = perform_pca_on_parameters(combined_df)
-dump_pickle(pca_ordination,f"evo_pca.pkl")
+dump_pickle(pca_ordination,f"../results/evo_pca.pkl")
 
 logging.info("DONE")

@@ -2,8 +2,9 @@
 #SBATCH -J gem_fva_at_three_conditions               # sensible name for the job
 #SBATCH --output=gem_fva_at_three_conditions.out
 #SBATCH --nodes=1                    
-#SBATCH -c 40
-#SBATCH -t 100:00:00             # Upper time limit for the job
+#SBATCH -c 1
+#SBATCH -t 10:00:00             # Upper time limit for the job
+#SBATCH --mem=120G
 #SBATCH --mail-type=begin
 #SBATCH --mail-type=end
 #SBATCH --mail-user=jakob.p.pettersen@ntnu.no

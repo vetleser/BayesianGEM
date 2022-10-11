@@ -10,15 +10,16 @@ import pickle
 import abc_etc as etc
 import numpy as np
 import GEMS
-import multiprocessing
+from functools import partial
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 
 rng = np.random.default_rng(seed=46465)
 
 N_SAMPLES = 20
-N_CORES = multiprocessing.cpu_count()
-cpu_pool = multiprocessing.Pool(processes=N_CORES)
+signature_reactions = {'PDH': 'r_0961No1', 'FBA': 'r_0450No1', 'FCO': 'r_0438No1', 'PSP': 'r_0917No1', 'SHK': 'r_0997No1', 'GRW': 'r_2111'}
+
+fva_functional = partial(GEMS.run_fva_at_three_conditions,reactions=list(signature_reactions.values()))
 
 candidateType = Dict[str, float]
 
@@ -43,7 +44,7 @@ logging.info("Running FVA")
 fva_frame = (reduced_simulation_skeleton[["origin","status", "sampled_particles"]].
 explode("sampled_particles",ignore_index=True).
 rename(columns={"sampled_particles": "particle"}).
-assign(fva_res = lambda df: cpu_pool.map(func=GEMS.run_fva_at_three_conditions,iterable=df.particle))
+assign(fva_res = lambda df: list(map(func=fva_functional,iterable=df.particle)))
 )
 logging.info("Saving results")
 pickle.dump(obj=fva_frame, file=open("../results/permuted_smcabc_res/fva_at_three_conditions.pkl",'wb'))
