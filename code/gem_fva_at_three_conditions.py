@@ -44,7 +44,7 @@ logging.info("Running FVA")
 fva_frame = (reduced_simulation_skeleton[["origin","status", "sampled_particles"]].
 explode("sampled_particles",ignore_index=True).
 rename(columns={"sampled_particles": "particle"}).
-assign(fva_res = lambda df: list(map(func=fva_functional,iterable=df.particle)))
+assign(fva_res = lambda df: list(map(fva_functional,df.particle)))
 )
 logging.info("Saving results")
 pickle.dump(obj=fva_frame, file=open("../results/permuted_smcabc_res/fva_at_three_conditions.pkl",'wb'))
