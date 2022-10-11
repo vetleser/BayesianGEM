@@ -61,6 +61,9 @@ for frame in reduced_frames.values():
 for frame in reduced_frames.values():
     frame["sampled_particles"] = [rng.choice(a=particle_collection,size=min(N_SAMPLES,len(particle_collection)),replace=False) for
  particle_collection in frame["posterior_particles"]]
+
+dump_pickle(reduced_frames,f"../results/evo_fva_frames.pkl")
+
 logging.info("Running FVA")
 fva_frames = {}
 for method, frame in reduced_frames.items():

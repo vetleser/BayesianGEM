@@ -47,6 +47,11 @@ bayesian_simulation_skeleton = load_pickle("../results/permuted_smcabc_res/simul
 bayesian_simulation_skeleton["all_distances"] = list(map(extract_distances_from_simulation,bayesian_simulation_skeleton["outfile"]))
 dump_pickle(bayesian_simulation_skeleton, "../results/permuted_smcabc_res/distance_frame.pkl")
 
+evo_combined_df = load_pickle("../results/permuted_smcabc_res/combined_particle_df.pkl")
+# We only use the period (Prior, Intermediate or Posterior), prior (unpermuted and permuted 0-2) and model (Simulation 1 or 2)
+evo_combined_df_metadata = evo_combined_df[["particle_ID","period","method","frame_ID"]]
+dump_pickle(evo_combined_df_metadata,"../results/evo_combined_df_metadata.pkl")
+
 evo_truncation_simulation_skeleton = load_pickle("../results/evo_truncation/simulation_skeleton.pkl")
 
 evo_truncation_simulation_skeleton["all_distances"], evo_truncation_simulation_skeleton["reduced_distances"], evo_truncation_simulation_skeleton["population"] = zip(*list(map(extract_distances_and_population_from_simulation, evo_truncation_simulation_skeleton["outfile"])))
@@ -59,54 +64,39 @@ evo_tournament_simulation_skeleton["all_distances"], evo_tournament_simulation_s
 
 dump_pickle(evo_tournament_simulation_skeleton, "../results/evo_tournament/distance_frame.pkl")
 
+def aggregate_fva_results(result_df,simulation_attributes):
+    flattened_df_list = []
+    for _, row in result_df.drop(columns=["particle"]).iterrows():
+        raw_df = row["fva_res"]
+        df = raw_df
+        for attribute in simulation_attributes:
+            df[attribute] = row[attribute]
+        flattened_df_list.append(df)
+
+    combined_fva_frame = (
+        pd.concat(flattened_df_list).
+        assign(range= lambda df: df["maximum"] - df["minimum"],
+                                                            midpoint= lambda df: (df["maximum"] + df["minimum"]) / 2).
+        drop(columns=["minimum", "maximum"])
+            )
+    group_by_variables = simulation_attributes.extend(["condition","reaction","T"])
+    aggregated_fva_res = (
+        combined_fva_frame.replace([np.inf, -np.inf],np.nan).
+        dropna(how="all").
+        groupby(group_by_variables).
+        agg(["mean","min","max","std","count"])
+                        )
+    return aggregated_fva_res
 
 bayesian_fva_results = load_pickle("../results/permuted_smcabc_res/fva_at_three_conditions.pkl")
-flattened_df_list = []
-for _, row in bayesian_fva_results.drop(columns=["particle"]).iterrows():
-    raw_df = row["fva_res"]
-    df = raw_df
-    df["origin"] = row["origin"]
-    df["status"] = row["status"]
-    flattened_df_list.append(df)
+bayesian_aggregated_fva_results = aggregate_fva_results(bayesian_fva_results,["origin","status"])
 
-combined_fva_frame = (
-    pd.concat(flattened_df_list).
-    assign(range= lambda df: df["maximum"] - df["minimum"],
-                                                         midpoint= lambda df: (df["maximum"] + df["minimum"]) / 2).
-    drop(columns=["minimum", "maximum"])
-        )
-
-aggregated_fva_res = (
-    combined_fva_frame.replace([np.inf, -np.inf],np.nan).
-    dropna(how="all").
-    groupby(["origin","status","condition","reaction","T"]).
-    agg(["mean","min","max","std","count"])
-                     )
-
-dump_pickle(aggregated_fva_res,"../results/aggregated_fva_res.pkl")
+dump_pickle(bayesian_aggregated_fva_results,"../results/aggregated_fva_res.pkl")
 
 evo_fva_results = load_pickle("../results/evo_fva.pkl")
-evo_flattened_df_list = []
-for _, row in evo_fva_results.drop(columns=["particle"]).iterrows():
-    raw_df = row["fva_res"]
-    df = raw_df
-    df["origin"] = row["origin"]
-    df["status"] = row["status"]
-    flattened_df_list.append(df)
-
-combined_fva_frame = (
-    pd.concat(flattened_df_list).
-    assign(range= lambda df: df["maximum"] - df["minimum"],
-                                                         midpoint= lambda df: (df["maximum"] + df["minimum"]) / 2).
-    drop(columns=["minimum", "maximum"])
-        )
-
-aggregated_fva_res = (
-    combined_fva_frame.replace([np.inf, -np.inf],np.nan).
-    dropna(how="all").
-    groupby(["origin","status","condition","reaction","T"]).
-    agg(["mean","min","max","std","count"])
-                     )
-
-dump_pickle(aggregated_fva_res,"../results/aggregated_fva_res.pkl")
-
+truncation_fva_results = evo_fva_results["truncation"]
+tournament_fva_results = evo_fva_results["tournament"]
+truncation_aggregated_fva_results = aggregate_fva_results(truncation_fva_results,["num_elites","simulation"])
+tournament_aggregated_fva_results = aggregate_fva_results(tournament_fva_results,["localty","simulation"])
+dump_pickle(truncation_aggregated_fva_results, "../results/truncation_aggregated_fva_res.pkl")
+dump_pickle(tournament_fva_results, "../results/tournament_aggregated_fva_res.pkl")
