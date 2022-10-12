@@ -42,7 +42,7 @@ path = os.path.dirname(os.path.realpath(__file__)).replace('code','')
 params = pd.read_csv(os.path.join(path,'data/model_enzyme_params.csv'),index_col=0)
 
 
-candidate_frame: pd.DataFrame = pd.DataFrame(index=pd.DataFrame(range(4), names = ["simulation"])).reset_index()
+candidate_frame: pd.DataFrame = pd.DataFrame({"simulation": range(4)})
 
 
 
