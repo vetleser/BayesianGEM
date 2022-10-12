@@ -36,10 +36,10 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 logging.info("Reading data")
 full_simulation_skeleton: pd.DataFrame = pickle.load(open("../results/permuted_smcabc_res/simulation_skeleton.pkl",'rb'))
 reduced_simulation_skeleton = full_simulation_skeleton.loc[:, ["origin","status","outfile"]]
-reduced_simulation_skeleton["posterior_particles"] = list(map(read_posterior_particles,  
-reduced_simulation_skeleton.outfile))
+posterior_particles = map(read_posterior_particles,  
+reduced_simulation_skeleton.outfile)
 reduced_simulation_skeleton["sampled_particles"] = [rng.choice(a=particle_collection,size=N_SAMPLES,replace=False) for
- particle_collection in reduced_simulation_skeleton["posterior_particles"]]
+ particle_collection in posterior_particles]
 logging.info("Running FVA")
 fva_frame = (reduced_simulation_skeleton[["origin","status", "sampled_particles"]].
 explode("sampled_particles",ignore_index=True).

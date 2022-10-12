@@ -12,7 +12,6 @@ import evo_etc as evo
 import numpy as np
 import GEMS
 from functools import partial
-import multiprocessing
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 
@@ -56,11 +55,10 @@ reduced_frames = {method: frame.loc[:, ["locality" if method == "tournament" els
 
 logging.info("Loading data")
 for frame in reduced_frames.values():
-    frame["posterior_particles"] = list(map(read_posterior_particles,frame.outfile))
-
-for frame in reduced_frames.values():
+    posterior_particles = map(read_posterior_particles,frame.outfile)
     frame["sampled_particles"] = [rng.choice(a=particle_collection,size=min(N_SAMPLES,len(particle_collection)),replace=False) for
- particle_collection in frame["posterior_particles"]]
+    particle_collection in posterior_particles]
+
 
 dump_pickle(reduced_frames,f"../results/evo_fva_frames.pkl")
 

@@ -276,6 +276,12 @@ def simulate_at_three_conditions_2(args):
     
     return {'rae':data_batch,'chemostat':data_chemo,'ran':data_batch_an}
 
+def simulate_at_two_conditions_2(args):
+    data_batch = aerobic(args)['data']
+    data_batch_an = anaerobic_reduced(args)['data']
+    
+    return {'rae':data_batch,'ran':data_batch_an}
+
 
 # ### distance
 
@@ -297,7 +303,7 @@ def distance_2(x,y):
     # y: simulated {'rae':...,}
     
     r2s = {k:r2_score(x[k],y[k])for k in x.keys()}
-    logging.info(f'Model r2: {r2s}')
+    # logging.info(f'Model r2: {r2s}')
     
     return -np.mean(list(r2s.values())) # maximize r2 score, minimize -r2 score
 
@@ -311,7 +317,7 @@ def distance_cv1(x,y):
     
     keys = ['rae','chemostat']
     r2s = {k:r2_score(x[k],y[k]) for k in x.keys()}
-    logging.info(f'Model r2: {r2s}')
+    # logging.info(f'Model r2: {r2s}')
     
     lst = [r2s[k] for k in keys]
     logging.info(f'Model distance: {-np.mean(lst)}')

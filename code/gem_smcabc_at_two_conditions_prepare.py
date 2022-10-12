@@ -10,7 +10,6 @@ import GEMS
 import os
 import pandas as pd
 import pickle
-import permute_parameters
 import logging
 
 # In[]
@@ -55,11 +54,10 @@ candidate_frame: pd.DataFrame = pd.DataFrame(index=pd.DataFrame(range(4), names 
 
 min_epsilon = -1.0 # equivalent to r2 score of 1
 population_size = 100
-outdir = '../results/permuted_smcabc_res'
+outdir = '../results/reduced_smcabc_res'
 if not os.path.exists(outdir):
     os.makedirs(outdir)
-candidate_frame['outfile'] = [f'{outdir}/smcabc_gem_two_conditions_{simulation}_save_all_particles.pkl' for simulation in candidate_frame['simulation'])]
+candidate_frame['outfile'] = [f'{outdir}/smcabc_gem_two_conditions_{simulation}_save_all_particles.pkl' for simulation in candidate_frame['simulation']]
 candidate_frame['random_seed'] = rng.choice(range(0,100000), candidate_frame.shape[0])
 
 pickle.dump(file=open(file=f'{outdir}/simulation_skeleton.pkl',mode='wb'),obj=candidate_frame)
-
