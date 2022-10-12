@@ -4,7 +4,7 @@
 #SBATCH --nodes=1                    
 #SBATCH -c 20
 #SBATCH -t 100:00:00             # Upper time limit for the job
-#SBATCH --array=0-4
+#SBATCH --array=0-3
 #SBATCH --mem=50G
 #SBATCH --mail-type=begin
 #SBATCH --mail-type=end

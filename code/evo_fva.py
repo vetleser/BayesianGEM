@@ -67,6 +67,7 @@ fva_frames = {}
 for method, frame in reduced_frames.items():
     fva_frames[method] = (frame[["locality" if method == "tournament" else "num_elites","simulation", "sampled_particles"]].
     explode("sampled_particles",ignore_index=True).
+    dropna().
     rename(columns={"sampled_particles": "particle"}).
     assign(fva_res = lambda df: list(map(fva_functional,df.particle)))
     )
