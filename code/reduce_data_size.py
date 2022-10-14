@@ -31,16 +31,7 @@ def extract_distances_from_simulation(filename):
     return sim_res.all_distances
 
 def extract_distances_and_population_from_simulation(filename):
-    Yobs_batch = GEMS.aerobic_exp_data()
-    Yobs_chemo = GEMS.chemostat_exp_data()
-    dfae_batch,dfan_batch =GEMS.load_exp_batch_data('../data/ExpGrowth.tsv')
-    sel_temp = [5.0,15.0,26.3,30.0,33.0,35.0,37.5,40.0]
-    Yobs_batch_an = {'data':dfan_batch.loc[sel_temp,'r_an'].values}
-    Yobs = {'rae':Yobs_batch['data'],
-            'ran':Yobs_batch_an['data']}
-    sim_res: GA  = load_pickle(filename=filename)
-    reduced_distances = [GEMS.distance_2(Yobs,res) for res in sim_res.all_simulated_data]
-    return sim_res.all_distances,reduced_distances, sim_res.population
+    return sim_res.all_distances, sim_res.population
 
 bayesian_simulation_skeleton = load_pickle("../results/permuted_smcabc_res/simulation_skeleton.pkl")
 
@@ -54,13 +45,13 @@ dump_pickle(evo_combined_df_metadata,"../results/evo_combined_df_metadata.pkl")
 
 evo_truncation_simulation_skeleton = load_pickle("../results/evo_truncation/simulation_skeleton.pkl")
 
-evo_truncation_simulation_skeleton["all_distances"], evo_truncation_simulation_skeleton["reduced_distances"], evo_truncation_simulation_skeleton["population"] = zip(*list(map(extract_distances_and_population_from_simulation, evo_truncation_simulation_skeleton["outfile"])))
+evo_truncation_simulation_skeleton["all_distances"], evo_truncation_simulation_skeleton["population"] = zip(*list(map(extract_distances_and_population_from_simulation, evo_truncation_simulation_skeleton["outfile"])))
 
 dump_pickle(evo_truncation_simulation_skeleton, "../results/evo_truncation/distance_frame.pkl")
 
 evo_tournament_simulation_skeleton = load_pickle("../results/evo_tournament/simulation_skeleton.pkl")
 
-evo_tournament_simulation_skeleton["all_distances"], evo_tournament_simulation_skeleton["reduced_distances"], evo_tournament_simulation_skeleton["population"] = zip(*list(map(extract_distances_and_population_from_simulation, evo_tournament_simulation_skeleton["outfile"])))
+evo_tournament_simulation_skeleton["all_distances"], evo_tournament_simulation_skeleton["population"] = zip(*list(map(extract_distances_and_population_from_simulation, evo_tournament_simulation_skeleton["outfile"])))
 
 dump_pickle(evo_tournament_simulation_skeleton, "../results/evo_tournament/distance_frame.pkl")
 

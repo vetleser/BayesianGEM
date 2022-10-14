@@ -247,6 +247,13 @@ def run_fva_at_three_conditions(thermalParams, reactions: Optional[List[str]]=No
     return pd.concat(fva_results)
 
 
+def run_fva_at_two_conditions(thermalParams, reactions: Optional[List[str]]=None):
+    fva_functions = [aerobic_fva, anaerobic_reduced_fva]
+    condition_names = ["aerobic", "anaerobic"]
+    fva_results: Iterable[pd.DataFrame] = starmap(lambda f, x: f(thermalParams, reactions).assign(condition=x), zip(fva_functions,condition_names))
+    return pd.concat(fva_results)
+
+
 # In[ ]:
 
 
@@ -303,7 +310,7 @@ def distance_2(x,y):
     # y: simulated {'rae':...,}
     
     r2s = {k:r2_score(x[k],y[k])for k in x.keys()}
-    # logging.info(f'Model r2: {r2s}')
+    logging.info(f'Model r2: {r2s}')
     
     return -np.mean(list(r2s.values())) # maximize r2 score, minimize -r2 score
 
@@ -317,7 +324,7 @@ def distance_cv1(x,y):
     
     keys = ['rae','chemostat']
     r2s = {k:r2_score(x[k],y[k]) for k in x.keys()}
-    # logging.info(f'Model r2: {r2s}')
+    logging.info(f'Model r2: {r2s}')
     
     lst = [r2s[k] for k in keys]
     logging.info(f'Model distance: {-np.mean(lst)}')

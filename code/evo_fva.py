@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# This script is supposed to be used with the results from gem_smcevo_at_three_conditions_permuted.py
-# to perform FVA on the posterior distributions in order to compare them
-from inspect import signature
+# This script is supposed to be used with the results from gem_smcevo_tournament.py and gem_smcevo_truncation.py
+# to perform FVA on the best fitting particles in order to compare them
 import logging
 from typing import Dict
-import pandas as pd
 import pickle
 import evo_etc as evo
 import numpy as np
@@ -34,17 +32,10 @@ def read_posterior_particles(filename: str):
     return get_posterior_particles(model=model)
 
 def get_posterior_particles(model: evo.GA):
-    Yobs_batch = GEMS.aerobic_exp_data()
-    dfae_batch,dfan_batch =GEMS.load_exp_batch_data('../data/ExpGrowth.tsv')
-    sel_temp = [5.0,15.0,26.3,30.0,33.0,35.0,37.5,40.0]
-    Yobs_batch_an = {'data':dfan_batch.loc[sel_temp,'r_an'].values}
-    Yobs = {'rae':Yobs_batch['data'],
-            'ran':Yobs_batch_an['data']}
-    reduced_distances = [GEMS.distance_2(Yobs,res) for res in model.all_simulated_data]
     return [particle for particle, distance in
-     zip(model.all_particles,reduced_distances) if distance < -0.90]
+     zip(model.all_particles,model.all_distances) if distance < -0.90]
 
-fva_functional = partial(GEMS.run_fva_at_three_conditions,reactions=list(signature_reactions.values()))
+fva_functional = partial(GEMS.run_fva_at_two_conditions,reactions=list(signature_reactions.values()))
 
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')

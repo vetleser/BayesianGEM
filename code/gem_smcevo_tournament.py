@@ -28,14 +28,12 @@ def main():
     simulation, outfile, random_seed, locality = entry[["simulation", "outfile","random_seed","locality"]]
     maxiter = 500
     Yobs_batch = GEMS.aerobic_exp_data()
-    Yobs_chemo = GEMS.chemostat_exp_data()
     #Yobs_batch_an = GEMS.anaerobic_exp_data()
     dfae_batch,dfan_batch =GEMS.load_exp_batch_data('../data/ExpGrowth.tsv')
     sel_temp = [5.0,15.0,26.3,30.0,33.0,35.0,37.5,40.0]
     Yobs_batch_an = {'data':dfan_batch.loc[sel_temp,'r_an'].values}
 
     Yobs = {'rae':Yobs_batch['data'],
-            'chemostat':Yobs_chemo['data'],
             'ran':Yobs_batch_an['data']}
 
     
@@ -62,7 +60,7 @@ def main():
     logging.info('Initialize model')
     # Parameters are set to generate 128 children per generation in order to provide 
     # comparable results with the Bayesian fitting algorithm
-    model = evo.TournamentGA(simulator= GEMS.simulate_at_three_conditions_2,
+    model = evo.TournamentGA(simulator= GEMS.simulate_at_two_conditions_2,
                             priors=priors,
                             min_epsilon=min_epsilon,
                             generation_size=population_size,

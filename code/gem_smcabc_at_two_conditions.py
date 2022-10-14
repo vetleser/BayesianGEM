@@ -16,7 +16,7 @@ import abc_etc as abc
 
 # In[]
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s') 
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 
 # In[2]:
 

@@ -10,7 +10,7 @@
 #SBATCH --mail-type=end
 #SBATCH --mail-user=jakob.p.pettersen@ntnu.no
 #SBATCH -p CPUQ
-#SBATCH --account=share-nv-ibt
+#SBATCH --account=nv-ibt
 #SBATCH --export=NONE
 
 WORKDIR=${SLURM_SUBMIT_DIR}
