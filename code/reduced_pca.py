@@ -48,8 +48,7 @@ def combine_dataframes_for_models(df_dict):
     augmented_df_dict = {label: df.copy() for label, df in df_dict.items()}
     logging.info("Copying done")
     for label, df in augmented_df_dict.items():
-        df["origin"] = label[0]
-        df["status"] = label[1]
+        df["simulation"] = label
     logging.info("Labelling done")
     return pd.concat(augmented_df_dict.values(), ignore_index=True)
 
