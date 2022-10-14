@@ -5,8 +5,6 @@ import pickle
 import pandas as pd
 import numpy as np
 import logging
-import GEMS
-from evo_etc import GA
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 
@@ -26,17 +24,26 @@ bayesian_combined_df = load_pickle("../results/permuted_smcabc_res/combined_part
 bayesian_combined_df_metadata = bayesian_combined_df[["period","origin","status"]]
 dump_pickle(bayesian_combined_df_metadata,"../results/permuted_smcabc_res/combined_df_metadata.pkl")
 
+reduced_bayesian_combined_df = load_pickle("../results/reduced_smcabc_res/combined_particle_df.pkl")
+reduced_bayesian_combined_df_metadata = bayesian_combined_df[["period","simulation"]]
+dump_pickle(reduced_bayesian_combined_df_metadata,"../results/reduced_smcabc_res/combined_df_metadata.pkl")
+
 def extract_distances_from_simulation(filename):
     sim_res = load_pickle(filename=filename)
     return sim_res.all_distances
 
 def extract_distances_and_population_from_simulation(filename):
+    sim_res = load_pickle(filename=filename)
     return sim_res.all_distances, sim_res.population
 
 bayesian_simulation_skeleton = load_pickle("../results/permuted_smcabc_res/simulation_skeleton.pkl")
 
 bayesian_simulation_skeleton["all_distances"] = list(map(extract_distances_from_simulation,bayesian_simulation_skeleton["outfile"]))
 dump_pickle(bayesian_simulation_skeleton, "../results/permuted_smcabc_res/distance_frame.pkl")
+
+reduced_bayesian_simulation_skeleton = load_pickle("../results/reduced_smcabc_res/simulation_skeleton.pkl")
+reduced_bayesian_simulation_skeleton["all_distances"] = list(map(extract_distances_from_simulation,reduced_bayesian_simulation_skeleton["outfile"]))
+dump_pickle(reduced_bayesian_simulation_skeleton, "../results/reduced_smcabc_res/distance_frame.pkl")
 
 evo_combined_df = load_pickle("../results/permuted_smcabc_res/combined_particle_df.pkl")
 # We only use the period (Prior, Intermediate or Posterior), prior (unpermuted and permuted 0-2) and model (Simulation 1 or 2)
@@ -82,7 +89,13 @@ def aggregate_fva_results(result_df,simulation_attributes):
 bayesian_fva_results = load_pickle("../results/permuted_smcabc_res/fva_at_three_conditions.pkl")
 bayesian_aggregated_fva_results = aggregate_fva_results(bayesian_fva_results,["origin","status"])
 
+reduced_bayesian_fva_results = load_pickle("../results/permuted_smcabc_res/fva_at_two_conditions.pkl")
+reduced_bayesian_aggregated_fva_results = aggregate_fva_results(reduced_bayesian_fva_results,["simulation"])
+
+
 dump_pickle(bayesian_aggregated_fva_results,"../results/aggregated_fva_res.pkl")
+
+dump_pickle(reduced_bayesian_aggregated_fva_results,"../results/reduced_aggregated_fva_res.pkl")
 
 evo_fva_results = load_pickle("../results/evo_fva.pkl")
 truncation_fva_results = evo_fva_results["truncation"]
