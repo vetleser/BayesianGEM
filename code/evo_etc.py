@@ -102,6 +102,9 @@ class GA(ABC):
         # This function both evaluates newly born individuals and store them into the archive
         start = time.time()
         simulated_data = []
+        # Candidates for which evaluating fitness was successful
+        successfull_candiates = set()
+        candidate_counter = 0
         try:
             # This code takes care of stalled parallel processes
             with pebble.ProcessPool(self.cores) as p:
@@ -113,10 +116,13 @@ class GA(ABC):
                         # We have now iterated over all particles
                         break
                     except TimeoutError:
-                        logging.info("Evaluation of particle time out")
+                        logging.info("Evaluation of particle timed out")
                     else:
                         logging.info("Evaluation of particle ran successfully")
                         simulated_data.append(raw_res)
+                        successfull_candiates.add(candidate_counter)
+                    finally:
+                        candidate_counter += 1
         except (OSError, RuntimeError) as e:
             logging.error('failed parallel_evaluation_mp: {0}'.format(str(e)))
             raise
@@ -127,7 +133,8 @@ class GA(ABC):
         # save all simulated results
         self.all_simulated_data.extend(simulated_data)
         self.all_distances.extend(distances)
-        self.all_particles.extend(candidates)
+        # This deals with the problem of candidates failing evaluation
+        self.all_particles.extend([candidate for counter, candidate in enumerate(candidates) if counter in successfull_candiates])
         self.birth_generation.extend(repeat(self.generation,len(simulated_data)))
         self.times_challenged.extend(repeat(0,len(simulated_data)))
         end = time.time()

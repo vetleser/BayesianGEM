@@ -44,10 +44,10 @@ These are the main scripts for fitting the parameters
 
 Above scripts need be run on high-performance clusters, and may take a few days.
 
-## PCA and t-SNE ordinations
+## PCA ordinations
 * `sample_pca.py` - Create PCA ordination for all Bayesian simulations. Requires: `../results/permuted_smcabc_res/simulation_skeleton.pkl` and `../results/permuted_smcabc_res/smcabc_gem_three_conditions_updated_{prior}_{simulation}_save_all_particles.pkl`. Output: `../results/permuted_smcabc_res/particle_df.pkl`, `../results/permuted_smcabc_res/combined_particle_df.pkl` and `../results/permuted_smcabc_res/pca_full_ordination.pkl`.
-* `reduced_pca.py` - Created PCA ordination for Bayesian unpermuted prior simulation 1 and 2 and Bayesian permuted prior 1 simulation 1 and 2. Requires: `../results/permuted_smcabc_res/combined_particle_df.pkl`. Output: `../results/permuted_smcabc_res/pca_reduced_ordination.pkl`.
-* `evo_pca.py` - Creates PCA ordination for evolutionary algorithm. Requires: `../results/permuted_smcabc_res/simulation_skeleton.pkl`, `../results/evo_truncation/smcevo_gem_truncation_{num_elites}_{simulation}.pkl`, `../results/evo_tournament/smcevo_gem_tournament_{locality}_{simulation}.pkl`, `../results/evo_truncation/simulation_skeleton.pkl` and `../results/evo_tournament/simulation_skeleton.pkl` . Output: `../results/evo_combined_df.pkl` and `../results/evo_pca.pkl`.
+* `reduced_pca.py` - Created PCA ordination for Bayesian calculation method excluding the chemostat dataset. Requires: `../results/reduced_smcabc_res/combined_particle_df.pkl`. Output: `../results/reduced_smcabc_res/pca_full_ordination.pkl`.
+* `evo_pca.py` - Creates PCA ordination for evolutionary algorithm. Requires: `../results/evo_truncation/smcevo_gem_truncation_{num_elites}_{simulation}.pkl`, `../results/evo_tournament/smcevo_gem_tournament_{locality}_{simulation}.pkl`, `../results/evo_truncation/simulation_skeleton.pkl` and `../results/evo_tournament/simulation_skeleton.pkl` . Output: `../results/evo_combined_df.pkl` and `../results/evo_pca.pkl`.
 
 
 ## FVA analysis
