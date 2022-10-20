@@ -92,7 +92,7 @@ def aggregate_fva_results(result_df,simulation_attributes):
 bayesian_fva_results = load_pickle("../results/permuted_smcabc_res/fva_at_three_conditions.pkl")
 bayesian_aggregated_fva_results = aggregate_fva_results(bayesian_fva_results,["origin","status"])
 
-reduced_bayesian_fva_results = load_pickle("../results/permuted_smcabc_res/fva_at_two_conditions.pkl")
+reduced_bayesian_fva_results = load_pickle("../results/reduced_smcabc_res/fva_at_two_conditions.pkl")
 reduced_bayesian_aggregated_fva_results = aggregate_fva_results(reduced_bayesian_fva_results,["simulation"])
 
 
