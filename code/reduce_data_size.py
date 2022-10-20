@@ -104,6 +104,6 @@ evo_fva_results = load_pickle("../results/evo_fva.pkl")
 truncation_fva_results = evo_fva_results["truncation"]
 tournament_fva_results = evo_fva_results["tournament"]
 truncation_aggregated_fva_results = aggregate_fva_results(truncation_fva_results,["num_elites","simulation"])
-tournament_aggregated_fva_results = aggregate_fva_results(tournament_fva_results,["localty","simulation"])
+tournament_aggregated_fva_results = aggregate_fva_results(tournament_fva_results,["locality","simulation"])
 dump_pickle(truncation_aggregated_fva_results, "../results/truncation_aggregated_fva_res.pkl")
 dump_pickle(tournament_aggregated_fva_results, "../results/tournament_aggregated_fva_res.pkl")
