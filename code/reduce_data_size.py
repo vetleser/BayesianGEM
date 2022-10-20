@@ -19,6 +19,7 @@ def load_pickle(filename):
 def dump_pickle(obj,filename):
     return pickle.dump(obj=obj,file=open(file=filename, mode='wb'))
 
+"""
 bayesian_combined_df = load_pickle("../results/permuted_smcabc_res/combined_particle_df.pkl")
 # We only use the period (Prior, Intermediate or Posterior), prior (unpermuted and permuted 0-2) and model (Simulation 1 or 2)
 bayesian_combined_df_metadata = bayesian_combined_df[["period","origin","status"]]
@@ -62,6 +63,8 @@ evo_tournament_simulation_skeleton["all_distances"], evo_tournament_simulation_s
 
 dump_pickle(evo_tournament_simulation_skeleton, "../results/evo_tournament/distance_frame.pkl")
 
+"""
+
 def aggregate_fva_results(result_df,simulation_attributes):
     flattened_df_list = []
     for _, row in result_df.drop(columns=["particle"]).iterrows():
@@ -77,11 +80,11 @@ def aggregate_fva_results(result_df,simulation_attributes):
                                                             midpoint= lambda df: (df["maximum"] + df["minimum"]) / 2).
         drop(columns=["minimum", "maximum"])
             )
-    group_by_variables = simulation_attributes.extend(["condition","reaction","T"])
+    simulation_attributes.extend(["condition","reaction","T"])
     aggregated_fva_res = (
         combined_fva_frame.replace([np.inf, -np.inf],np.nan).
         dropna(how="all").
-        groupby(group_by_variables).
+        groupby(simulation_attributes).
         agg(["mean","min","max","std","count"])
                         )
     return aggregated_fva_res
