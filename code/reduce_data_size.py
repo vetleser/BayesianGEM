@@ -25,7 +25,7 @@ bayesian_combined_df_metadata = bayesian_combined_df[["period","origin","status"
 dump_pickle(bayesian_combined_df_metadata,"../results/permuted_smcabc_res/combined_df_metadata.pkl")
 
 reduced_bayesian_combined_df = load_pickle("../results/reduced_smcabc_res/combined_particle_df.pkl")
-reduced_bayesian_combined_df_metadata = bayesian_combined_df[["period","simulation"]]
+reduced_bayesian_combined_df_metadata = reduced_bayesian_combined_df[["period","simulation"]]
 dump_pickle(reduced_bayesian_combined_df_metadata,"../results/reduced_smcabc_res/combined_df_metadata.pkl")
 
 def extract_distances_from_simulation(filename):
@@ -103,4 +103,4 @@ tournament_fva_results = evo_fva_results["tournament"]
 truncation_aggregated_fva_results = aggregate_fva_results(truncation_fva_results,["num_elites","simulation"])
 tournament_aggregated_fva_results = aggregate_fva_results(tournament_fva_results,["localty","simulation"])
 dump_pickle(truncation_aggregated_fva_results, "../results/truncation_aggregated_fva_res.pkl")
-dump_pickle(tournament_fva_results, "../results/tournament_aggregated_fva_res.pkl")
+dump_pickle(tournament_aggregated_fva_results, "../results/tournament_aggregated_fva_res.pkl")
