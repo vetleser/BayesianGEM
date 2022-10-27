@@ -41,8 +41,6 @@ python gem_fva_at_two_conditions.py &> "../results/reduced_smcabc_res/gem_fva_at
 
 python evo_fva.py &> "../results/evo_fva.log"
 
-# python code/compute_particle_distances.py
-
 python reduce_data_size.py
 
-echo "Work flow done"
+echo "Workflow done"

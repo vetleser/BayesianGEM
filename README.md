@@ -26,7 +26,7 @@ pebble                      5.0.0
 The repository was tested with Python 3.8.12 and Ubuntu 20.04.4. The easiest way to install the dependencies is through the Conda package manager. Using Conda, the environment can be set up by running `conda env create --file .condaconfig.yml`.
 
 #### Hardware
-Since the Bayesian and evolutionary approach is computational expensive, all scripts except the visualization Jupyter notebook may be too heavy to run of a desktop computer. Some of those scripts have been designed for parallel computation through the use of SLURM. The visualization notebook takes several seconds or minutes on a normal PC.
+Since the Bayesian calculation method and evolutionary algorithm are computational expensive, all scripts except the visualization Jupyter notebook may be too heavy to run of a desktop computer. Some of those scripts have been designed for parallel computation through the use of SLURM. The visualization notebook takes several seconds or minutes on a normal PC.
 
 #### Reproduce the figures
 (1) Clone this repository.  

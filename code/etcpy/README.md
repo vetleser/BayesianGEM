@@ -9,7 +9,7 @@ an enzyme constrained model. In the model, three temperature effects are conside
 
 ## Usage:  
 The input parameters:
-* an enzyme constrained model in as `reframed.CBModel`
+* an enzyme constrained model as `reframed.CBModel`
 * a dictionary containing the following parameters of all enzymes in the model. Each reaction ID is a key in the dictionary. Each value in the dictionary is a dictionary having the following key-value pairs:
   * `dHTH`: the enthalpy change at convergence temperature TH (373.5 K), in J/mol
   * `dSTS`: the entropy change at convergence temperature TS (385 K), in J/mol/K
@@ -20,53 +20,53 @@ The input parameters:
 ```python
 from etcpy import etc
 ```
-1. temperature effect on protein denaturation  
+1. Temperature effect on protein denaturation  
 ```python
 etc.reframed_mappers.map_fNT(model,T,param_dict,solver_instance=None)
 ```
-model is the reframed model object. T is temperature in K. param_dict, the dictionary containing the following parameters of all enzymes in the model, solver_instance is an optional solver instance of type `reframed.solvers.Solver`. If a solver instance is provided, the solver instance will be updated in-place and the model argument will remain unchanged.
+`model` is the reframed model object. `T` is temperature in Kelvin. `param_dict`, the dictionary containing the following parameters of all enzymes in the model, `solver_instance` is an optional solver instance of type `reframed.solvers.Solver`. If a solver instance is provided, the solver instance will be updated in-place and the model argument will remain unchanged.
 
-2. temperature effect on kcat  
+2. Temperature effect on kcat  
 ```python
 etc.reframed_mappers.map_kcatT(model,T,param_dict,solver_instance=None)
 ```
-model is the reframed model object. T is temperature in K. param_dict, the dictionary containing the following parameters of all enzymes in the model, solver_instance is an optional solver instance of type `reframed.solvers.Solver`. If a solver instance is provided, the solver instance will be updated in-place and the model argument will remain unchanged.
+`model` is the reframed model object. `T` is temperature in Kelvin. `param_dict`, the dictionary containing the following parameters of all enzymes in the model, `solver_instance` is an optional solver instance of type `reframed.solvers.Solver`. If a solver instance is provided, the solver instance will be updated in-place and the model argument will remain unchanged.
 
-3. temperature effect on NGAM
+3. Temperature effect on NGAM
 ```python
 etc.reframed_mappers.set_NGAMT(model,T)
 ```
-model is the reframed model object **or** a solver instance
+`model` is the reframed model object **or** a solver instance
 
 
-4. set sigma
+4. Set sigma, saturation factor for enzymes
 ```python
 etc.reframed_mappers.set_sigma(model,sigma)
 ```
 
-model is the reframed model object **or** a solver instance
+`model` is the reframed model object **or** a solver instance
 
-5. simulate growth at different temperatures.
+5. Simulate growth at different temperatures.
 ```python
 etc.simulate_growth(model,Ts,sigma,param_dict)
 ```
-Ts is a list of tempertures in K.
+`Ts` is a list of tempertures in Kelvin.
 
-6. calculate dHTH, dSTS and dCpu of the denaturation process. There are two functions provided for two different scenarios.
+6. Calculate dHTH, dSTS and dCpu of the denaturation process. There are two functions provided for two different scenarios.
 ```python 
 dHTH,dSTS,dCpu = etc.thermal_parameters.get_dH_dS_dCpu_from_TmT90(Tm,T90)  #for a protein with experimental Tm and T90
 dHTH,dSTS,dCpu = etc.thermal_parameters.get_dH_dS_dCpu_from_TmLength(Tm,proteinLength) # for protein with only Tm
 ```
 Make sure that dCpu obtained from `etc.thermal_parameters.get_dH_dS_dCpu_from_TmT90(Tm,T90)` must be positive. If not, use `etc.thermal_parameters.get_dH_dS_dCpu_from_TmLength(Tm,proteinLength)`. 
 
-7. Augment a dataframe `params` with the following columns: Tm,Tm_std,T90,dCpt,dCpt_std,Topt,Topt_std,Length with parameters from a dictionary `param_dict` containing some or all of the same parameters. This augmented dataframe is then converted to a dictionary of thermal parameters which can be used by `etc.simulate_growth`. Note that supplying an empty dictionary is equivalent to using the parameters in the dataframe as-is.
+7. Augment a dataframe `params` with the following columns: `Tm`,`Tm_std`,`T90`,`dCpt`,`dCpt_std`,`Topt`,`Topt_std`,`Length` with parameters from a dictionary `param_dict` containing some or all of the same parameters. This augmented dataframe is then converted to a dictionary of thermal parameters which can be used by `etc.simulate_growth`. Note that supplying an empty dictionary is equivalent to using the parameters in the dataframe as-is.
   ```python
   params = pd.read_csv('./model_enzyme_params.csv',index_col=0) # contains at least Tm,T90,dCpt,Topt,Length
   param_dict = etc.thermal_parameters.format_input(params, param_dict)
   ```
 
 
-9. sample the uncertainties in the thermal parameters Tm,Topt and dCpt. Given a dataframe containing following columns:Tm,Tm_std,T90,dCpt,dCpt_std,Topt,Topt_std,Length. Randomly generate a new value from a normal distribution N(Tm,Tm_std) taking Tm as an example. 
+8. Sample the uncertainties in the thermal parameters Tm,Topt and dCpt. Given a dataframe containing following columns: `Tm`,`Tm_std`,`T90`,`dCpt`,`dCpt_std`,`Topt`,`Topt_std`,`Length`: Randomly generate a new value from a normal distribution N(Tm,Tm_std) taking Tm as an example. 
 ```python 
 new_params = etc.sample_data_uncertainty(params) # One can also specify columns to be sampled. The default is to sample all columns: [Tm,dCpt,Topt]
 thermalparams = etc.calculate_thermal_params(new_params)
@@ -74,12 +74,12 @@ thermalparams = etc.calculate_thermal_params(new_params)
 Then ```thermalparams``` could be used to simulate growth rate ```etc.simulate_growth(model,Ts,sigma,thermalparams)```
 
 
-10. simulate chemostat data.  
-(1) fix growth rate, set objective function as minimizing glucose uptake rate  
-(2) map temperature parameters  
-(3) get minimal glucose uptake rate, then fix glucose uptake rate to this minimal value (\*1.001 for simulation purpose)  
-(4) minimize enzyme usage
-(5) return solution = `FBA(model)`
+10. Simulate chemostat data.  
+(1) Fix growth rate, set objective function as minimizing glucose uptake rate  
+(2) Map temperature parameters  
+(3) Get minimal glucose uptake rate, then fix glucose uptake rate to this minimal value (\*1.001 for simulation purpose)  
+(4) Minimize enzyme usage
+(5) Return solution = `FBA(model)`
 ```python 
 %%time
 params = pd.read_csv('./model_enzyme_params.csv',index_col=0) # contains at least Tm,T90,dCpt,Topt,Length
@@ -98,10 +98,10 @@ etc.simulate_fva(model,Ts,sigma,param_dict)
 ```
 
 12.  Determine chemostat flux variability at optimial solution  
-(1) fix growth rate, set objective function as minimizing glucose uptake rate  
-(2) map temperature parameters  
-(3) get minimal glucose uptake rate, then fix glucose uptake rate to this minimal value (\*1.001 for simulation purpose)  
-(4) minimize enzyme usage, then fix this enzyme usage as a constraint
+(1) Fix growth rate, set objective function as minimizing glucose uptake rate  
+(2) Map temperature parameters  
+(3) Get minimal glucose uptake rate, then fix glucose uptake rate to this minimal value (\*1.001 for simulation purpose)  
+(4) Minimize enzyme usage, then fix this enzyme usage as a constraint
 (5) Run FVA and obtain fva_res= `FVA(model)`
 ```python 
 %%time
