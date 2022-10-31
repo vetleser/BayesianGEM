@@ -31,7 +31,7 @@ Since the Bayesian calculation method and evolutionary algorithm are computation
 #### Reproduce the figures
 (1) Clone this repository.  
 (2) Install all required packages. This step takes at most several minutes.
-(3) Download the pre-computed results from Figshare (https://zenodo.org/record/3996543#.X0J1BNP7S3I). Download the `results.tar.gz` file to the current directory and uncompress with 
+(3) Download the pre-computed results from Figshare (doi.org/10.6084/m9.figshare.21436668). Download the `results.tar.gz` file to the current directory and uncompress with 
 ```
 tar -xzvf results.tar.gz
 ```
