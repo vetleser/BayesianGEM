@@ -81,3 +81,8 @@ combined_df = combine_dataframes_for_models(full_particle_df_dict)
 dump_pickle(combined_df, "../results/permuted_smcabc_res/combined_particle_df.pkl")
 pca_ordination = perform_pca_on_parameters(combined_df)
 dump_pickle(pca_ordination,"../results/permuted_smcabc_res/pca_full_ordination.pkl")
+
+# This part of the script is concerned with creating ordinations for the Unpermuted and Permuted 1 results only
+reduced_df = combined_df[combined_df["origin"].isin(["unpermuted","permuted_0"])]
+pca_ordination = perform_pca_on_parameters(reduced_df)
+dump_pickle(pca_ordination,"../results/permuted_smcabc_res/pca_reduced_ordination.pkl")
