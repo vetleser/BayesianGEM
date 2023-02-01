@@ -49,7 +49,7 @@ rng = np.random.default_rng(random_seed)
 
 priors = {var: random_sampler.RV(dist_name='normal',loc=3,scale=1,rng=rng) for var in ("x","y")}
 
-def distribution_is_bimodal(model: Union[evo.GA, evo.CrowdingDE], tol = 10e-3):
+def distribution_is_bimodal(model: evo.CrowdingDE, tol = 10e-3):
     final_population = model.population[-1]
     final_particles = [model.all_particles[i] for i in final_population]
     upper_optimum_reached = False
@@ -75,58 +75,6 @@ bayesian_model = abc.SMCABC(simulator=simulator,
                                 cores=1,
                                 maxiter=maxiter)
 
-tournament_model = evo.TournamentGA(simulator=simulator,
-                            priors=priors,
-                            min_epsilon=min_epsilon,
-                            generation_size=population_size,
-                            distance_function=fitness_function,
-                            Yobs=Yobs,
-                            outfile=f"{outdir}/tournament_toy_example.pkl",
-                            maxiter=maxiter,
-                            rng=rng,
-                            mutation_frequency=1,
-                            mutation_prob=.5,
-                            selection_proportion=0.5,
-                            n_children=4,
-                            save_intermediate=False,
-                            cores=1,
-                            locality=1)
-
-truncation_model = evo.TruncationGA(simulator=simulator,
-                            priors=priors,
-                            min_epsilon=min_epsilon,
-                            generation_size=population_size,
-                            distance_function=fitness_function,
-                            Yobs=Yobs,
-                            outfile=f"{outdir}/truncation_toy_example.pkl",
-                            maxiter=maxiter,
-                            rng=rng,
-                            mutation_frequency=1,
-                            mutation_prob=.5,
-                            selection_proportion=0.5,
-                            n_children=4,
-                            save_intermediate=False,
-                            cores=1,
-                            num_elites=50
-                            )
-
-random_selection_truncation_model = evo.UniformParentTournamentGA(simulator=simulator,
-                            priors=priors,
-                            min_epsilon=min_epsilon,
-                            generation_size=population_size,
-                            distance_function=fitness_function,
-                            Yobs=Yobs,
-                            outfile=f"{outdir}/tournament_toy_example.pkl",
-                            maxiter=maxiter,
-                            rng=rng,
-                            mutation_frequency=1,
-                            mutation_prob=.5,
-                            selection_proportion=0.5,
-                            n_children=4,
-                            save_intermediate=False,
-                            cores=1,
-                            locality=1)
-
 
 crowdingDE_model = evo.CrowdingDE(simulator=simulator,
                             priors=priors,
@@ -145,12 +93,7 @@ crowdingDE_model = evo.CrowdingDE(simulator=simulator,
                             )
 
 
-
 # bayesian_model.run_simulation()
-
-# tournament_model.run_simulation()
-
-
 
 for i in range(1):
     model_copy = copy.deepcopy(crowdingDE_model)

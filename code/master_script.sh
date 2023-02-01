@@ -12,20 +12,15 @@ do
     python gem_smcabc_at_three_conditions_run.py &> "../results/permuted_smcabc_res/gem_smcabc_at_three_conditions_$SLURM_ARRAY_TASK_ID.log"
 done
 
-python gem_smcabc_tournament_prepare.py
+python gem_smcevo_prepare.py
 
 
 for SLURM_ARRAY_TASK_ID in {0..7}
 do 
-    python gem_smcabc_tournament.py &> "../results/evo_tournament/gem_smcevo_tournament_$SLURM_ARRAY_TASK_ID.log"
+    python gem_smcevo_run.py &> "../results/CrowdingDE/gem_smcevo_$SLURM_ARRAY_TASK_ID.log"
 done
 
 python gem_smcabc_truncation_prepare.py
-
-for SLURM_ARRAY_TASK_ID in {0..7}
-do 
-    python gem_smcabc_truncation.py &> "../results/evo_truncation/gem_smcevo_truncation_$SLURM_ARRAY_TASK_ID.log"
-done
 
 
 python sample_pca.py &> "../results/permuted_smcabc_res/sample_pca.log"

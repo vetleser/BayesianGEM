@@ -5,7 +5,7 @@ This folder contains the scripts that carry out all analysis reported in the pap
 * `etcpy` - the scripts for incorporating temperature parameters into the enzyme constrained Yeast 7.6 model, the detail introduction can be found from `etcpy/README.md`.
 * `GEMS.py` - the functionality for simulating the aerobic, anaerobic growth rate in batch cultivation and aerobic fluxes in chemostat cultivation, as well as a list of distance functions used for SMC-ABC and the evolutionary approach. It also includes corresponding FVA functionality for the batch and chemostat cultivations.
 * `abc_etc.py` - the functionality to perform SMC-ABC approach.
-* `evo_etc` - Like `abc_etc.py`, but uses an evolutionary algorithm instead of SMC-ABC
+* `evo_etc` - Like `abc_etc.py`, but uses the CrowdingDE algorithm instead of SMC-ABC
 * `permute_parameters.py` - Utility script for shuffling parameters and thus creating permuted priors
 * `random_sampler.py` - Utility script for creating random numbers for SMC-ABC and evolutionary algorithm
 
@@ -22,7 +22,7 @@ Three experimental datasets (contained in `../data`) under different temperature
 
 The computational scripts can be divided into three groups depending on their mode of operation:
 
-- SLURM array jobs intended to be run on multiple nodes (with correspoinding SLURM script which most likely needs some modifications to run): `gem_smcabc_at_three_conditions_run.py` (`gem_smcabc_at_three_conditions_run.sh`), `gem_smcabc_at_two_conditions.py` (`gem_smcabc_at_two_conditions.sh`), `gem_smcevo_tournament.py` (`gem_smcevo_tournament.sh`) and `gem_smcevo_truncation.py` (`gem_smcevo_truncation.sh`). Each of these scripts require their own preparation scripts `gem_smcabc_at_three_conditions_prepare.py`, `gem_smcabc_at_two_conditions_prepare.py`, `gem_smcevo_tournament_prepare.py` and `gem_smcevo_truncation_prepare.sh` to be run beforehand.
+- SLURM array jobs intended to be run on multiple nodes (with correspoinding SLURM script which most likely needs some modifications to run): `gem_smcabc_at_three_conditions_run.py` (`gem_smcabc_at_three_conditions_run.sh`), `gem_smcabc_at_two_conditions.py` (`gem_smcabc_at_two_conditions.sh`), and `gem_smcevo_run.py` (`gem_smcevo_run.sh`). Each of these scripts require their own preparation scripts `gem_smcabc_at_three_conditions_prepare.py`, `gem_smcabc_at_two_conditions_prepare.py`, and `gem_smcevo_prepare.py` to be run beforehand.
 - Jobs which are indended to be run under SLURM, but where the script allows to be run the usual way on a single node: `evo_pca.py`, `gem_fva_at_three_conditions.py`. `gem_fva_at_two_conditions.py`, `evo_pca.py` and `sample_pca.py`. The SLURM scripts have the same names just that they end in `.sh`.
 - Jobs which are so small that no SLURM script is written, run them as usual scripts: `benchmark_performance.py` and `reduce_data_size.py`.
 

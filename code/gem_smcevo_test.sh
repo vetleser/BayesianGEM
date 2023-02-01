@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --job-name="gem_smcevo_tournament"               # sensible name for the job
-#SBATCH --output=gem_smcevo_tournament.out
+#SBATCH --job-name="gem_smcevo_test"               # sensible name for the job
+#SBATCH --output=gem_smcevo.out
 #SBATCH --nodes=1                    
 #SBATCH -c 20
-#SBATCH -t 50:00:00             # Upper time limit for the job
-#SBATCH --array=0-7
+#SBATCH -t 00:01:00             # Upper time limit for the job
+#SBATCH --array=1
 #SBATCH --mem=100G
 #SBATCH --mail-type=begin
 #SBATCH --mail-type=end
@@ -19,4 +19,4 @@ module purge
 module load Anaconda3/2020.07
 source ~/.bash_profile
 conda activate etcFBA
-python gem_smcevo_tournament.py &> "../results/evo_tournament/gem_smcevo_tournament_$SLURM_ARRAY_TASK_ID.log"
+python gem_smcevo_truncation.py &> "../results/crowdingDE/gem_smcevo_$SLURM_ARRAY_TASK_ID.log"

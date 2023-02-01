@@ -22,11 +22,12 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 
 def main():
     task_idx = int(os.environ["SLURM_ARRAY_TASK_ID"])
-    outdir = '../results/evo_truncation'
+    outdir = '../results/crowdingDE'
     candidate_frame: pd.DataFrame = pickle.load(file=open(file=f'{outdir}/simulation_skeleton.pkl',mode='rb'))
     entry = candidate_frame.iloc[task_idx]
-    simulation, outfile, random_seed, num_elites = entry[["simulation", "outfile","random_seed","num_elites"]]
-    maxiter = 500
+    simulation, outfile, random_seed, scaling_factor, crossover_prob = entry[["simulation", "outfile","random_seed",
+    "num_elites","scaling_factor","crossover_prob"]]
+    maxiter = 1000
     Yobs_batch = GEMS.aerobic_exp_data()
     #Yobs_batch_an = GEMS.anaerobic_exp_data()
     dfae_batch,dfan_batch =GEMS.load_exp_batch_data('../data/ExpGrowth.tsv')
@@ -57,7 +58,7 @@ def main():
     logging.info('Initialize model')
     # Parameters are set to generate 128 children per generation in order to provide 
     # comparable results with the Bayesian fitting algorithm
-    model = evo.TruncationGA(simulator= GEMS.simulate_at_two_conditions_2,
+    model = evo.CrowdingDE(simulator= GEMS.simulate_at_two_conditions_2,
                             priors=priors,
                             min_epsilon=min_epsilon,
                             generation_size=population_size,
@@ -66,15 +67,15 @@ def main():
                             outfile=outfile,
                             maxiter=maxiter,
                             rng=rng,
-                            mutation_frequency=100,
-                            mutation_prob=.5,
-                            selection_proportion=0.5,
-                            n_children=4,
-                            save_intermediate=False,
-                            num_elites=num_elites)
+                            scaling_factor=scaling_factor,
+                            crossover_prob=crossover_prob,
+                            n_children=64,
+                            save_intermediate=False
+                            )
     
     
-    logging.info(f'Start evolutionary simulations with tournament replacement and {num_elites} elites, simulation {simulation}')
+    logging.info(f"""Start evolutionary simulations with CrowdingDE,
+     scaling factor {scaling_factor}, crossover probability {crossover_prob}, simulation {simulation}""")
 
     model.run_simulation()
     logging.info("DONE")
