@@ -19,4 +19,4 @@ module purge
 module load Anaconda3/2020.07
 source ~/.bash_profile
 conda activate etcFBA
-python gem_smcevo_truncation.py &> "../results/crowdingDE/gem_smcevo_$SLURM_ARRAY_TASK_ID.log"
+python gem_smcevo_run.py &> "../results/crowdingDE/gem_smcevo_$SLURM_ARRAY_TASK_ID.log"
