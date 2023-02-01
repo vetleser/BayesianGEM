@@ -26,7 +26,7 @@ def main():
     candidate_frame: pd.DataFrame = pickle.load(file=open(file=f'{outdir}/simulation_skeleton.pkl',mode='rb'))
     entry = candidate_frame.iloc[task_idx]
     simulation, outfile, random_seed, scaling_factor, crossover_prob = entry[["simulation", "outfile","random_seed",
-    "num_elites","scaling_factor","crossover_prob"]]
+    "scaling_factor","crossover_prob"]]
     maxiter = 1000
     Yobs_batch = GEMS.aerobic_exp_data()
     #Yobs_batch_an = GEMS.anaerobic_exp_data()
