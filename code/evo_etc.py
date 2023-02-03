@@ -92,7 +92,7 @@ class CrowdingDE():
 
 
     def generator(self) -> candidateType:
-            candidate = {param: prior.rvfv() for param, prior in self.priors.items()}
+            candidate = {param: self.priors[param].rvfv() for param in self.parameter_names}
             [self.correct_validity(candidate=candidate,entry=entry) for entry in candidate]
             return candidate
 
@@ -101,7 +101,7 @@ class CrowdingDE():
         # As we only change one parameter at a time, we only need to check
         # the validity of the parameters of one enzyme
         # Topt > Tm > 0 (in Kelvin of course) in real life, but mutation may disregard this constraint, so we have to account for it
-        split_entry = entry.split('_')[0]
+        split_entry = entry.split('_')
         # We assume that entries are of the form PROTID_{Tm,Topt,dCpt}
         # If this is not the case, we assume that the algorithm is used for another kind of inference problem,
         # so we skip this domain-specific check. This also applies to the dCPt as mutatating them does not violate the constraint
@@ -114,7 +114,7 @@ class CrowdingDE():
             # We try to get things right 10 times before we give up
             Tm = candidate[Tm_key]
             Topt = candidate[Topt_key]
-            if Tm < Topt or Tm < 0:
+            if not Tm > Topt > 0:
                 self.mutate_param(candidate,Tm_key)
                 self.mutate_param(candidate,Topt_key)
             else:
@@ -201,13 +201,13 @@ class CrowdingDE():
             return parents
 
     def mutate_param(self,candidate, entry: str):
-            candidate[entry] = self.priors[entry].rvf()
+            candidate[entry] = self.priors[entry].rvfv()
 
     def check_validity(self, candidate, entry: str) -> bool:
         # As we only change one parameter at a time, we only need to check
         # the validity of the parameters of one enzyme
         # Topt > Tm in real life, but mutation may disregard this constraint, so we have to account for it
-        split_entry = entry.split('_')[0]
+        split_entry = entry.split('_')
         # We assume that entries are of the form PROTID_{Tm,Topt,dCpt}
         # If this is not the case, we assume that the algorithm is used for another kind of inference problem,
         # so we skip this domain-specific check. This also applies to the dCPt as mutatating them does not violate the constraint
@@ -218,7 +218,7 @@ class CrowdingDE():
         Topt_key = protein_id + "_Topt"
         Tm = candidate[Tm_key]
         Topt = candidate[Topt_key]
-        return Topt < Tm < 0
+        return Tm > Topt > 0
 
 
     def particle_distance(self, idx_1: int, idx_2: int)-> float:

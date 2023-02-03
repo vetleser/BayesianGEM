@@ -56,8 +56,6 @@ def main():
     
 
     logging.info('Initialize model')
-    # Parameters are set to generate 128 children per generation in order to provide 
-    # comparable results with the Bayesian fitting algorithm
     model = evo.CrowdingDE(simulator= GEMS.simulate_at_two_conditions_2,
                             priors=priors,
                             min_epsilon=min_epsilon,
