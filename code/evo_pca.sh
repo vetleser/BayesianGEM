@@ -18,4 +18,4 @@ module purge
 module load Anaconda3/2020.07
 source ~/.bash_profile
 conda activate etcFBA
-python evo_pca.py &> "../results/evo_pca.log"
+python evo_pca.py &> "../results/crowdingDE/evo_pca.log"

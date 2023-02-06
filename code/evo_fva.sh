@@ -9,7 +9,7 @@
 #SBATCH --mail-type=end
 #SBATCH --mail-user=jakob.p.pettersen@ntnu.no
 #SBATCH -p CPUQ
-#SBATCH --account=nv-ibt
+#SBATCH --account=share-nv-ibt
 #SBATCH --export=NONE
 
 WORKDIR=${SLURM_SUBMIT_DIR}
@@ -18,4 +18,4 @@ module purge
 module load Anaconda3/2020.07
 source ~/.bash_profile
 conda activate etcFBA
-python evo_fva.py &> "../results/evo_fva.log"
+python evo_fva.py &> "../results/crowdingDE/evo_fva.log"

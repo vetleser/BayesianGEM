@@ -60,5 +60,5 @@ rename(columns={"sampled_particles": "particle"}).
 assign(fva_res = lambda df: list(map(fva_functional,df.particle)))
 )
 logging.info("Saving results")
-pickle.dump(obj=fva_frame, file=open("../results/evo_fva.pkl",'wb'))
+pickle.dump(obj=fva_frame, file=open("{outdir}/evo_fva.pkl",'wb'))
 logging.info("DONE")
