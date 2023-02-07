@@ -9,6 +9,7 @@ import pickle
 import evo_etc as evo
 import numpy as np
 import GEMS
+import multiprocessing
 from functools import partial
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
@@ -53,12 +54,13 @@ reduced_frame["sampled_particles"] = [rng.choice(a=particle_collection,size=min(
 dump_pickle(reduced_frame,f"../results/evo_fva_frame.pkl")
 
 logging.info("Running FVA")
-fva_frame = (reduced_frame[["scaling_factor","crossover_prob", "simulation", "sampled_particles"]].
-explode("sampled_particles",ignore_index=True).
-dropna().
-rename(columns={"sampled_particles": "particle"}).
-assign(fva_res = lambda df: list(map(fva_functional,df.particle)))
-)
+with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as p:
+    fva_frame = (reduced_frame[["scaling_factor","crossover_prob", "simulation", "sampled_particles"]].
+    explode("sampled_particles",ignore_index=True).
+    dropna().
+    rename(columns={"sampled_particles": "particle"}).
+    assign(fva_res = lambda df: list(p.map(fva_functional,df.particle)))
+    )
 logging.info("Saving results")
 pickle.dump(obj=fva_frame, file=open("{outdir}/evo_fva.pkl",'wb'))
 logging.info("DONE")

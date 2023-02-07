@@ -18,7 +18,7 @@ random_seed = 5353
 Yobs = None
 min_epsilon = -1
 population_size = 128
-maxiter = 500
+maxiter = 200
 outdir = "../results/toy_example"
 if not os.path.exists(outdir):
     os.makedirs(outdir)
@@ -47,7 +47,9 @@ def shifted_fitness_function(dummy, candidate):
 
 rng = np.random.default_rng(random_seed)
 
-priors = {var: random_sampler.RV(dist_name='normal',loc=3,scale=1,rng=rng) for var in ("x","y")}
+n_iterations = 4
+
+priors = {var: random_sampler.RV(dist_name='normal',loc=0,scale=1,rng=rng) for var in ("x","y")}
 
 def distribution_is_bimodal(model: evo.CrowdingDE, tol = 10e-3):
     final_population = model.population[-1]
@@ -64,39 +66,34 @@ def distribution_is_bimodal(model: evo.CrowdingDE, tol = 10e-3):
     return upper_optimum_reached and lower_optimum_reached
 
 
-bayesian_model = abc.SMCABC(simulator=simulator,
-                                priors=priors,
+for i in range(n_iterations):
+    bayesian_model = abc.SMCABC(simulator=simulator,
+                                    priors=copy.deepcopy(priors),
+                                    min_epsilon=min_epsilon,
+                                    population_size=population_size,
+                                    distance_function=fitness_function,
+                                    Yobs=Yobs,
+                                    outfile=f"{outdir}/bayesian_{i}.pkl",
+                                    generation_size=128,
+                                    cores=1,
+                                    maxiter=maxiter)
+    bayesian_model.run_simulation()
+
+
+for i in range(n_iterations):
+    crowdingDE_model = evo.CrowdingDE(simulator=simulator,
+                                priors=copy.deepcopy(priors),
                                 min_epsilon=min_epsilon,
-                                population_size=population_size,
+                                generation_size=population_size,
                                 distance_function=fitness_function,
                                 Yobs=Yobs,
-                                outfile=f"{outdir}/bayesian.pkl",
-                                generation_size=128,
+                                outfile=f"{outdir}/crowdingDE_{i}.pkl",
+                                maxiter=maxiter,
+                                rng=rng,
                                 cores=1,
-                                maxiter=maxiter)
-
-
-crowdingDE_model = evo.CrowdingDE(simulator=simulator,
-                            priors=priors,
-                            min_epsilon=min_epsilon,
-                            generation_size=population_size,
-                            distance_function=fitness_function,
-                            Yobs=Yobs,
-                            outfile=f"{outdir}/crowdingDE_shifted_toy_example.pkl",
-                            maxiter=maxiter,
-                            rng=rng,
-                            cores=1,
-                            crossover_prob=.5,
-                            n_children=64,
-                            scaling_factor=0.5,
-                            save_intermediate=False
-                            )
-
-
-# bayesian_model.run_simulation()
-
-for i in range(1):
-    model_copy = copy.deepcopy(crowdingDE_model)
-    model_copy.rng = rng
-    model_copy.run_simulation()
-    distribution_is_bimodal(model_copy)
+                                crossover_prob=.5,
+                                n_children=64,
+                                scaling_factor=0.5,
+                                save_intermediate=False
+                                )
+    crowdingDE_model.run_simulation()

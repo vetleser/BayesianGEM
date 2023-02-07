@@ -46,23 +46,16 @@ reduced_bayesian_simulation_skeleton = load_pickle("../results/reduced_smcabc_re
 reduced_bayesian_simulation_skeleton["all_distances"] = list(map(extract_distances_from_simulation,reduced_bayesian_simulation_skeleton["outfile"]))
 dump_pickle(reduced_bayesian_simulation_skeleton, "../results/reduced_smcabc_res/distance_frame.pkl")
 
-evo_combined_df = load_pickle("../results/evo_combined_df.pkl")
+evo_combined_df = load_pickle("../results/crowdingDE/evo_combined_df.pkl")
 # We only use the period (Prior, Intermediate or Posterior), prior (unpermuted and permuted 0-2) and model (Simulation 1 or 2)
-evo_combined_df_metadata = evo_combined_df[["particle_ID","period","method","frame_ID"]]
+evo_combined_df_metadata = evo_combined_df[["particle_ID","period","frame_ID"]]
 dump_pickle(evo_combined_df_metadata,"../results/evo_combined_df_metadata.pkl")
 
-evo_truncation_simulation_skeleton = load_pickle("../results/evo_truncation/simulation_skeleton.pkl")
+evo_simulation_skeleton = load_pickle("../results/crowdingDE/simulation_skeleton.pkl")
 
-evo_truncation_simulation_skeleton["all_distances"], evo_truncation_simulation_skeleton["population"] = zip(*list(map(extract_distances_and_population_from_simulation, evo_truncation_simulation_skeleton["outfile"])))
+evo_simulation_skeleton["all_distances"], evo_simulation_skeleton["population"] = zip(*list(map(extract_distances_and_population_from_simulation, evo_simulation_skeleton["outfile"])))
 
-dump_pickle(evo_truncation_simulation_skeleton, "../results/evo_truncation/distance_frame.pkl")
-
-evo_tournament_simulation_skeleton = load_pickle("../results/evo_tournament/simulation_skeleton.pkl")
-
-evo_tournament_simulation_skeleton["all_distances"], evo_tournament_simulation_skeleton["population"] = zip(*list(map(extract_distances_and_population_from_simulation, evo_tournament_simulation_skeleton["outfile"])))
-
-dump_pickle(evo_tournament_simulation_skeleton, "../results/evo_tournament/distance_frame.pkl")
-
+dump_pickle(evo_simulation_skeleton, "../results/crowdingDE/distance_frame.pkl")
 
 def aggregate_fva_results(result_df,simulation_attributes):
     flattened_df_list = []
@@ -99,10 +92,6 @@ dump_pickle(bayesian_aggregated_fva_results,"../results/aggregated_fva_res.pkl")
 
 dump_pickle(reduced_bayesian_aggregated_fva_results,"../results/reduced_aggregated_fva_res.pkl")
 
-evo_fva_results = load_pickle("../results/evo_fva.pkl")
-truncation_fva_results = evo_fva_results["truncation"]
-tournament_fva_results = evo_fva_results["tournament"]
-truncation_aggregated_fva_results = aggregate_fva_results(truncation_fva_results,["num_elites","simulation"])
-tournament_aggregated_fva_results = aggregate_fva_results(tournament_fva_results,["locality","simulation"])
-dump_pickle(truncation_aggregated_fva_results, "../results/truncation_aggregated_fva_res.pkl")
-dump_pickle(tournament_aggregated_fva_results, "../results/tournament_aggregated_fva_res.pkl")
+evo_fva_results = load_pickle("../results/crowdingDE/evo_fva.pkl")
+evo_aggregated_fva_results = aggregate_fva_results(evo_fva_results,["scaling_factor","crossover_prob","simulation"])
+dump_pickle(evo_aggregated_fva_results, "../results/crowdingDE/evo_aggregated_fva_res.pkl")
