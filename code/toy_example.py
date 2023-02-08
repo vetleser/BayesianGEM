@@ -15,10 +15,10 @@ from typing import Union
 
 # logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 random_seed = 5353
+maxiter = 200
 Yobs = None
 min_epsilon = -1
 population_size = 128
-maxiter = 200
 outdir = "../results/toy_example"
 if not os.path.exists(outdir):
     os.makedirs(outdir)
@@ -49,7 +49,7 @@ rng = np.random.default_rng(random_seed)
 
 n_iterations = 4
 
-priors = {var: random_sampler.RV(dist_name='normal',loc=0,scale=1,rng=rng) for var in ("x","y")}
+priors = {var: random_sampler.RV(dist_name='normal',loc=0,scale=0.2,rng=rng) for var in ("x","y")}
 
 def distribution_is_bimodal(model: evo.CrowdingDE, tol = 10e-3):
     final_population = model.population[-1]
@@ -69,12 +69,12 @@ def distribution_is_bimodal(model: evo.CrowdingDE, tol = 10e-3):
 for i in range(n_iterations):
     bayesian_model = abc.SMCABC(simulator=simulator,
                                     priors=copy.deepcopy(priors),
-                                    min_epsilon=min_epsilon,
-                                    population_size=population_size,
+                                    min_epsilon=-1,
+                                    population_size=32,
                                     distance_function=fitness_function,
                                     Yobs=Yobs,
                                     outfile=f"{outdir}/bayesian_{i}.pkl",
-                                    generation_size=128,
+                                    generation_size=32,
                                     cores=1,
                                     maxiter=maxiter)
     bayesian_model.run_simulation()
@@ -83,8 +83,8 @@ for i in range(n_iterations):
 for i in range(n_iterations):
     crowdingDE_model = evo.CrowdingDE(simulator=simulator,
                                 priors=copy.deepcopy(priors),
-                                min_epsilon=min_epsilon,
-                                generation_size=population_size,
+                                min_epsilon=-1,
+                                generation_size=32,
                                 distance_function=fitness_function,
                                 Yobs=Yobs,
                                 outfile=f"{outdir}/crowdingDE_{i}.pkl",
@@ -92,7 +92,7 @@ for i in range(n_iterations):
                                 rng=rng,
                                 cores=1,
                                 crossover_prob=.5,
-                                n_children=64,
+                                n_children=16,
                                 scaling_factor=0.5,
                                 save_intermediate=False
                                 )
