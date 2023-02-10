@@ -6,7 +6,6 @@ import pandas as pd
 import numpy as np
 from sklearn.decomposition import PCA
 import logging
-import GEMS
 from evo_etc import CrowdingDE
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
@@ -18,7 +17,7 @@ def load_pickle(filename):
 def dump_pickle(obj,filename):
     return pickle.dump(obj=obj,file=open(file=filename, mode='wb'))
 
-def build_a_dataframe_for_all_particles(file, r2_threshold = 0.9):
+def build_a_dataframe_for_posterior_particles(file, r2_threshold = 0.9):
     results: CrowdingDE = load_pickle(file)
     columns = list(results.all_particles[0].keys())
     columns.sort()
@@ -34,17 +33,11 @@ def build_a_dataframe_for_all_particles(file, r2_threshold = 0.9):
     logging.info(df.shape)
     
     logging.info("Doing filtering and labelling of Data Frame")
-    # We need to negate the results due to the fact that they 
+    # We need to negate the results due to the fact that they
     # are orignally taken to mean distances which are to be minimized
     df['r2'] = -df['r2']
-    df["period"] = "Intermediate"
-    df.loc[np.array(results.birth_generation) == 0,"period"] = "Prior"
-    df.loc[df["r2"] > r2_threshold,"period"] = 'Posterior'
-    # Remove samples with a R2 score smaller than -3
-    sel_index = df.index[df['r2']>-3]    
-    df = df.loc[sel_index,:]
+    df = df[df['r2'] > r2_threshold]
     logging.info(df.shape)
-
     return df
 
 def combine_dataframes(df_dict):
@@ -70,12 +63,18 @@ def perform_pca_on_parameters(df):
 
 outdir = '../results/crowdingDE'
 model_frame: pd.DataFrame = load_pickle(f"{outdir}/simulation_skeleton.pkl")
-model_frame.set_index(["scaling_factor","crossover_prob", "simulation"])
+model_frame["frame_ID"] = range(model_frame.shape[0])
+# We are in this case only interested in the solutions with F=0.5 and CR=0.99
+reduced_model_frame = (
+    model_frame.
+    set_index(["scaling_factor","crossover_prob"]).
+    loc[(0.5,0.99)]
+)
 logging.info("Loading data")
-particle_dfs = list(map(build_a_dataframe_for_all_particles,model_frame.outfile))
+particle_dfs = list(map(build_a_dataframe_for_posterior_particles,reduced_model_frame.outfile))
 logging.info("Augmenting data labeling")
 df_dict = {}
-for i, particle_df in enumerate(particle_dfs):
+for i, particle_df in zip(reduced_model_frame["frame_ID"],particle_dfs):
     df_dict[i] = particle_df
 
 logging.info("Combining dataframes")
