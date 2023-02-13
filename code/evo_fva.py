@@ -32,9 +32,9 @@ def read_posterior_particles(filename: str):
     model: evo.CrowdingDE = load_pickle(filename)
     return get_posterior_particles(model=model)
 
-def get_posterior_particles(model: evo.CrowdingDE):
+def get_posterior_particles(model: evo.CrowdingDE, r2_threshold):
     return [particle for particle, distance in
-     zip(model.all_particles,model.all_distances) if distance < -0.90]
+     zip(model.all_particles,model.all_distances) if distance < -r2_threshold]
 
 fva_functional = partial(GEMS.run_fva_at_two_conditions,reactions=list(signature_reactions.values()))
 
@@ -43,7 +43,7 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 logging.info("Reading data")
 outdir = '../results/crowdingDE'
 model_frame = load_pickle(f"{outdir}/simulation_skeleton.pkl")
-reduced_frame = model_frame.loc[:, ["scaling_factor","crossover_prob", "simulation","outfile"]]
+reduced_frame = model_frame.loc[:, ["scaling_factor","crossover_prob", "simulation","outfile"]].pipe(lambda df: df[df["scaling_factor"] == 0.5 & df["crossover_prob"] == 0.99])
 
 logging.info("Loading data")
 posterior_particles = map(read_posterior_particles,reduced_frame.outfile)
