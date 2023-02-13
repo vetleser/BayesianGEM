@@ -17,7 +17,7 @@ def load_pickle(filename):
 def dump_pickle(obj,filename):
     return pickle.dump(obj=obj,file=open(file=filename, mode='wb'))
 
-def build_a_dataframe_for_posterior_particles(file, r2_threshold = 0.9):
+def build_a_dataframe_for_posterior_particles(file, r2_threshold = 0.98):
     results: CrowdingDE = load_pickle(file)
     columns = list(results.all_particles[0].keys())
     columns.sort()

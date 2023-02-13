@@ -46,11 +46,6 @@ reduced_bayesian_simulation_skeleton = load_pickle("../results/reduced_smcabc_re
 reduced_bayesian_simulation_skeleton["all_distances"] = list(map(extract_distances_from_simulation,reduced_bayesian_simulation_skeleton["outfile"]))
 dump_pickle(reduced_bayesian_simulation_skeleton, "../results/reduced_smcabc_res/distance_frame.pkl")
 
-evo_combined_df = load_pickle("../results/crowdingDE/evo_combined_df.pkl")
-# We only use the period (Prior, Intermediate or Posterior), prior (unpermuted and permuted 0-2) and model (Simulation 1 or 2)
-evo_combined_df_metadata = evo_combined_df[["particle_ID","period","frame_ID"]]
-dump_pickle(evo_combined_df_metadata,"../results/crowdingDE/evo_combined_df_metadata.pkl")
-
 evo_simulation_skeleton = load_pickle("../results/crowdingDE/simulation_skeleton.pkl")
 
 evo_simulation_skeleton["all_distances"], evo_simulation_skeleton["population"] = zip(*list(map(extract_distances_and_population_from_simulation, evo_simulation_skeleton["outfile"])))
