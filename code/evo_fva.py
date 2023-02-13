@@ -32,7 +32,7 @@ def read_posterior_particles(filename: str):
     model: evo.CrowdingDE = load_pickle(filename)
     return get_posterior_particles(model=model)
 
-def get_posterior_particles(model: evo.CrowdingDE, r2_threshold):
+def get_posterior_particles(model: evo.CrowdingDE, r2_threshold=0.98):
     return [particle for particle, distance in
      zip(model.all_particles,model.all_distances) if distance < -r2_threshold]
 
