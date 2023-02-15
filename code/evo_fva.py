@@ -51,7 +51,7 @@ reduced_frame["sampled_particles"] = [rng.choice(a=particle_collection,size=min(
     particle_collection in posterior_particles]
 
 
-dump_pickle(reduced_frame,f"../results/evo_fva_frame.pkl")
+dump_pickle(reduced_frame,f"{outdir}/evo_fva_frame.pkl")
 
 logging.info("Running FVA")
 with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as p:
