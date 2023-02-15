@@ -20,6 +20,7 @@ do
     python gem_smcevo_run.py &> "../results/CrowdingDE/gem_smcevo_$SLURM_ARRAY_TASK_ID.log"
 done
 
+python toy_example.py
 
 python sample_pca.py &> "../results/permuted_smcabc_res/sample_pca.log"
 
