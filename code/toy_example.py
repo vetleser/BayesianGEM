@@ -13,7 +13,7 @@ import logging
 import copy
 
 # logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
-random_seed = 5353
+random_seed = 5354 #Changing the seed gives new evolutionary population. Bayesian population is new even for same seed
 maxiter = 200
 Yobs = None
 min_epsilon = -1
