@@ -18,7 +18,7 @@ maxiter = 200
 Yobs = None
 min_epsilon = -1
 population_size = 128
-outdir = "./results/toy_example"
+outdir = "./results/toy_example" #test
 if not os.path.exists(outdir):
     os.makedirs(outdir)
 
