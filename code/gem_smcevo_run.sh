@@ -9,14 +9,9 @@
 #SBATCH --mail-type=begin
 #SBATCH --mail-type=end
 #SBATCH --mail-user=vetleser@stud.ntnu.no
-#SBATCH -p CPUQ
-#SBATCH --account=share-nv-ibt
 #SBATCH --export=NONE
 
 WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR}
-module purge
-module load Anaconda3/2020.07
-source ~/.bash_profile
-conda activate etcFBA
-python gem_smcevo_run.py &> "../results/crowdingDE/gem_smcevo_$SLURM_ARRAY_TASK_ID.log"
+
+/triumvirate/home/vetleser/.conda/envs/etcFBA/bin/python3 gem_smcevo_run.py &> "../results/crowdingDE/gem_smcevo_$SLURM_ARRAY_TASK_ID.log"
