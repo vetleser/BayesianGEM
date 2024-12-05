@@ -8,7 +8,7 @@
 #SBATCH --mem=100G
 #SBATCH --mail-type=begin
 #SBATCH --mail-type=end
-#SBATCH --mail-user=jakob.p.pettersen@ntnu.no
+#SBATCH --mail-user=vetleser@stud.ntnu.no
 #SBATCH -p CPUQ
 #SBATCH --account=share-nv-ibt
 #SBATCH --export=NONE
