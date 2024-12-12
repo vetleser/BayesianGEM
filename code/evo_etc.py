@@ -158,9 +158,12 @@ class CrowdingDE():
                     candidate_counter += 1
         else:
                 try:
-                    # This code takes care of stalled parallel processes
                     with pebble.ProcessPool(self.cores) as p:
-                        res_iter: Iterable[simResultType] = p.map(self.simulator, candidates,timeout=timeout).result()
+                        #Wrapping simulator
+                        serialized_simulator = dill.dumps(self.simulator)
+                        simulator_func = dill.loads(serialized_simulator)
+                        #Old attempt
+                        res_iter: Iterable[simResultType] = p.map(simulator_func, candidates,timeout=timeout).result()
                         while True:
                             try:
                                 raw_res = res_iter.next()
