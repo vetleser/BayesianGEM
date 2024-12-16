@@ -86,6 +86,8 @@ class CrowdingDE():
         self.scaling_factor = scaling_factor
         self.save_intermediate = save_intermediate
 
+        self.generation_time = np.array([])
+
 
     def generator(self) -> candidateType:
             candidate = {param: self.priors[param].rvfv() for param in self.parameter_names}
@@ -304,8 +306,8 @@ class CrowdingDE():
             if self.save_intermediate:
                     dill.dump(self,open(self.outfile,'wb'))
     
-        
         while self.generation <= self.maxiter:
+            start = time.time()
             if max_generation_epsilon < self.min_epsilon:
                 logging.info(f"Fitness objective reached at generation {self.generation}")
                 logging.info(f"Exiting evolution")
@@ -316,10 +318,26 @@ class CrowdingDE():
             self.generation += 1
             if self.save_intermediate:
                     dill.dump(self,open(self.outfile,'wb'))
+            end = time.time()
+
+            self.generation_time = np.append(self.generation_time, end-start)
+            logging.info(f"Time duration for evaluating generation appended to list, {end-start} seconds")
         else:
             # This else-clause belongs to the main evolution loop
             logging.info("Fitness objective not reached after maximum number of generations")
             logging.info("Exiting evolution")
         
+        
+        
+        logging.info(f'Average time per generation is {np.mean(self.generation_time)} with {self.cores} cores.')
+
+        result_file = "../results/test/test_cores.txt"
+        try:
+            with open(result_file, "a", encoding="utf-8") as file:
+                file.write(f'Average time per generation is {np.mean(self.generation_time)} with {self.cores} cores. Population size {self.generation_size}, children size {self.n_children} \n')
+                logging.info(f"Content successfully written to {result_file}")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+        
         logging.info(f"Saving results to {self.outfile}")
-        dill.dump(self, file=open(self.outfile,mode='wb'))
+        #dill.dump(self, file=open(self.outfile,mode='wb'))

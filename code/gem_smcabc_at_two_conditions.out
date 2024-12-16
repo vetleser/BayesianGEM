@@ -1,0 +1,8 @@
+/var/spool/slurmd/job03589/slurm_script: line 16: module: command not found
+/var/spool/slurmd/job03589/slurm_script: line 17: module: command not found
+/var/spool/slurmd/job03589/slurm_script: line 18: //.bash_profile: No such file or directory
+/var/spool/slurmd/job03589/slurm_script: line 19: conda: command not found
+/var/spool/slurmd/job03590/slurm_script: line 16: module: command not found
+/var/spool/slurmd/job03590/slurm_script: line 17: module: command not found
+/var/spool/slurmd/job03590/slurm_script: line 18: //.bash_profile: No such file or directory
+/var/spool/slurmd/job03590/slurm_script: line 19: conda: command not found

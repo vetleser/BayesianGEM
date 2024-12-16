@@ -68,7 +68,7 @@ model_frame["frame_ID"] = range(model_frame.shape[0])
 reduced_model_frame = (
     model_frame.
     set_index(["scaling_factor","crossover_prob"]).
-    loc[(0.5,0.99)]
+    loc[(1.0,0.999)]
 )
 logging.info("Loading data")
 particle_dfs = list(map(build_a_dataframe_for_posterior_particles,reduced_model_frame.outfile))

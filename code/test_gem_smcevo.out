@@ -1,0 +1,4 @@
+slurmstepd: error: *** JOB 4026 ON caesar CANCELLED AT 2024-12-10T13:47:40 ***
+slurmstepd: error: *** JOB 4022 ON pompey CANCELLED AT 2024-12-10T13:47:40 ***
+slurmstepd: error: *** JOB 4021 ON pompey CANCELLED AT 2024-12-10T13:47:40 ***
+*
