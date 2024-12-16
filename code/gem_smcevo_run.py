@@ -52,7 +52,8 @@ def main():
     # In[ ]:
     rng = np.random.default_rng(random_seed)
     min_epsilon = -1.0 # equivalent to r2 score of 1
-    population_size = 128
+    population_size = 256
+    n_children = 128
     
 
     logging.info('Initialize model')
@@ -67,7 +68,7 @@ def main():
                             rng=rng,
                             scaling_factor=scaling_factor,
                             crossover_prob=crossover_prob,
-                            n_children=64,
+                            n_children=n_children,
                             save_intermediate=False
                             )
     

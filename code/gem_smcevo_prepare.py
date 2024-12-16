@@ -18,10 +18,10 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 
 # In[ ]:
 
-scaling_factor = [0.5,1]
-crossover_prob = [0.9,0.99,0.999]
-n_replicates = 2
-overall_random_seed = 158
+scaling_factor = [0.5]
+crossover_prob = [0.99]
+n_replicates = 5
+overall_random_seed = 200
 rng = np.random.default_rng(overall_random_seed)
 path = os.path.dirname(os.path.realpath(__file__)).replace('code','')
 params = pd.read_csv(os.path.join(path,'data/model_enzyme_params.csv'),index_col=0)
