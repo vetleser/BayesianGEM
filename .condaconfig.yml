@@ -1,4 +1,4 @@
-name: etcFBA
+name: etcFBA_v2
 channels:
   - gurobi
   - https://conda.anaconda.org/gurobi
