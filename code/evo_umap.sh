@@ -7,6 +7,9 @@
 #SBATCH --mem=120G
 #SBATCH --export=NONE
 
+export HOME=/triumvirate/home/vetleser  # Set the HOME environment variable explicitly
+
+
 WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR}
-/triumvirate/home/vetleser/.conda/envs/etcFBA/bin/python3 evo_umap.py &> "../results/crowdingDE/evo_umap.log"
+/triumvirate/home/vetleser/.conda/envs/umap/bin/python3 evo_umap.py &> "../results/crowdingDE/evo_umap.log"
