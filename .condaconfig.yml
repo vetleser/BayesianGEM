@@ -38,4 +38,4 @@ dependencies:
   - typing-extensions=3.10.0.2
   - pip:
     - reframed==1.2.1
-prefix: /home/vetle-skaar-eriksen/miniconda3/envs/etcFBA
+prefix: /home/vetle-skaar-eriksen/miniconda3/envs/etcFBA_v2
