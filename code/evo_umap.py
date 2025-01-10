@@ -83,7 +83,7 @@ combined_df = load_pickle(f"{outdir}/evo_combined_df.pkl")
 
 # logging.info("Performing UMAP")
 
-n_components=2 #Keep as 2
+n_components=2 #Dimensions of resulting data set, keep as 2
 n_neighbors=200 #Can change
 min_dist=0.1   #Can change
 
