@@ -49,10 +49,16 @@ def combine_dataframes(df_dict):
 
 def perform_pca_on_parameters(df):
     epsilon = 1e-6
+
+    logging.info(f"Shape of df is {df.shape}")
+
     # 1. normalize all columns to a standard normal distribution
     # df contains the trailing columns: r2, period, particle_ID, frame_ID, in total 4 columns to remove
     X = df.values[:,:-4]
     X_n = np.zeros_like(X)
+
+    logging.info(f"Shape of X is {X.shape}")
+    logging.info(f"Shape of X_n is {X_n.shape}")
     for i in range(X_n.shape[1]): X_n[:,i] = (X[:,i]-np.mean(X[:,i]))/(np.std(X[:,i]) + epsilon)
     pca = PCA(n_components=2)
     PCS = pca.fit_transform(X_n)
@@ -79,10 +85,10 @@ for i, particle_df in zip(reduced_model_frame["frame_ID"],particle_dfs):
 
 logging.info("Combining dataframes")
 combined_df = combine_dataframes(df_dict)
-dump_pickle(combined_df,f"{outdir}/evo_combined_df.pkl")
+#dump_pickle(combined_df,f"{outdir}/evo_combined_df.pkl")
 
 logging.info("Performing PCA")
 pca_ordination = perform_pca_on_parameters(combined_df)
-dump_pickle(pca_ordination,f"{outdir}/evo_pca.pkl")
+#dump_pickle(pca_ordination,f"{outdir}/evo_pca.pkl")
 
 logging.info("DONE")
