@@ -76,7 +76,8 @@ def perform_umap_on_parameters(df, n_components=2, n_neighbors=15, min_dist=0.1)
 
 
 outdir = '../results/crowdingDE'
-combined_df = load_pickle(f"{outdir}/evo_combined_df.pkl")
+treshold = "R099"
+combined_df = load_pickle(f"{outdir}/evo_combined_df_{treshold}.pkl")
 
 # logging.info("Performing PCA")
 # pca_ordination = perform_pca_on_parameters(combined_df)
@@ -84,13 +85,27 @@ combined_df = load_pickle(f"{outdir}/evo_combined_df.pkl")
 # logging.info("Performing UMAP")
 
 n_components=2 #Dimensions of resulting data set, keep as 2
-n_neighbors=200 #Can change
-min_dist=0.1   #Can change
+#n_neighbors=200 #Can change
+#min_dist=0.1   #Can change
 
-umap_ordination = perform_umap_on_parameters(df=combined_df, 
+n_neighbors_list = np.array([2, 5, 10, 25, 50, 100, 200])
+min_dist_list = np.array([0.1, 0.25])
+
+for n_neighbors in n_neighbors_list:
+    for min_dist in min_dist_list:
+        logging.info(f"Creating UMAP ordination with {n_neighbors} neighbors and {min_dist} minimum distance.")
+        umap_ordination = perform_umap_on_parameters(df=combined_df, 
                                              n_components = n_components, 
                                              n_neighbors=n_neighbors, 
                                              min_dist=min_dist)
-dump_pickle(umap_ordination,f"{outdir}/evo_umap.pkl")
+        dump_pickle(umap_ordination,f"{outdir}/umap/evo_umap_{treshold}_{n_neighbors}_{min_dist}.pkl")
+
+
+
+# umap_ordination = perform_umap_on_parameters(df=combined_df, 
+#                                              n_components = n_components, 
+#                                              n_neighbors=n_neighbors, 
+#                                              min_dist=min_dist)
+# dump_pickle(umap_ordination,f"{outdir}/evo_umap_{n_neighbors}_{min_dist}.pkl")
 
 logging.info("DONE")
