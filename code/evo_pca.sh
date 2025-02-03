@@ -9,4 +9,4 @@
 
 WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR}
-/triumvirate/home/vetleser/.conda/envs/etcFBA_v2/bin/python3 evo_pca.py &> "../results/crowdingDE/evo_pca.log"
+/triumvirate/home/vetleser/.conda/envs/etcFBA/bin/python3 evo_pca.py &> "../results/crowdingDE/evo_pca.log"

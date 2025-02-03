@@ -12,4 +12,4 @@ export HOME=/triumvirate/home/vetleser  # Set the HOME environment variable expl
 
 WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR}
-/triumvirate/home/vetleser/.conda/envs/umap/bin/python3 visualization_umap.py &> "../results/crowdingDE/visualization_umap.log"
+/triumvirate/home/vetleser/.conda/envs/etcFBA/bin/python3 visualization_umap.py &> "../results/crowdingDE/visualization_umap.log"

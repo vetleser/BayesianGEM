@@ -12,4 +12,4 @@ export HOME=/triumvirate/home/vetleser  # Set the HOME environment variable expl
 
 WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR}
-/triumvirate/home/vetleser/.conda/envs/etcFBA_v2/bin/python3 reduce_data_size.py &> "../results/crowdingDE/reduce_data_size.log"
+/triumvirate/home/vetleser/.conda/envs/etcFBA/bin/python3 reduce_data_size.py &> "../results/crowdingDE/reduce_data_size.log"
