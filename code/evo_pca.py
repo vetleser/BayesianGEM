@@ -17,7 +17,7 @@ def load_pickle(filename):
 def dump_pickle(obj,filename):
     return pickle.dump(obj=obj,file=open(file=filename, mode='wb'))
 
-def build_a_dataframe_for_posterior_particles(file, r2_threshold = 0.98):
+def build_a_dataframe_for_posterior_particles(file, r2_threshold = 0.985):
     results: CrowdingDE = load_pickle(file)
     columns = list(results.all_particles[0].keys())
     columns.sort()
@@ -85,10 +85,10 @@ for i, particle_df in zip(reduced_model_frame["frame_ID"],particle_dfs):
 
 logging.info("Combining dataframes")
 combined_df = combine_dataframes(df_dict)
-#dump_pickle(combined_df,f"{outdir}/evo_combined_df.pkl")
+dump_pickle(combined_df,f"{outdir}/evo_combined_df_R0985.pkl")
 
 logging.info("Performing PCA")
 pca_ordination = perform_pca_on_parameters(combined_df)
-#dump_pickle(pca_ordination,f"{outdir}/evo_pca.pkl")
+dump_pickle(pca_ordination,f"{outdir}/evo_pca_R0985.pkl")
 
 logging.info("DONE")
