@@ -6,4 +6,5 @@ results.tar.gz
 *.ipynb_checkpoints
 code/.ipynb_checkpoints/*
 *.austin
-
+*.out
+figures/*
