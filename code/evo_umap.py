@@ -76,7 +76,7 @@ def perform_umap_on_parameters(df, n_components=2, n_neighbors=15, min_dist=0.1)
 
 
 outdir = '../results/crowdingDE'
-treshold = "R099"
+treshold = "R0985"
 combined_df = load_pickle(f"{outdir}/evo_combined_df_{treshold}.pkl")
 
 # logging.info("Performing PCA")
@@ -88,8 +88,8 @@ n_components=2 #Dimensions of resulting data set, keep as 2
 #n_neighbors=200 #Can change
 #min_dist=0.1   #Can change
 
-n_neighbors_list = np.array([2, 5, 10, 25, 50, 100, 200])
-min_dist_list = np.array([0.1, 0.25])
+n_neighbors_list = np.array([10, 25, 50, 100, 200])
+min_dist_list = np.array([0.0, 0.05])
 
 for n_neighbors in n_neighbors_list:
     for min_dist in min_dist_list:
