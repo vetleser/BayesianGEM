@@ -107,7 +107,7 @@ def aerobic(thermalParams):
     logging.info(f"rae: {rae}")
     rexp = aerobic_exp_data()['data']
     
-    logging.info(f'r2_batch: {r2_score(rexp,rae)}')
+    logging.info(f'r2_batch_ae: {r2_score(rexp,rae)}')
     logging.info(f'MSE_ae: {MSE(rexp,rae)}')
     return {'data':np.array(rae)}
 
@@ -120,6 +120,7 @@ def anaerobic(thermalParams):
     man = pickle.load(open(os.path.join(path,'models/anaerobic.pkl'),'rb'))
     ran = etc.simulate_growth(man,dfan_batch.index+273.15,param_dict=param_dict,sigma=0.5)
     ran = [0 if x is None else x for x in ran]
+    logging.info(f"ran: {ran}")
     rexp = anaerobic_exp_data()['data']
     
     logging.info(f'r2_batch_an: {r2_score(rexp,ran)}')
