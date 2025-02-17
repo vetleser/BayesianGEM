@@ -1,0 +1,71 @@
+2025-02-17 13:50:19,827 BEGIN
+2025-02-17 13:50:19,869 Evaluating particles
+2025-02-17 13:50:19,873 All particles are identical
+2025-02-17 13:50:19,873 Evaluating Yobs
+2025-02-17 13:50:19,878 Yobs are identical
+2025-02-17 13:50:19,882 Evaluating simulated data
+2025-02-17 13:50:19,882 Evaluating rae
+2025-02-17 13:50:19,882 Values of parameter rae differ in 0 and 1 at temperatures [37.5, 40.0]
+2025-02-17 13:50:19,882 Values in 0: [0.09910567 0.01279299]
+2025-02-17 13:50:19,882 Values in 1: [0.09934408 0.        ]
+2025-02-17 13:50:19,883 Values of parameter rae differ in 0 and 2 at temperatures [37.5, 40.0]
+2025-02-17 13:50:19,883 Values in 0: [0.09910567 0.01279299]
+2025-02-17 13:50:19,883 Values in 2: [0.09934791 0.01270879]
+2025-02-17 13:50:19,883 Values of parameter rae differ in 0 and 3 at temperatures [35.0, 37.5, 40.0]
+2025-02-17 13:50:19,883 Values in 0: [0.23589165 0.09910567 0.01279299]
+2025-02-17 13:50:19,883 Values in 3: [0.2358917  0.09795056 0.01268144]
+2025-02-17 13:50:19,883 Values of parameter rae differ in 0 and 4 at temperatures [35.0, 37.5, 40.0]
+2025-02-17 13:50:19,883 Values in 0: [0.23589165 0.09910567 0.01279299]
+2025-02-17 13:50:19,883 Values in 4: [0.23589171 0.09844791 0.        ]
+2025-02-17 13:50:19,883 Values of parameter rae differ in 0 and 5 at temperatures [37.5, 40.0]
+2025-02-17 13:50:19,884 Values in 0: [0.09910567 0.01279299]
+2025-02-17 13:50:19,884 Values in 5: [0.09911633 0.01270685]
+2025-02-17 13:50:19,884 Values of parameter rae differ in 0 and 6 at temperatures [37.5, 40.0]
+2025-02-17 13:50:19,884 Values in 0: [0.09910567 0.01279299]
+2025-02-17 13:50:19,884 Values in 6: [0.09818158 0.        ]
+2025-02-17 13:50:19,884 Values of parameter rae differ in 0 and 7 at temperatures [37.5, 40.0]
+2025-02-17 13:50:19,884 Values in 0: [0.09910567 0.01279299]
+2025-02-17 13:50:19,884 Values in 7: [0.09934779 0.        ]
+2025-02-17 13:50:19,884 Values of parameter rae differ in 0 and 8 at temperatures [35.0, 37.5, 40.0]
+2025-02-17 13:50:19,884 Values in 0: [0.23589165 0.09910567 0.01279299]
+2025-02-17 13:50:19,884 Values in 8: [0.23589171 0.09934427 0.01265916]
+2025-02-17 13:50:19,885 Values of parameter rae differ in 0 and 9 at temperatures [37.5, 40.0]
+2025-02-17 13:50:19,885 Values in 0: [0.09910567 0.01279299]
+2025-02-17 13:50:19,885 Values in 9: [0.09962028 0.01270593]
+2025-02-17 13:50:19,885 Evaluating ran
+2025-02-17 13:50:19,885 Values of parameter ran differ in 0 and 1 at temperatures [40.0]
+2025-02-17 13:50:19,885 Values in 0: [0.10564318]
+2025-02-17 13:50:19,885 Values in 1: [0.]
+2025-02-17 13:50:19,885 Values of parameter ran differ in 0 and 2 at temperatures [40.0]
+2025-02-17 13:50:19,885 Values in 0: [0.10564318]
+2025-02-17 13:50:19,885 Values in 2: [0.10484026]
+2025-02-17 13:50:19,885 Values of parameter ran differ in 0 and 3 at temperatures [40.0]
+2025-02-17 13:50:19,885 Values in 0: [0.10564318]
+2025-02-17 13:50:19,885 Values in 3: [0.10480474]
+2025-02-17 13:50:19,886 Values of parameter ran differ in 0 and 4 at temperatures [40.0]
+2025-02-17 13:50:19,886 Values in 0: [0.10564318]
+2025-02-17 13:50:19,886 Values in 4: [0.]
+2025-02-17 13:50:19,886 Values of parameter ran differ in 0 and 5 at temperatures [37.5, 40.0]
+2025-02-17 13:50:19,886 Values in 0: [0.20178263 0.10564318]
+2025-02-17 13:50:19,886 Values in 5: [0.20178341 0.10490103]
+2025-02-17 13:50:19,886 Values of parameter ran differ in 0 and 6 at temperatures [40.0]
+2025-02-17 13:50:19,886 Values in 0: [0.10564318]
+2025-02-17 13:50:19,886 Values in 6: [0.10549543]
+2025-02-17 13:50:19,886 Values of parameter ran differ in 0 and 7 at temperatures [40.0]
+2025-02-17 13:50:19,886 Values in 0: [0.10564318]
+2025-02-17 13:50:19,887 Values in 7: [0.1054948]
+2025-02-17 13:50:19,887 Values of parameter ran differ in 0 and 8 at temperatures [40.0]
+2025-02-17 13:50:19,887 Values in 0: [0.10564318]
+2025-02-17 13:50:19,887 Values in 8: [0.10480478]
+2025-02-17 13:50:19,887 Values of parameter ran differ in 0 and 9 at temperatures [40.0]
+2025-02-17 13:50:19,887 Values in 0: [0.10564318]
+2025-02-17 13:50:19,887 Values in 9: [0.10494148]
+2025-02-17 13:50:19,887 Evaluating simulated data
+2025-02-17 13:50:19,887 Evaluating rae
+2025-02-17 13:50:19,887 Evaluating ran
+2025-02-17 13:50:19,888 Differences by temperature (unique value count): {35.0: {'rae': 4}, 37.5: {'rae': 10, 'ran': 2}, 40.0: {'rae': 7, 'ran': 9}}
+2025-02-17 13:50:19,888 Evaluating simulated data
+2025-02-17 13:50:19,888 Evaluating rae
+2025-02-17 13:50:19,888 Evaluating ran
+2025-02-17 13:50:19,889 Differences by temperature (max-min): {35.0: {'rae': 5.989937920669597e-08}, 37.5: {'rae': 0.0016697171262085725, 'ran': 7.7569048617665e-07}, 40.0: {'rae': 0.012792987703033599, 'ran': 0.10564318213756298}}
+2025-02-17 13:50:19,889 DONE
