@@ -1,4 +1,4 @@
-name: etcFBA_v2
+name: etcFBA
 channels:
   - gurobi
   - https://conda.anaconda.org/gurobi
@@ -36,6 +36,7 @@ dependencies:
   - scikit-learn=1.0
   - scipy=1.7.1
   - typing-extensions=3.10.0.2
+  - umap-learn=0.5.4
   - pip:
     - reframed==1.2.1
-prefix: /home/vetle-skaar-eriksen/miniconda3/envs/etcFBA_v2
+prefix: /home/vetle-skaar-eriksen/miniconda3/envs/etcFBA

@@ -12,6 +12,7 @@ import etcpy.thermal_parameters as thermal_parameters
 from .thermal_parameters import calculate_thermal_params
 
 from sympy import Float
+import gurobipy as gp
 
 T0 = 273.15
 SLACK_FACTOR = 1.0      
@@ -36,6 +37,7 @@ def simulate_growth(model: CBModel, Ts,sigma,param_dict,Tadj=0):
     '''
     rs = list()
     solver: reframed.solvers.GurobiSolver = reframed.solver_instance(model)
+    #gp.setParam('Seed', 0)
     for T in Ts:
         # map temperature constraints
         mappers = reframed_mappers
@@ -49,11 +51,11 @@ def simulate_growth(model: CBModel, Ts,sigma,param_dict,Tadj=0):
             if solution.status != reframed.solvers.solution.Status.OPTIMAL:
                 raise OptimizationError(f"Solver status is {solution.status.value}")
             r = solution.fobj
-            logging.info("Model solved successfully")
+            logging.info(f"Model solved successfully at temperature {T}")
         except OptimizationError as err:
-            logging.info(f'Failed to solve the problem, problem: {str(err)}')
+            logging.info(f'Failed to solve the problem, problem: {str(err)}. At Temperature {T}')
             r = 0
-        print(T-273.15,r)
+        #print(T-273.15,r)
         rs.append(r)
     return rs
 
