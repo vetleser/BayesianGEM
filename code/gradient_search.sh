@@ -4,7 +4,7 @@
 #SBATCH --nodes=1                    
 #SBATCH -c 1
 #SBATCH --mem=10G
-#SBATCH --array=0-9
+#SBATCH --array=0
 #SBATCH -t 01:00:00             # Upper time limit for the job
 #SBATCH --export=NONE
 
@@ -13,4 +13,4 @@ export HOME=/triumvirate/home/vetleser  # Set the HOME environment variable expl
 
 WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR}
-/triumvirate/home/vetleser/.conda/envs/etcFBA/bin/python3 gradient_search.py &> "../results/analysis/gradient_search_$SLURM_ARRAY_TASK_ID.log"
+/triumvirate/home/vetleser/.conda/envs/etcFBA/bin/python3 gradient_search.py &> "../results/analysis/gradient_search.log"
