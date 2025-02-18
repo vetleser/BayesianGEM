@@ -55,10 +55,12 @@ for protein in protein_IDs:
     df_protein_std.loc[1, protein] = std_df.get(f"{protein}_Topt", pd.Series([None])).iloc[0]
     df_protein_std.loc[2, protein] = std_df.get(f"{protein}_dCpt", pd.Series([None])).iloc[0]
 
-df_protein_std["Value_type"] = ["Tm", "T_opt", "dCpt"]
+#df_protein_std["Value_type"] = ["T_m", "T_opt", "dCpt"]
 
 dump_pickle(df_protein_std, f"{outdir}/df_protein_std.pkl")
-#print(df_protein_std)
+sorted_df = std_df.sort_values(by=std_df.index[0], axis=1)
+
+print(sorted_df)
 
 logging.info("Creating DataFrame with Protein-columns, each parameter MEAN as a row")
 df_protein_mean = pd.DataFrame(columns=protein_IDs)
@@ -111,8 +113,8 @@ for ID in protein_IDs:
     tm = ID + "_Tm"
     topt = ID + "_Topt"
 
-    x_values.append(std_df[tm].values[0])
-    y_values.append(std_df[topt].values[0])
+    x_values.append(std_df[topt].values[0])
+    y_values.append(std_df[tm].values[0])
 
 
 logging.info("Plotting Standard Deviation (T_m, T_opt) of all proteins")
@@ -121,10 +123,21 @@ logging.info("Plotting Standard Deviation (T_m, T_opt) of all proteins")
 plt.figure(figsize=(10, 5))
 plt.scatter(x_values, y_values, color='b', alpha=0.6)
 
+# max_x = max(x_values)+5
+# max_y = max(y_values)+5
+# tick_step = 2
+
+# plt.xlim(0, max_x)  # Replace with actual max value
+# plt.ylim(0, max_y)
+# plt.xticks(np.arange(0, max_x, tick_step))  # Define tick_step
+# plt.yticks(np.arange(0, max_y, tick_step))
+plt.gca().set_aspect("equal", adjustable="box")
+
+
 # Labels and title
-plt.xlabel("T_m")
-plt.ylabel("T_opt")
-plt.title("Scatter Plot Standard Deviation of T_m and T_opt")
+plt.xlabel(r"Standard Deviation of $T_{\mathrm{opt}}$ ($^\circ$C)")
+plt.ylabel(r"Standard Deviation of $T_m$ ($^\circ$C)")
+plt.title("Variation in Optimal and Melting Temperatures Across Proteins")
 
 # Save and show
 plt.savefig("../figures/analysis/scatter_plot_T_m_and_T_opt.png")
@@ -135,7 +148,7 @@ plt.show()
 logging.info("Plotting mean and std for Temperatures")
 filtered_columns = [col for col in std_df.columns if not col.endswith("_dCpt")]
 
-x_values = mean_df[filtered_columns].values[0]
+x_values = mean_df[filtered_columns].values[0]-273.15
 y_values = std_df[filtered_columns].values[0]
 
 # Initialize color list
@@ -156,24 +169,19 @@ plt.figure(figsize=(10, 5))
 plt.scatter(x_values, y_values, c =colors, alpha=0.6)
 
 # Labels and title
-plt.xlabel("Mean")
-plt.ylabel("Std")
-plt.title("Scatter Plot Standard Deviation and Mean")
+plt.xlabel(r"Mean Temperature ($^\circ$C)")
+plt.ylabel(r"Standard Deviation ($^\circ$C)")
+plt.title(r"Temperature Variability of Proteins")
 
-# Get current tick positions
-xticks = plt.gca().get_xticks()
-
-# Set new labels (Kelvin to Celsius conversion)
-plt.gca().set_xticklabels([f"{t - 273.15:.1f}" for t in xticks])
 
 legend_labels = {
-    'Topt': 'b',  # Blue for Topt
-    'Tm': 'r',    # Red for Tm
+    r'T_{\mathrm{opt}}': 'b',  # Blue for Topt
+    r'T_{\mathrm{m}}': 'r',    # Red for Tm
 }
 
 handles = [
-    Line2D([0], [0], marker='o', color='w', markerfacecolor='b', markersize=10, alpha=0.6, label='Topt'),
-    Line2D([0], [0], marker='o', color='w', markerfacecolor='r', markersize=10, alpha=0.6, label='Tm')
+    Line2D([0], [0], marker='o', color='w', markerfacecolor='b', markersize=12, alpha=0.6, label=r'$T_{\mathrm{opt}}$'),
+    Line2D([0], [0], marker='o', color='w', markerfacecolor='r', markersize=12, alpha=0.6, label=r'$T_{\mathrm{m}}$')
 ]
 plt.legend(handles=handles)
 
@@ -193,9 +201,10 @@ plt.figure(figsize=(10, 5))
 plt.scatter(x_values, y_values, color='g', alpha=0.6)
 
 # Labels and title
-plt.xlabel("Mean")
-plt.ylabel("Std")
-plt.title("Scatter Plot Standard Deviation and Mean of dCpt")
+plt.title(r"Heat Capacity Change Variability in Proteins")
+plt.xlabel(r"Mean $\Delta C_p^{‡}$ (J/mol$\cdot$K)")
+plt.ylabel(r"Standard Deviation of $\Delta C_p^{‡}$ (J/mol$\cdot$K)")
+
 
 plt.savefig("../figures/analysis/scatter_plot_mean_std _dCpt.png")
 
@@ -221,19 +230,20 @@ plt.figure(figsize=(10, 5))
 plt.scatter(x_values, y_values, c=colors, alpha=0.6)
 
 # Labels and title
-plt.ylabel("CV")
-plt.title("Scatter Plot Coefficient of Variation")
+plt.title(r"Coefficient of Variation for Protein Parameters")
+plt.xlabel(r"Parameter Index")
+plt.ylabel(r"Coefficient of Variation (Std / Mean)")
 
 legend_labels = {
-    'Topt': 'b',  # Blue for Topt
-    'Tm': 'r',    # Red for Tm
-    'dCpt': 'g',  # Green for dCpt
+    r'$T_{\mathrm{opt}}$': 'b',  # Blue for Topt
+    r'$T_{\mathrm{m}}$': 'r',    # Red for Tm
+    r'$\Delta C_p^{‡}$': 'g',  # Green for dCpt
 }
 
 handles = [
-    Line2D([0], [0], marker='o', color='w', markerfacecolor='b', markersize=10, alpha=0.6, label='Topt'),
-    Line2D([0], [0], marker='o', color='w', markerfacecolor='r', markersize=10, alpha=0.6, label='Tm'),
-    Line2D([0], [0], marker='o', color='w', markerfacecolor='g', markersize=10, alpha=0.6, label='dCpt')
+    Line2D([0], [0], marker='o', color='w', markerfacecolor='b', markersize=10, alpha=0.6, label=r'$T_{\mathrm{opt}}$'),
+    Line2D([0], [0], marker='o', color='w', markerfacecolor='r', markersize=10, alpha=0.6, label=r'$T_{\mathrm{m}}$'),
+    Line2D([0], [0], marker='o', color='w', markerfacecolor='g', markersize=10, alpha=0.6, label=r'$\Delta C_p^{‡}$')
 
 ]
 
@@ -247,8 +257,8 @@ logging.info("Plotting mean/mean Tm/Topt")
 filtered_columns1 = [col for col in mean_df.columns if col.endswith("_Tm")]
 filtered_columns2 = [col for col in mean_df.columns if col.endswith("_Topt")]
 
-x_values = mean_df[filtered_columns1].values[0]
-y_values = mean_df[filtered_columns2].values[0]
+x_values = mean_df[filtered_columns1].values[0]-273.15
+y_values = mean_df[filtered_columns2].values[0]-273.15
 
 
 
@@ -257,17 +267,18 @@ plt.figure(figsize=(10, 5))
 plt.scatter(x_values, y_values, color='g', alpha=0.6)
 
 # Labels and title
-plt.xlabel("Mean T_m")
-plt.ylabel("Mean T_opt")
-plt.title("Scatter Plot Standard Deviation and Mean Tm and Mean Topt")
+plt.title(r"Relationship Between Mean Optimal and Melting Temperatures of Proteins")
+plt.xlabel(r"Mean $T_{\mathrm{m}}$ ($^\circ$C)")
+plt.ylabel(r"Mean $T_{\mathrm{opt}}$ ($^\circ$C)")
 
-# Get current tick positions
-xticks = plt.gca().get_xticks()
-yticks = plt.gca().get_yticks()
 
-# Set new labels (Kelvin to Celsius conversion)
-plt.gca().set_xticklabels([f"{t - 273.15:.1f}" for t in xticks])
-plt.gca().set_yticklabels([f"{t - 273.15:.1f}" for t in yticks])
+# # Get current tick positions
+# xticks = plt.gca().get_xticks()
+# yticks = plt.gca().get_yticks()
+
+# # Set new labels (Kelvin to Celsius conversion)
+# plt.gca().set_xticklabels([f"{t - 273.15:.1f}" for t in xticks])
+# plt.gca().set_yticklabels([f"{t - 273.15:.1f}" for t in yticks])
 
 plt.savefig("../figures/analysis/scatter_plot_mean_Mean.png")
 
@@ -293,17 +304,28 @@ plt.figure(figsize=(10, 5))
 plt.scatter(x_values, y_values, c=colors, alpha=0.6)
 
 # Labels and title
-plt.ylabel("CV")
-plt.title("Scatter Plot Coefficient of Variation")
+plt.title(r"Coefficient of Variation for Temperature Parameters")
+plt.xlabel(r"Parameter Index")
+plt.ylabel(r"Coefficient of Variation (Std / Mean)")
+
+# legend_labels = {
+#     'Topt': 'b',  # Blue for Topt
+#     'Tm': 'r',    # Red for Tm
+# }
+
+# handles = [
+#     Line2D([0], [0], marker='o', color='w', markerfacecolor='b', markersize=10, alpha=0.6, label='Topt'),
+#     Line2D([0], [0], marker='o', color='w', markerfacecolor='r', markersize=10, alpha=0.6, label='Tm')
+# ]
 
 legend_labels = {
-    'Topt': 'b',  # Blue for Topt
-    'Tm': 'r',    # Red for Tm
+    r'T_{\mathrm{opt}}': 'b',  # Blue for Topt
+    r'T_{\mathrm{m}}': 'r',    # Red for Tm
 }
 
 handles = [
-    Line2D([0], [0], marker='o', color='w', markerfacecolor='b', markersize=10, alpha=0.6, label='Topt'),
-    Line2D([0], [0], marker='o', color='w', markerfacecolor='r', markersize=10, alpha=0.6, label='Tm')
+    Line2D([0], [0], marker='o', color='w', markerfacecolor='b', markersize=12, alpha=0.6, label=r'$T_{\mathrm{opt}}$'),
+    Line2D([0], [0], marker='o', color='w', markerfacecolor='r', markersize=12, alpha=0.6, label=r'$T_{\mathrm{m}}$')
 ]
 
 plt.legend(handles=handles)
