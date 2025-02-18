@@ -275,5 +275,21 @@ evaluate_simulated_data1()
 evaluate_simulated_data3()
 evaluate_simulated_data2()
 
+Yobs = Yobs_list[0]
+distance_function = GEMS.distance_2
+distances =[]
+
+logging.info("Measuring distances")
+for i, simulated_data in enumerate(simulated_data_list):
+    d = distance_function(Yobs, simulated_data)
+    logging.info(f"R2 for simulation {i} is {d}")
+
+logging.info("Evaluating Distance Function")
+distances2 = []
+for i in range(10):
+    d = distance_function(Yobs_list[0], simulated_data_list[0])
+    distances2.append(d)
+
+logging.info(f"Distances are: {distances2}")
 
 logging.info("DONE")
