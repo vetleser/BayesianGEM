@@ -50,6 +50,8 @@ def simulate_growth(model: CBModel, Ts,sigma,param_dict,Tadj=0, max_attempts = 1
         solver.update()
         success = False
         for attempt in range(1, max_attempts+1):
+            # if(attempt>1):
+            #     gp.setParam('Seed', attempt)
             try:
                 solution = solver.solve(linear=model.get_objective(),minimize=False)
                 if solution.status != reframed.solvers.solution.Status.OPTIMAL:
@@ -64,7 +66,7 @@ def simulate_growth(model: CBModel, Ts,sigma,param_dict,Tadj=0, max_attempts = 1
             rs.append(r)
         else:
             logging.info(f"Failed to solve problem after {max_attempts} attempts")
-            rs.append(0) #Still returns 0 after failing to solve. Should fix later. For example: Return NaN, and stop checking if NaN is encountered in distance function
+            rs.append(np.nan) #Still returns 0 after failing to solve. Should fix later. For example: Return NaN, and stop checking if NaN is encountered in distance function
     return rs
 
 

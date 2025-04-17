@@ -15,7 +15,7 @@ from sklearn.metrics import mean_squared_error as MSE
 from sklearn.metrics import r2_score
 from itertools import starmap
 from etcpy.thermal_parameters import format_input
-
+import math
 
 candidateType = Dict[str, float]
 
@@ -105,10 +105,16 @@ def aerobic(thermalParams):
     rae = [0 if x is None else x for x in rae]
     rae = [0 if x<1e-3 else x for x in rae]
     logging.info(f"rae: {rae}")
+
+    if any(np.isnan(x) for x in rae):
+        logging.info("NaN in rae GEMS.aerobic")
+        return {'data':np.array(rae)}
+
     rexp = aerobic_exp_data()['data']
     
     logging.info(f'r2_batch_ae: {r2_score(rexp,rae)}')
     logging.info(f'MSE_ae: {MSE(rexp,rae)}')
+    
     return {'data':np.array(rae)}
 
 
@@ -116,11 +122,18 @@ def aerobic(thermalParams):
 
 
 def anaerobic(thermalParams):
+    # thermalParams: a dictionary with ids like uniprotid_Topt 
     param_dict = format_input(params,thermalParams)
     man = pickle.load(open(os.path.join(path,'models/anaerobic.pkl'),'rb'))
     ran = etc.simulate_growth(man,dfan_batch.index+273.15,param_dict=param_dict,sigma=0.5)
+
     ran = [0 if x is None else x for x in ran]
     logging.info(f"ran: {ran}")
+
+    if any(np.isnan(x) for x in ran):
+        logging.info("NaN in ran GEMS.anaerobic")
+        return {'data':np.array(ran)}
+
     rexp = anaerobic_exp_data()['data']
     
     logging.info(f'r2_batch_an: {r2_score(rexp,ran)}')
@@ -309,6 +322,14 @@ def distance(x,y):
 def distance_2(x,y):
     # x: True Yobs, {'rae':...,'ran'}
     # y: simulated {'rae':...,}
+
+    if (x is None or y is None): #Would like to remove this, made as a consequence of gradient_search.py
+        return 0
+
+    for k in y.keys():
+        if any(np.isnan(x) for x in y[k]):
+            logging.info("NaN in array GEMS.distance_2")
+            return 0
     
     r2s = {k:r2_score(x[k],y[k])for k in x.keys()}
     logging.info(f'Model r2: {r2s}')
