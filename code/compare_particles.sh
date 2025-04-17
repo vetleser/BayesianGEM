@@ -12,4 +12,4 @@ export HOME=/triumvirate/home/vetleser  # Set the HOME environment variable expl
 
 WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR}
-/triumvirate/home/vetleser/.conda/envs/etcFBA/bin/python3 compare_particles.py &> "../results/analysis/compare_particles.log"
+/triumvirate/home/vetleser/.conda/envs/etcFBA/bin/python3 compare_particles.py &> "../results/analysis/apr14/compare_particles.log"

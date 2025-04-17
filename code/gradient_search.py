@@ -28,7 +28,7 @@ import gurobipy as gp
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 logging.info("BEGIN")
-outdir = "../results/analysis"
+outdir = "../results/analysis/apr14"
 start_full = time.time()
 
 simResultType = Dict[str, npt.NDArray[np.float64]]
@@ -61,14 +61,6 @@ gp.setParam('Crossover', 0)  # Disable crossover for barrier method
 np.set_printoptions(precision=15)
 
 
-#Assert random seeds
-
-# file = load_pickle(f"{outdir}/evo_combined_df_R098.pkl")
-# file = file.iloc[:, :-2] #Remove trailing columns of particle ID and simulation number
-# model_particle: candidateType = file.loc[file["r2"].idxmax()].to_dict()
-# r2_value = -model_particle.pop("r2")
-# logging.info(f"r2 value of model particle is: {r2_value}")
-
 # Load the data, create particle as dict
 logging.info("Load particle and transform to dict")
 file = load_pickle(f"{outdir}/evo_combined_df_R098.pkl")
@@ -91,7 +83,7 @@ Yobs_batch_an = {'data':dfan_batch.loc[sel_temp,'r_an'].values}
 Yobs = {'rae':Yobs_batch['data'],
             'ran':Yobs_batch_an['data']}
 
-dump_pickle(Yobs, f"{outdir}/Yobs_{task_idx}.pkl")
+#dump_pickle(Yobs, f"{outdir}/Yobs_{task_idx}.pkl")
 
 def evaluate_candidate(param_values: NDArray[np.float64]):
     # Specifying timeout of 30 minutes
@@ -103,7 +95,7 @@ def evaluate_candidate(param_values: NDArray[np.float64]):
     for i, param in enumerate(params_to_change):
         candidate[param] = param_values[i]
     
-    dump_pickle(candidate, f"{outdir}/model_particle_{task_idx}.pkl")
+    #dump_pickle(candidate, f"{outdir}/model_particle_{task_idx}.pkl")
 
     success = False
     simulated_data = None
@@ -115,8 +107,8 @@ def evaluate_candidate(param_values: NDArray[np.float64]):
     except Exception as e:
         logging.error(f"Candidate evaluation failed: {e}")
     
-    if success == True and simulated_data is not None:
-        distance = distance_function(Yobs, simulated_data)
+    distance = distance_function(Yobs, simulated_data)
+
     dump_pickle(simulated_data, f"{outdir}/simulated_data_{task_idx}.pkl")
     #print(simulated_data)
         
@@ -148,7 +140,9 @@ all_params_values = np.array(list(model_particle.values()))
 
 x0_fixed = copy.deepcopy(x0)
 
-distances = []
+calculated_r2 = evaluate_candidate(x0_fixed)
+
+# distances = []
 
 # for i in range(3):
 #     logging.info(f"Running evaluation {i+1}")
@@ -157,7 +151,7 @@ distances = []
 #     logging.info(f"Simulation {i+1}: Distance is {d}, difference is {d-r2_value}")
 
 
-calculated_r2 = evaluate_candidate(x0_fixed)
+
 #logging.info(f"Calculated r2: {calculated_r2}")
 
 
@@ -177,7 +171,7 @@ calculated_r2 = evaluate_candidate(x0_fixed)
 
 end_full = time.time()
 
-logging.info(f"nvar: {nvar}, maxiter: {maxiter}, total time: {(end_full-start_full)/60} minutes")
+# logging.info(f"nvar: {nvar}, maxiter: {maxiter}, total time: {(end_full-start_full)/60} minutes")
 
 
 #logging.info(f"Distances are {distances}")

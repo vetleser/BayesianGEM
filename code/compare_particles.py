@@ -25,7 +25,7 @@ import gurobipy as gp
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 logging.info("BEGIN")
-outdir = "../results/analysis"
+outdir = "../results/analysis/apr14"
 start_full = time.time()
 
 simResultType = Dict[str, npt.NDArray[np.float64]]
@@ -41,28 +41,29 @@ def load_pickle(filename):
 def dump_pickle(obj,filename):
     return pickle.dump(obj=obj,file=open(file=filename, mode='wb'))
 
-n_simulations = 10
+n_simulations = 20
 tolerance = 1e-8  # Adjust tolerance if needed
 
 
-model_particle_list = [load_pickle(f"{outdir}/model_particle_{ID}.pkl") for ID in range(n_simulations)]
+# model_particle_list = [load_pickle(f"{outdir}/model_particle_{ID}.pkl") for ID in range(n_simulations)]
+model_particle = load_pickle(f"{outdir}/model_particle.pkl")
 
-logging.info("Evaluating particles")
-particle_success = True
-for key in model_particle_list[0]:
-    #logging.info(f"Evaluating {key}")
-    reference_value = model_particle_list[0][key]
+# logging.info("Evaluating particles")
+# particle_success = True
+# for key in model_particle_list[0]:
+#     #logging.info(f"Evaluating {key}")
+#     reference_value = model_particle_list[0][key]
     
-    for i, model in enumerate(model_particle_list[1:], start=1):
-        if model[key] != reference_value:
-            logging.info(f"Value of parameter {key} different in 0 and {i}")
-            particle_success = False
-            break
+#     for i, model in enumerate(model_particle_list[1:], start=1):
+#         if model[key] != reference_value:
+#             logging.info(f"Value of parameter {key} different in 0 and {i}")
+#             particle_success = False
+#             break
 
-if particle_success:
-    logging.info("All particles are identical")
-else:
-    logging.info("Inconsistencies between particles")
+# if particle_success:
+#     logging.info("All particles are identical")
+# else:
+#     logging.info("Inconsistencies between particles")
 
 
 # for key in model_particle1:
@@ -74,34 +75,34 @@ else:
 #         logging.info(f"Value of parameter {key} different in 1 and 3")
 #         break
 
-logging.info("Evaluating Yobs")
-Yobs_list = [load_pickle(f"{outdir}/Yobs_{ID}.pkl") for ID in range(n_simulations)]
-Yobs_success = True
-for key in Yobs_list[0]:
-    #logging.info(f"Evaluating {key}")
+# logging.info("Evaluating Yobs")
+# Yobs_list = [load_pickle(f"{outdir}/Yobs_{ID}.pkl") for ID in range(n_simulations)]
+# Yobs_success = True
+# for key in Yobs_list[0]:
+#     #logging.info(f"Evaluating {key}")
 
-    reference_value = Yobs_list[0].get(key)
+#     reference_value = Yobs_list[0].get(key)
 
-    for i, Yobs in enumerate(Yobs_list[1:], start=1):
-        current_value = Yobs.get(key)
+#     for i, Yobs in enumerate(Yobs_list[1:], start=1):
+#         current_value = Yobs.get(key)
 
-        if isinstance(reference_value, np.ndarray) and isinstance(current_value, np.ndarray):
-            # Find mismatches with tolerance
-            diff_indices = np.where(~np.isclose(reference_value, current_value, atol=tolerance, rtol=0))[0]
-            if diff_indices.size > 0:
-                logging.info(f"Values of parameter {key} differ in 0 and {i} at indices {diff_indices}")
-                logging.info(f"Values in 0: {reference_value[diff_indices]}")
-                logging.info(f"Values in {i}: {current_value[diff_indices]}")
-                Yobs_success = False
-        else:
-            if not np.isclose(reference_value, current_value, atol=tolerance):
-                logging.info(f"Value of parameter {key} different in 0 and {i}: {reference_value} vs {current_value}")
-                Yobs_success = False
+#         if isinstance(reference_value, np.ndarray) and isinstance(current_value, np.ndarray):
+#             # Find mismatches with tolerance
+#             diff_indices = np.where(~np.isclose(reference_value, current_value, atol=tolerance, rtol=0))[0]
+#             if diff_indices.size > 0:
+#                 logging.info(f"Values of parameter {key} differ in 0 and {i} at indices {diff_indices}")
+#                 logging.info(f"Values in 0: {reference_value[diff_indices]}")
+#                 logging.info(f"Values in {i}: {current_value[diff_indices]}")
+#                 Yobs_success = False
+#         else:
+#             if not np.isclose(reference_value, current_value, atol=tolerance):
+#                 logging.info(f"Value of parameter {key} different in 0 and {i}: {reference_value} vs {current_value}")
+#                 Yobs_success = False
 
-if Yobs_success:
-    logging.info("Yobs are identical")
-else:
-    logging.info("Yobs are not identical")
+# if Yobs_success:
+#     logging.info("Yobs are identical")
+# else:
+#     logging.info("Yobs are not identical")
 
 
 simulated_data_list = [load_pickle(f"{outdir}/simulated_data_{ID}.pkl") for ID in range(n_simulations)]
@@ -271,25 +272,35 @@ def evaluate_simulated_data3():
                             
 
 
-evaluate_simulated_data1()
-evaluate_simulated_data3()
-evaluate_simulated_data2()
+#evaluate_simulated_data1()
+#evaluate_simulated_data3()
+#evaluate_simulated_data2()
 
-Yobs = Yobs_list[0]
+Yobs = load_pickle(f"{outdir}/Yobs.pkl")
 distance_function = GEMS.distance_2
-distances =[]
+distances =[distance_function(Yobs, simulated_data) for simulated_data in simulated_data_list]
+
+logging.info("Finding difference in r2")
+logging.info(f"Difference is {max(distances - min(distances))}")
+
+
 
 logging.info("Measuring distances")
 for i, simulated_data in enumerate(simulated_data_list):
     d = distance_function(Yobs, simulated_data)
     logging.info(f"R2 for simulation {i} is {d}")
 
-logging.info("Evaluating Distance Function")
-distances2 = []
-for i in range(10):
-    d = distance_function(Yobs_list[0], simulated_data_list[0])
-    distances2.append(d)
+# logging.info("Evaluating Distance Function")
+# distances2 = []
+# for i in range(10):
+#     d = distance_function(Yobs_list[0], simulated_data_list[0])
+#     distances2.append(d)
 
-logging.info(f"Distances are: {distances2}")
+# logging.info(f"Distances are: {distances2}")
+
+sim_data = load_pickle(f"{outdir}/simulated_data_11.pkl")
+logging.info(sim_data)
+
+logging.info(f"Test {sim_data['ran'][-1] == float('nan')}")
 
 logging.info("DONE")
