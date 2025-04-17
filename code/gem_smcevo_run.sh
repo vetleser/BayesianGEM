@@ -10,5 +10,4 @@
 
 WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR}
-
 /triumvirate/home/vetleser/.conda/envs/etcFBA/bin/python3 gem_smcevo_run.py &> "../results/crowdingDE/gem_smcevo_$SLURM_ARRAY_TASK_ID.log"

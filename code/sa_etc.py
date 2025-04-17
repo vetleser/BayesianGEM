@@ -16,6 +16,7 @@ from multiprocessing import cpu_count
 from pebble.concurrent.process import TimeoutError
 import pebble
 from random_sampler import RV
+import copy
 
 simResultType = Dict[str, npt.NDArray[np.float64]]
 priorType = Dict[str, RV]
@@ -23,14 +24,25 @@ candidateType = Dict[str, float]
 distanceArgType = Dict[str, npt.NDArray[np.float64]]
 
 
-class CrowdingDE():
-    def __init__(self, simulator: Callable[[candidateType], simResultType], priors : priorType, min_epsilon: float,
-    distance_function: Callable[[distanceArgType, distanceArgType], float],
-                 Yobs: distanceArgType, outfile: str,cores: int = cpu_count(),
-                 generation_size: int = 128, scaling_factor: float = 0.5, crossover_prob = 0.9,
-                 maxiter: int = 100000, rng: np.random.Generator = None, n_children : int = 2,
-                  save_intermediate: bool = False):
-        """Implements the Crowding Differential Evolution algorithm designed to detect multiple optima in the fitness landscape
+class SimulatedAnnealing():
+    def __init__(self, 
+                 simulator: Callable[[candidateType], simResultType], 
+                 priors : priorType, 
+                 min_epsilon: float,
+                 distance_function: Callable[[distanceArgType, distanceArgType], float],
+                 Yobs: distanceArgType, 
+                 outfile: str,
+                 cores: int = cpu_count(),
+                 maxiter: int = 100000, 
+                 rng: np.random.Generator = None, 
+                 save_intermediate: bool = False,
+                 
+                 generation_size: int = 128,
+                 cooling_rate: float = 0.95,
+                 initial_temp: float = 100,
+                 final_temp: float = 0.1 
+                 ):
+        """Implements the Simulated Annealing algorithm designed to detect multiple optima in the fitness landscape
 
         Args:
             simulator (Callable[[candidateType], simResultType]): a function that takes a dictionary of parameters as input. Ouput {'data':Ysim}
@@ -81,12 +93,12 @@ class CrowdingDE():
         # Specifies the generation each of the particles are born in
         self.birth_generation: List[int] = []
         self.generation = 0
-        self.n_children = n_children
-        self.crossover_prob = crossover_prob
-        self.scaling_factor = scaling_factor
         self.save_intermediate = save_intermediate
 
-        self.generation_time = np.array([])
+        self.cooling_rate = cooling_rate
+        self.initial_temp = initial_temp
+        self.current_temp = initial_temp
+        self.final_temp = final_temp
 
 
     def generator(self) -> candidateType:
@@ -160,12 +172,9 @@ class CrowdingDE():
                     candidate_counter += 1
         else:
                 try:
+                    # This code takes care of stalled parallel processes
                     with pebble.ProcessPool(self.cores) as p:
-                        #Wrapping simulator
-                        serialized_simulator = dill.dumps(self.simulator)
-                        simulator_func = dill.loads(serialized_simulator)
-                        #Old attempt
-                        res_iter: Iterable[simResultType] = p.map(simulator_func, candidates,timeout=timeout).result()
+                        res_iter: Iterable[simResultType] = p.map(self.simulator, candidates,timeout=timeout).result()
                         while True:
                             try:
                                 raw_res = res_iter.next()
@@ -197,9 +206,6 @@ class CrowdingDE():
         logging.debug('Completed parallel evaluation of candiates in {0} seconds'.format(end - start))
         return
 
-    def select_parents(self, current_population: npt.NDArray[np.int64]) -> npt.NDArray[np.int64]:
-            parents = self.rng.choice(current_population, size=self.n_children, replace=False)
-            return parents
 
     def mutate_param(self,candidate, entry: str):
             candidate[entry] = self.priors[entry].rvfv()
@@ -229,21 +235,6 @@ class CrowdingDE():
         return sum([(particle_1[key] - particle_2[key])**2 / (self.param_std[key]**2 + epsilon) for key in self.param_std.keys()])
 
 
-    def create_offspring(self,primary_parent: int,parent_2: int,parent_3: int)-> candidateType:
-        parent_2_particle = self.all_particles[parent_2]
-        parent_3_particle = self.all_particles[parent_3]
-        offspring_particle = {parameter: value for parameter, value in self.all_particles[primary_parent].items()}
-        mutate_start = self.rng.choice(self.n_parameters)
-        for i in range(mutate_start,mutate_start+len(self.parameter_names)):
-            if self.rng.uniform() > self.crossover_prob:
-                break
-            parameter_to_mutate = self.parameter_names[i % self.n_parameters]
-            old_parameter_value = offspring_particle[parameter_to_mutate]
-            offspring_particle[parameter_to_mutate] += self.scaling_factor*(parent_2_particle[parameter_to_mutate]-parent_3_particle[parameter_to_mutate])
-            if not self.check_validity(offspring_particle,parameter_to_mutate):
-                # This new parameter value violates our constraints, so we must revert the change
-                offspring_particle[parameter_to_mutate] = old_parameter_value
-        return offspring_particle
 
     def replace_population(self,original_population: npt.NDArray[np.int64], children: npt.NDArray[np.int64]):
         logging.info(f"Replacing population with children")
@@ -261,27 +252,57 @@ class CrowdingDE():
         logging.info(f"Updating population")
         self.population.append(list(current_population))
 
-    def generate_children(self, primary_parents: npt.NDArray[np.int64],secondary_parents: npt.NDArray[np.int64]):
-        # Generate children
-        logging.info(f"Generating {self.n_children} children")
-        children: List[candidateType] = []
-        for primary_parent in primary_parents:
-            parent_2, parent_3 = self.rng.choice(secondary_parents,size=2,replace=False)
-            children.append(self.create_offspring(primary_parent, parent_2, parent_3))
-        logging.info(f"Evaluating fitness of children")
-        self.evaluate_candiates(children)
+
+    def change_all_parameters(self, old_particle):
+        logging.info("Changing all parameters of a particle")
+        new_particle = copy.deepcopy(self.all_particles[old_particle])
+        for key in new_particle:
+            old_parameter_value = new_particle[key]
+            new_particle[key] += np.random.normal(0, 0.1)
+            if not self.check_validity(new_particle,key):
+                # This new parameter value violates our constraints, so we must revert the change
+                new_particle[key] = old_parameter_value
+        return new_particle
+
+    def simple_evaluation(self, particle1, particle2):
+        return particle2
+        
+
+
+    def update_population(self, original_population: npt.NDArray[np.int64]):
+        logging.info(f"Applying Simulated Annealing to current population")
+        new_population: Set[int] = set(original_population)
+        for particle in original_population:
+            new_particle = self.change_all_parameters(particle)
+            chosen_particle = self.simple_evaluation(particle, new_particle)
+            new_population.remove(particle)
+            new_population.add(chosen_particle)
+        self.population.append(list(new_population))
+        return
+
+        
+
+   
 
     def simulate_generation(self):
         current_population = np.array(list(self.population[-1]))
-        primary_parents = self.select_parents(current_population=current_population)
-        secondary_parents = np.setdiff1d(current_population,primary_parents)
-        self.generate_children(primary_parents,secondary_parents)
-        children_idxs = np.flatnonzero(np.array(self.birth_generation) == self.generation)
-        self.replace_population(current_population,children=children_idxs)
+
+        #Remove
+        # primary_parents = self.select_parents(current_population=current_population)
+        # secondary_parents = np.setdiff1d(current_population,primary_parents)
+        # self.generate_children(primary_parents,secondary_parents)
+        # children_idxs = np.flatnonzero(np.array(self.birth_generation) == self.generation)
+        
+        
+        
+        #Replace
+        #self.replace_population(current_population,children=children_idxs)
+        self.update_population(current_population)
+
         max_generation_epsilon = max(self.all_distances[p] for p in self.population[-1])
         self.epsilons.append(max_generation_epsilon)
         self.update_std()
-        logging.info(f"Model epsilon {max_generation_epsilon}")
+        #logging.info(f"Model epsilon {max_generation_epsilon}")
 
 
     def run_simulation(self) -> None:
@@ -294,7 +315,7 @@ class CrowdingDE():
             logging.info("Generating initial population")
             initial_population = [self.generator() for _ in range(self.generation_size)]
             logging.info("Evaluating initial population")
-            self.evaluate_candiates(initial_population)
+            #self.evaluate_candiates(initial_population)
             # Assign all individuals to be part of the first generation,
             # but beware, some of the evaluation tasks may have timed out
             self.population.append(list(range(len(self.all_particles))))
@@ -306,38 +327,25 @@ class CrowdingDE():
             if self.save_intermediate:
                     dill.dump(self,open(self.outfile,'wb'))
     
+        
         while self.generation <= self.maxiter:
-            start = time.time()
             if max_generation_epsilon < self.min_epsilon:
                 logging.info(f"Fitness objective reached at generation {self.generation}")
                 logging.info(f"Exiting evolution")
                 break
+            if self.current_temp < self.final_temp:
+                logging.info(f"Temperature has reached a minimum at generation {self.generation}")
             
-            logging.info(f"Running generation {self.generation} of {self.maxiter}")
+            logging.info(f"Running generation {self.generation} of {self.maxiter}. Current temperature: {self.current_temp}")
             self.simulate_generation()
             self.generation += 1
+            self.current_temp *= self.cooling_rate
             if self.save_intermediate:
                     dill.dump(self,open(self.outfile,'wb'))
-            end = time.time()
-
-            self.generation_time = np.append(self.generation_time, end-start)
-            logging.info(f"Time duration for evaluating generation appended to list, {end-start} seconds")
         else:
             # This else-clause belongs to the main evolution loop
             logging.info("Fitness objective not reached after maximum number of generations")
             logging.info("Exiting evolution")
         
-        
-        
-        logging.info(f'Average time per generation is {np.mean(self.generation_time)} with {self.cores} cores.')
-
-        result_file = "../results/test/test_cores.txt"
-        try:
-            with open(result_file, "a", encoding="utf-8") as file:
-                file.write(f'Average time per generation is {np.mean(self.generation_time)} with {self.cores} cores. Population size {self.generation_size}, children size {self.n_children} \n')
-                logging.info(f"Content successfully written to {result_file}")
-        except Exception as e:
-            print(f"An error occurred: {e}")
-        
         logging.info(f"Saving results to {self.outfile}")
-        #dill.dump(self, file=open(self.outfile,mode='wb'))
+        dill.dump(self, file=open(self.outfile,mode='wb'))

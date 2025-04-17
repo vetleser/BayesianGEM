@@ -7,13 +7,15 @@ import random_sampler
 import numpy as np
 import abc_etc as abc
 import evo_etc as evo
+import sa_etc as sa
 import os
 import math
 import logging
 import copy
 
+
 # logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
-random_seed = 5353
+random_seed = 5354 #Changing the seed gives new evolutionary population. Bayesian population is new even for same seed
 maxiter = 200
 Yobs = None
 min_epsilon = -1
@@ -66,34 +68,71 @@ def distribution_is_bimodal(model: evo.CrowdingDE, tol = 10e-3):
     return upper_optimum_reached and lower_optimum_reached
 
 
-for i in range(n_iterations):
-    bayesian_model = abc.SMCABC(simulator=simulator,
-                                    priors=copy.deepcopy(priors),
-                                    min_epsilon=-1,
-                                    population_size=32,
-                                    distance_function=fitness_function,
-                                    Yobs=Yobs,
-                                    outfile=f"{outdir}/bayesian_{i}.pkl",
-                                    generation_size=32,
-                                    cores=1,
-                                    maxiter=maxiter)
-    bayesian_model.run_simulation()
+# for i in range(n_iterations):
+#     bayesian_model = abc.SMCABC(simulator=simulator,
+#                                     priors=copy.deepcopy(priors),
+#                                     min_epsilon=-1,
+#                                     population_size=32,
+#                                     distance_function=fitness_function,
+#                                     Yobs=Yobs,
+#                                     outfile=f"{outdir}/bayesian_{i}.pkl",
+#                                     generation_size=32,
+#                                     cores=1,
+#                                     maxiter=maxiter)
+#     bayesian_model.run_simulation()
+
+# for j in range(4):
+#     random_seed += 1
+#     rng = np.random.default_rng(random_seed)
+#     for i in range(n_iterations):
+#         crowdingDE_model = evo.CrowdingDE(simulator=simulator,
+#                                     priors=copy.deepcopy(priors),
+#                                     min_epsilon=-1,
+#                                     generation_size=32,
+#                                     distance_function=fitness_function,
+#                                     Yobs=Yobs,
+#                                     outfile=f"{outdir}/crowdingDE_{j}_{i}.pkl",
+#                                     maxiter=maxiter,
+#                                     rng=rng,
+#                                     cores=1,
+#                                     crossover_prob=.5,
+#                                     n_children=16,
+#                                     scaling_factor=0.5,
+#                                     save_intermediate=False
+#                                     )
+#         crowdingDE_model.run_simulation()
 
 
+
+# for i in range(n_iterations):
+#     crowdingDE_model = evo.CrowdingDE(simulator=simulator,
+#                                 priors=copy.deepcopy(priors),
+#                                 min_epsilon=-1,
+#                                 generation_size=32,
+#                                 distance_function=fitness_function,
+#                                 Yobs=Yobs,
+#                                 outfile=f"{outdir}/crowdingDE_{i}.pkl",
+#                                 maxiter=maxiter,
+#                                 rng=rng,
+#                                 cores=1,
+#                                 crossover_prob=.5,
+#                                 n_children=16,
+#                                 scaling_factor=0.5,
+#                                 save_intermediate=False
+#                                 )
+#     crowdingDE_model.run_simulation()
+
+logging.info("Attempting Simulated Annealing")
 for i in range(n_iterations):
-    crowdingDE_model = evo.CrowdingDE(simulator=simulator,
-                                priors=copy.deepcopy(priors),
-                                min_epsilon=-1,
-                                generation_size=32,
-                                distance_function=fitness_function,
-                                Yobs=Yobs,
-                                outfile=f"{outdir}/crowdingDE_{i}.pkl",
-                                maxiter=maxiter,
-                                rng=rng,
-                                cores=1,
-                                crossover_prob=.5,
-                                n_children=16,
-                                scaling_factor=0.5,
-                                save_intermediate=False
-                                )
-    crowdingDE_model.run_simulation()
+    simanneal_model = sa.SimulatedAnnealing(
+                        simulator=simulator,
+                        priors=copy.deepcopy(priors),
+                        min_epsilon=-1,
+                        distance_function=fitness_function,
+                        Yobs=Yobs,
+                        maxiter=maxiter,
+                        generation_size = 1,
+                        outfile=f"{outdir}/simanneal_{i}.pkl"
+                        )
+    simanneal_model.run_simulation()
+
