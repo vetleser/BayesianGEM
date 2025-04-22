@@ -79,7 +79,7 @@ class SimulatedAnnealing():
         self.outfile = outfile
         # Compared to SMC-ABC this seems a bit odd. The reationale is indirection.
         # The indicies in the list specify which of the particles in self.all_particles is part of the current population
-        self.population: List[List[int]] = []
+        self.population: List[candidateType] = []
         self.cores = cores    
         self.epsilons: List[float] = []          # min distance in each generation
         self.generation_size = generation_size   # number of particles to be simulated at each generation
@@ -146,14 +146,14 @@ class SimulatedAnnealing():
         for p, lst in parameters.items():
             self.param_std[p] = np.std(lst)
 
-    def evaluate_candiates(self, candidates: List[candidateType]):
+    def evaluate_candidates(self, candidates: List[candidateType]):
         # Specifying timeout of 30 minutes
         timeout = 30*60
         # This function both evaluates newly born individuals and store them into the archive
         start = time.time()
         simulated_data = []
         # Candidates for which evaluating fitness was successful
-        successfull_candiates = set()
+        successfull_candidates = set()
         candidate_counter = 0
         if self.cores == 1:
             # No need for creating a parallel cluster in this case
@@ -167,7 +167,7 @@ class SimulatedAnnealing():
                 else:
                     logging.info("Evaluation of particle ran successfully")
                     simulated_data.append(raw_res)
-                    successfull_candiates.add(candidate_counter)
+                    successfull_candidates.add(candidate_counter)
                 finally:
                     candidate_counter += 1
         else:
@@ -186,7 +186,7 @@ class SimulatedAnnealing():
                             else:
                                 logging.info("Evaluation of particle ran successfully")
                                 simulated_data.append(raw_res)
-                                successfull_candiates.add(candidate_counter)
+                                successfull_candidates.add(candidate_counter)
                             finally:
                                 candidate_counter += 1
                 except (OSError, RuntimeError) as e:
@@ -199,11 +199,11 @@ class SimulatedAnnealing():
         self.all_simulated_data.extend(simulated_data)
         self.all_distances.extend(distances)
         # This deals with the problem of candidates failing evaluation
-        self.all_particles.extend([candidate for counter, candidate in enumerate(candidates) if counter in successfull_candiates])
+        self.all_particles.extend([candidate for counter, candidate in enumerate(candidates) if counter in successfull_candidates])
         self.birth_generation.extend(repeat(self.generation,len(simulated_data)))
         self.times_challenged.extend(repeat(0,len(simulated_data)))
         end = time.time()
-        logging.debug('Completed parallel evaluation of candiates in {0} seconds'.format(end - start))
+        logging.debug('Completed parallel evaluation of candidates in {0} seconds'.format(end - start))
         return
 
 
@@ -315,7 +315,7 @@ class SimulatedAnnealing():
             logging.info("Generating initial population")
             initial_population = [self.generator() for _ in range(self.generation_size)]
             logging.info("Evaluating initial population")
-            #self.evaluate_candiates(initial_population)
+            self.evaluate_candidates(initial_population)
             # Assign all individuals to be part of the first generation,
             # but beware, some of the evaluation tasks may have timed out
             self.population.append(list(range(len(self.all_particles))))
