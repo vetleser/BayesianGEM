@@ -324,6 +324,7 @@ def distance_2(x,y):
     # y: simulated {'rae':...,}
 
     if (x is None or y is None): #Would like to remove this, made as a consequence of gradient_search.py
+        logging.info("Simulated data is None")
         return 0
 
     for k in y.keys():
