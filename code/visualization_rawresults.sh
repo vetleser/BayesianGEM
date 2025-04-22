@@ -4,6 +4,7 @@
 #SBATCH --nodes=1                    
 #SBATCH -c 1
 #SBATCH --mem=10G
+#SBATCH -- nodelist = herod
 #SBATCH -t 01:00:00             # Upper time limit for the job
 #SBATCH --export=NONE
 

@@ -104,6 +104,14 @@ best_particle = highest_r2_row.to_frame().T
 print(top_r2_rows)
 
 
+plt.rcParams.update({
+    'axes.titlesize': 18,      # Title size
+    'axes.labelsize': 14,      # Axis title size (xlabel, ylabel)
+    'xtick.labelsize': 12,     # X-axis tick size
+    'ytick.labelsize': 12      # Y-axis tick size
+})
+
+
 #-------------------------------------------------------------------------------------------------------------------------
 logging.info("Retrieving values for T_m and T_opt")
 
@@ -123,24 +131,61 @@ logging.info("Plotting Standard Deviation (T_m, T_opt) of all proteins")
 plt.figure(figsize=(10, 5))
 plt.scatter(x_values, y_values, color='b', alpha=0.6)
 
-# max_x = max(x_values)+5
-# max_y = max(y_values)+5
-# tick_step = 2
 
-# plt.xlim(0, max_x)  # Replace with actual max value
-# plt.ylim(0, max_y)
-# plt.xticks(np.arange(0, max_x, tick_step))  # Define tick_step
-# plt.yticks(np.arange(0, max_y, tick_step))
 plt.gca().set_aspect("equal", adjustable="box")
 
 
 # Labels and title
 plt.xlabel(r"Standard Deviation of $T_{\mathrm{opt}}$ ($^\circ$C)")
-plt.ylabel(r"Standard Deviation of $T_m$ ($^\circ$C)")
+plt.ylabel(r"Standard Deviation of $T_{\mathrm{m}}$ ($^\circ$C)")
 plt.title("Variation in Optimal and Melting Temperatures Across Proteins")
 
 # Save and show
-plt.savefig("../figures/analysis/scatter_plot_T_m_and_T_opt.png")
+plt.savefig("../figures/analysis/std_Tm_Topt.png")
+plt.show()
+
+#-------------------------------------------------------------------------------------------------------------------------
+logging.info("Retrieving values for T_m and T_opt")
+
+x_values = []
+y_values = []  
+for ID in protein_IDs:
+    tm = ID + "_Tm"
+    topt = ID + "_Topt"
+
+    x_values.append(std_df[topt].values[0])
+    y_values.append(std_df[tm].values[0])
+
+x_values = np.array(x_values)
+y_values = np.array(y_values)
+
+distances = np.sqrt(x_values**2 + y_values**2)
+
+
+logging.info("Plotting Standard Deviation (T_m, T_opt) of all proteins")
+
+# Create scatter plot
+plt.figure(figsize=(10, 5), constrained_layout = True)
+#plt.scatter(x_values, y_values, color='b', alpha=0.6)
+
+sc = plt.scatter(x_values, y_values, c=distances, cmap="plasma", alpha=0.75, edgecolors="k")
+
+# Add colorbar
+cbar = plt.colorbar(sc, shrink=0.7, aspect=20)  # Adjust shrink and aspect
+cbar.set_label("Euclidian Distance from Origin", fontsize=12)  # Change label size
+cbar.ax.tick_params(labelsize=10)  # Change tick label size
+
+
+plt.gca().set_aspect("equal", adjustable="box")
+
+
+# Labels and title
+plt.xlabel(r"Standard Deviation of $T_{\mathrm{opt}}$ ($^\circ$C)")
+plt.ylabel(r"Standard Deviation of $T_{\mathrm{m}}$ ($^\circ$C)")
+plt.title("Variation in Optimal and Melting Temperatures Across Proteins")
+
+# Save and show
+plt.savefig("../figures/analysis/std_Tm_Topt_scalebar.png")
 plt.show()
 
 #-------------------------------------------------------------------------------------------------------------------------
@@ -185,7 +230,7 @@ handles = [
 ]
 plt.legend(handles=handles)
 
-plt.savefig("../figures/analysis/scatter_plot_mean_std _T.png")
+plt.savefig("../figures/analysis/temp_mean_std.png")
 
 #-------------------------------------------------------------------------------------------------------------------------
 logging.info("Plotting mean and std for dCpt")
@@ -206,7 +251,7 @@ plt.xlabel(r"Mean $\Delta C_p^{‡}$ (J/mol$\cdot$K)")
 plt.ylabel(r"Standard Deviation of $\Delta C_p^{‡}$ (J/mol$\cdot$K)")
 
 
-plt.savefig("../figures/analysis/scatter_plot_mean_std _dCpt.png")
+plt.savefig("../figures/analysis/dCpt_mean_std.png")
 
 #-------------------------------------------------------------------------------------------------------------------------
 logging.info("Plotting Coefficient of Variation")
@@ -250,7 +295,7 @@ handles = [
 plt.legend(handles=handles)
 
 
-plt.savefig("../figures/analysis/scatter_plot_cv.png")
+plt.savefig("../figures/analysis/CV_all.png")
 
 #-------------------------------------------------------------------------------------------------------------------------
 logging.info("Plotting mean/mean Tm/Topt")
@@ -280,7 +325,7 @@ plt.ylabel(r"Mean $T_{\mathrm{opt}}$ ($^\circ$C)")
 # plt.gca().set_xticklabels([f"{t - 273.15:.1f}" for t in xticks])
 # plt.gca().set_yticklabels([f"{t - 273.15:.1f}" for t in yticks])
 
-plt.savefig("../figures/analysis/scatter_plot_mean_Mean.png")
+plt.savefig("../figures/analysis/mean_Tm_Topt.png")
 
 #-------------------------------------------------------------------------------------------------------------------------
 logging.info("Plotting Coefficient of Variation For Temperature only")
@@ -331,6 +376,6 @@ handles = [
 plt.legend(handles=handles)
 
 
-plt.savefig("../figures/analysis/scatter_plot_cv_temp.png")
+plt.savefig("../figures/analysis/CV_temp.png")
 
 logging.info("DONE")
