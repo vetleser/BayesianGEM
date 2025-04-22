@@ -7,16 +7,16 @@ import random_sampler
 import numpy as np
 import abc_etc as abc
 import evo_etc as evo
-import sa_etc as sa
+import sa_etc2 as sa
 import os
 import math
 import logging
 import copy
 
 
-# logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
+#logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 random_seed = 5354 #Changing the seed gives new evolutionary population. Bayesian population is new even for same seed
-maxiter = 200
+maxiter = 10
 Yobs = None
 min_epsilon = -1
 population_size = 128
@@ -124,6 +124,7 @@ def distribution_is_bimodal(model: evo.CrowdingDE, tol = 10e-3):
 
 logging.info("Attempting Simulated Annealing")
 for i in range(n_iterations):
+    print(f"Simulated Annealing {i} started")
     simanneal_model = sa.SimulatedAnnealing(
                         simulator=simulator,
                         priors=copy.deepcopy(priors),
@@ -131,8 +132,9 @@ for i in range(n_iterations):
                         distance_function=fitness_function,
                         Yobs=Yobs,
                         maxiter=maxiter,
-                        generation_size = 1,
+                        generation_size = 4,
                         outfile=f"{outdir}/simanneal_{i}.pkl"
                         )
     simanneal_model.run_simulation()
+    print(f"Simulated Annealing {i} finished")
 
