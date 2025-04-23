@@ -340,4 +340,4 @@ class CrowdingDE():
             print(f"An error occurred: {e}")
         
         logging.info(f"Saving results to {self.outfile}")
-        #dill.dump(self, file=open(self.outfile,mode='wb'))
+        dill.dump(self, file=open(self.outfile,mode='wb'))
