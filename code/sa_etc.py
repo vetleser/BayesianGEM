@@ -137,8 +137,8 @@ class SimulatedAnnealing():
         """
         logging.info('Updating standard deviations to parameters')
         parameters = dict()   # {'Protein_Tm':[]}
-        for particle_idx in self.population[-1]:
-            particle = self.all_particles[particle_idx]
+        for particle in self.population:
+            #particle = self.all_particles[particle_idx]
             for p,val in particle.items(): 
                 lst = parameters.get(p,[])
                 lst.append(val)
@@ -146,65 +146,28 @@ class SimulatedAnnealing():
         for p, lst in parameters.items():
             self.param_std[p] = np.std(lst)
 
-    def evaluate_candidates(self, candidates: List[candidateType]):
+    
+
+
+    def evaluate_single_candidate(self, candidate: candidateType):
         # Specifying timeout of 30 minutes
         timeout = 30*60
         # This function both evaluates newly born individuals and store them into the archive
         start = time.time()
-        simulated_data = []
         # Candidates for which evaluating fitness was successful
         successfull_candidates = set()
         candidate_counter = 0
-        if self.cores == 1:
-            # No need for creating a parallel cluster in this case
-            res_iter: Iterable[simResultType] = map(self.simulator,candidates)
-            while True:
-                try:
-                    raw_res = res_iter.__next__()
-                except StopIteration:
-                    # We have now iterated over all particles
-                    break
-                else:
-                    logging.info("Evaluation of particle ran successfully")
-                    simulated_data.append(raw_res)
-                    successfull_candidates.add(candidate_counter)
-                finally:
-                    candidate_counter += 1
-        else:
-                try:
-                    # This code takes care of stalled parallel processes
-                    with pebble.ProcessPool(self.cores) as p:
-                        res_iter: Iterable[simResultType] = p.map(self.simulator, candidates,timeout=timeout).result()
-                        while True:
-                            try:
-                                raw_res = res_iter.next()
-                            except StopIteration:
-                                # We have now iterated over all particles
-                                break
-                            except TimeoutError:
-                                logging.info("Evaluation of particle timed out")
-                            else:
-                                logging.info("Evaluation of particle ran successfully")
-                                simulated_data.append(raw_res)
-                                successfull_candidates.add(candidate_counter)
-                            finally:
-                                candidate_counter += 1
-                except (OSError, RuntimeError) as e:
-                    logging.error('failed parallel_evaluation_mp: {0}'.format(str(e)))
-                    raise
-        
-        distances = [self.distance_function(self.Yobs, res) for res in simulated_data]
+        # No need for creating a parallel cluster in this case
+        try:
+            simulated_data: simResultType = self.simulator(candidate)
+            logging.info("Evaluation of candidate ran successfully")
+            success = True
+        except Exception as e:
+            logging.error(f"Candidate evaluation failed: {e}")
 
-        # save all simulated results
-        self.all_simulated_data.extend(simulated_data)
-        self.all_distances.extend(distances)
-        # This deals with the problem of candidates failing evaluation
-        self.all_particles.extend([candidate for counter, candidate in enumerate(candidates) if counter in successfull_candidates])
-        self.birth_generation.extend(repeat(self.generation,len(simulated_data)))
-        self.times_challenged.extend(repeat(0,len(simulated_data)))
-        end = time.time()
-        logging.debug('Completed parallel evaluation of candidates in {0} seconds'.format(end - start))
-        return
+        distance = self.distance_function(self.Yobs, simulated_data)
+
+        return distance, simulated_data
 
 
     def mutate_param(self,candidate, entry: str):
@@ -237,35 +200,42 @@ class SimulatedAnnealing():
 
 
     def replace_population(self,original_population: npt.NDArray[np.int64], children: npt.NDArray[np.int64]):
-        logging.info(f"Replacing population with children")
-        # Remove individuals until population size is reached
-        current_population: Set[int] = set(original_population)
-        for child in children:
-            other_particles = np.fromiter(current_population,int,len(current_population))
-            a = [self.particle_distance(child,other) for other in other_particles]
-            distance_to_child: npt.NDArray[np.float64] = np.array([self.particle_distance(child,other) for other in other_particles])
-            closest_to_child = other_particles[np.argmin(distance_to_child)]
-            if self.all_distances[closest_to_child] > self.all_distances[child]:
-                # The child replaces an old individual
-                current_population.remove(closest_to_child)
-                current_population.add(child)
-        logging.info(f"Updating population")
-        self.population.append(list(current_population))
+       return
 
 
     def change_all_parameters(self, old_particle):
         logging.info("Changing all parameters of a particle")
-        new_particle = copy.deepcopy(self.all_particles[old_particle])
+        new_particle = copy.deepcopy(old_particle)
         for key in new_particle:
             old_parameter_value = new_particle[key]
-            new_particle[key] += np.random.normal(0, 0.1)
+            new_particle[key] += 0.1 * self.rng.normal(0, 1)
             if not self.check_validity(new_particle,key):
                 # This new parameter value violates our constraints, so we must revert the change
                 new_particle[key] = old_parameter_value
         return new_particle
+    
+    def get_distance(self, particle):
+        return self.all_distances[self.all_particles.index(particle)]
+
+    def energy_function(self, d1, d2):
+        if d2 < d1:
+            return True
+        else:
+            return self.rng.random() < np.exp(-(d2-d1)/self.current_temp)
+        
+    
+    
 
     def simple_evaluation(self, particle1, particle2):
-        return particle2
+        index = self.population.index(particle1)
+
+        d1 = self.all_distances[index]
+        d2, simulated_data = self.evaluate_single_candidate(particle2)
+        if self.energy_function(d1, d2):
+            self.all_distances[index] = d2
+            self.all_simulated_data[index] = simulated_data
+            return particle2
+        return particle1
         
 
 
@@ -277,7 +247,6 @@ class SimulatedAnnealing():
             chosen_particle = self.simple_evaluation(particle, new_particle)
             new_population.remove(particle)
             new_population.add(chosen_particle)
-        self.population.append(list(new_population))
         return
 
         
@@ -285,56 +254,45 @@ class SimulatedAnnealing():
    
 
     def simulate_generation(self):
-        current_population = np.array(list(self.population[-1]))
-
-        #Remove
-        # primary_parents = self.select_parents(current_population=current_population)
-        # secondary_parents = np.setdiff1d(current_population,primary_parents)
-        # self.generate_children(primary_parents,secondary_parents)
-        # children_idxs = np.flatnonzero(np.array(self.birth_generation) == self.generation)
-        
-        
-        
-        #Replace
-        #self.replace_population(current_population,children=children_idxs)
-        self.update_population(current_population)
-
-        max_generation_epsilon = max(self.all_distances[p] for p in self.population[-1])
-        self.epsilons.append(max_generation_epsilon)
-        self.update_std()
-        #logging.info(f"Model epsilon {max_generation_epsilon}")
+        for particle in self.population:
+            new_particle = self.change_all_parameters(particle)
+            chosen_particle = self.simple_evaluation(particle, new_particle)
+            if chosen_particle != particle:
+                # We have a new candidate
+                index = self.population.index(particle)
+                self.population[index] = chosen_particle
+                #self.birth_generation[index] = (self.generation)
+                #self.times_challenged[index] = 0 #Trenger ikke denne?
+        return
 
 
     def run_simulation(self) -> None:
         # Ensures random state is respected
         for item in self.priors.values():
             item.set_rng(rng=self.rng)
-        
-        if self.generation == 0:
-            # Generating initial population
-            logging.info("Generating initial population")
-            initial_population = [self.generator() for _ in range(self.generation_size)]
-            logging.info("Evaluating initial population")
-            self.evaluate_candidates(initial_population)
-            # Assign all individuals to be part of the first generation,
-            # but beware, some of the evaluation tasks may have timed out
-            self.population.append(list(range(len(self.all_particles))))
-            max_generation_epsilon = max(self.all_distances[p] for p in self.population[-1])
-            self.epsilons.append(max_generation_epsilon)
-            self.update_std()
-            logging.info(f"Model epsilon {max_generation_epsilon}")
-            self.generation += 1
-            if self.save_intermediate:
-                    dill.dump(self,open(self.outfile,'wb'))
+
+       
+        logging.info(f"Generating initial population with {self.generation_size} particles")
+        self.population = [self.generator() for _ in range(self.generation_size)]
+        for particle in self.population:
+            distance, simulated_data = self.evaluate_single_candidate(particle)
+            self.all_distances.append(distance)
+            self.all_simulated_data.append(simulated_data)
     
-        
+        max_generation_epsilon = max(self.all_distances)
+        self.epsilons.append(max_generation_epsilon)
+        logging.info(f"Model epsilon {max_generation_epsilon}")
+        self.generation += 1
+        self.current_temp *= self.cooling_rate
+
         while self.generation <= self.maxiter:
             if max_generation_epsilon < self.min_epsilon:
                 logging.info(f"Fitness objective reached at generation {self.generation}")
-                logging.info(f"Exiting evolution")
+                logging.info(f"Exiting simulated annealing")
                 break
             if self.current_temp < self.final_temp:
                 logging.info(f"Temperature has reached a minimum at generation {self.generation}")
+                #break
             
             logging.info(f"Running generation {self.generation} of {self.maxiter}. Current temperature: {self.current_temp}")
             self.simulate_generation()
@@ -343,9 +301,9 @@ class SimulatedAnnealing():
             if self.save_intermediate:
                     dill.dump(self,open(self.outfile,'wb'))
         else:
-            # This else-clause belongs to the main evolution loop
+            # This else-clause belongs to the main simulated annealing loop
             logging.info("Fitness objective not reached after maximum number of generations")
-            logging.info("Exiting evolution")
+            logging.info("Exiting simulated annealing")
         
         logging.info(f"Saving results to {self.outfile}")
         dill.dump(self, file=open(self.outfile,mode='wb'))
