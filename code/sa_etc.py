@@ -104,6 +104,7 @@ class SimulatedAnnealing():
         self.final_temp = final_temp
         self.inner_iterations = inner_iterations
         self.inner_iterations_list: List[int] = []
+        self.is_improved_list : List[bool] = []
 
 
     def generator(self) -> candidateType:
@@ -209,7 +210,8 @@ class SimulatedAnnealing():
         # This deals with the problem of candidates failing evaluation
         self.all_particles.extend([candidate for counter, candidate in enumerate(candidates) if counter in successfull_candidates])
         self.birth_generation.extend(repeat(self.generation,len(simulated_data)))
-        self.times_challenged.extend(repeat(0,len(simulated_data)))
+        #The four lines above are in use. The one lines below are not. Must look further into it, maybe remove, maybe implement, maybe add more lines 
+        self.times_challenged.extend(repeat(0,len(simulated_data))) #This is not in use in evo_etc either, just recorded as information. Or not updated either it seems
         end = time.time()
         logging.debug('Completed parallel evaluation of candidates in {0} seconds'.format(end - start))
         logging.debug(f"Length of all_simulated_data is {len(self.all_simulated_data)}")
@@ -268,9 +270,6 @@ class SimulatedAnnealing():
 
 
 
-    def replace_population(self,original_population: npt.NDArray[np.int64], children: npt.NDArray[np.int64]):
-       return
-
 
     def change_all_parameters(self, old_particle):
         logging.info("Changing all parameters of a particle")
@@ -314,12 +313,20 @@ class SimulatedAnnealing():
     
     
 
-    def  simple_evaluation(self, particle1, particle2):
+    def simple_evaluation(self, particle1, particle2): #Change name, not simple anymore. Compare_particles() f ex
         index_p1 = self.get_index(particle1)
         index_p2 = self.get_index(particle2)
 
         d1 = self.all_distances[index_p1]
         d2 = self.all_distances[index_p2]
+        if self.energy_function(d1, d2):
+            return particle2
+        else:
+            return particle1
+        
+    def simple_evaluation_2(self, particle1, particle2): #Change name, not simple anymore. Compare_particles() f ex
+        d1 = self.all_distances[particle1]
+        d2 = self.all_distances[particle2]
         if self.energy_function(d1, d2):
             return particle2
         else:
@@ -337,13 +344,153 @@ class SimulatedAnnealing():
             new_population.add(chosen_particle)
         return
 
+    def generate_candidates(self, indices):
+        candidates: List[candidateType] = []
+        for index in indices:
+            candidate = {parameter: value for parameter, value in self.all_particles[index].items()}
+            for key in candidate:
+                old_parameter_value = candidate[key]
+                candidate[key] += 0.1 * self.rng.normal(0, 1)
+                if not self.check_validity(candidate, key):
+                    #self.all_particles.append(particle) # Skal kanskje ikke være her, men i evaluate_candidates
+                    candidate[key] = old_parameter_value
+            candidates.append(candidate)
+        logging.info("Evaluating fitness of candidates")
+        self.evaluate_candidates(candidates)
+
+    def generate_candidates_2(self, indices):
+        candidates: List[candidateType] = []
+        for index in indices:
+            if index is None:
+                continue
+            candidate = {parameter: value for parameter, value in self.all_particles[index].items()}
+            for key in candidate:
+                old_parameter_value = candidate[key]
+                candidate[key] += 0.1 * self.rng.normal(0, 1)
+                if not self.check_validity(candidate, key):
+                    #self.all_particles.append(particle) # Skal kanskje ikke være her, men i evaluate_candidates
+                    candidate[key] = old_parameter_value
+            candidates.append(candidate)
+        logging.info("Evaluating fitness of candidates")
+        self.evaluate_candidates(candidates)
+
+    def generate_candidates_4(self, particle_indices):
+        candidates: List[candidateType] = []
+        candidate_indices = []
+        for i, index in enumerate(particle_indices):
+            if index is None:
+                continue
+            candidate = {parameter: value for parameter, value in self.all_particles[index].items()}
+            for key in candidate:
+                old_parameter_value = candidate[key]
+                candidate[key] += 0.1 * self.rng.normal(0, 1)
+                if not self.check_validity(candidate, key):
+                    #self.all_particles.append(particle) # Skal kanskje ikke være her, men i evaluate_candidates
+                    candidate[key] = old_parameter_value
+            candidates.append(candidate)
+            candidate_indices.append(i)
+        logging.info("Evaluating fitness of candidates")
+        self.evaluate_candidates(candidates)
+        return candidates, candidate_indices
+
+    def replace_population(self,original_population: npt.NDArray[np.int64], candidates: npt.NDArray[np.int64]):
+       logging.info(f"Replacing population with children")
+       current_population : Set[int] = set()
+       for i, (old_particle, candidate_particle) in enumerate(zip(original_population, candidates)):
+            chosen_particle = self.simple_evaluation_2(old_particle, candidate_particle)
+            if chosen_particle == old_particle:
+                current_population.add(old_particle)
+                #Keep index in current population as it is
+                self.inner_iterations_list[i] += 1 #Add 1 to inner_iterations_list
+                logging.info(f"Keeping particle {i}") #For checking, remove later
+                
+            else:
+                current_population.add(candidate_particle)
+                #Add index of this particle to self.population
+                self.inner_iterations_list[i] = 1 #Set inner_iterations_list to 1
+                #self.is_improved_list[i] = True
+                logging.info(f"Replacing particle {i}") #For checking, remove later
+       logging.info(f"Updating population")
+       self.population2.append(list(current_population))
+
+    def replace_population_4(self,original_population: npt.NDArray[np.int64], candidates, candidates_idxs):
+       logging.info(f"Replacing population with children")
+       current_population : Set[int] = set()
+       for i,  candidate_particle in zip(candidates_idxs, candidates):
+            old_particle = original_population[i]
+            chosen_particle = self.simple_evaluation_2(old_particle, candidate_particle)
+            if chosen_particle == old_particle:
+                current_population.add(old_particle)
+                #Keep index in current population as it is
+                self.inner_iterations_list[i] += 1 #Add 1 to inner_iterations_list
+                logging.info(f"Keeping particle {i}") #For checking, remove later
+                
+            else:
+                current_population.add(candidate_particle)
+                #Add index of this particle to self.population
+                self.inner_iterations_list[i] = 1 #Set inner_iterations_list to 1
+                self.is_improved_list[i] = True
+                logging.info(f"Replacing particle {i}") #For checking, remove later
+       logging.info(f"Updating population")
+       self.population2.append(list(current_population))
+    
+        
+    def simulate_generation_3(self):
+        current_population = np.array(list(self.population2[-1]))
+        self.generate_candidates(current_population)
+        candidates_idxs = np.flatnonzero(np.array(self.birth_generation) == self.generation)
+        self.replace_population(current_population, candidates_idxs)
+
+        max_generation_epsilon = max(self.all_distances[p] for p in self.population2[-1])
+        self.epsilons.append(max_generation_epsilon)
+        self.update_std()
+        logging.info(f"Model epsilon {max_generation_epsilon}")
+
+    def particles_to_idxs(self, particles):
+        idxs = [self.get_index(particle) for particle in particles]
+        return idxs
+
+
+    def simulate_generation_4(self):
+        current_population = np.array(list(self.population2[-1]))
+        max_layer = min(max(self.inner_iterations_list), 10)
+        self.is_improved_list = [False for _ in range(self.generation_size)]
+        logging.info(f"Max layer is {max_layer}")
+        for layer in range(1, max_layer+1):
+            logging.info(f"Checking layer {layer}")
+            filtered_candidates = []
+            filtered_indices = []
+            for i, ID in enumerate(current_population):
+                if layer <= self.inner_iterations_list[i] and not self.is_improved_list[i]:
+                    filtered_candidates.append(ID)
+                    filtered_indices.append(i)
+                    logging.info(f"Another candidate for index {i}")
+                else:
+                    filtered_candidates.append(None)
+                    filtered_indices.append(None)
+            candidates, candidates_idxs = self.generate_candidates_4(filtered_candidates)
+            candidates = self.particles_to_idxs(candidates)
+            #candidates_idxs = np.flatnonzero(np.array(self.birth_generation) == self.generation)
+            #logging.info(f"Length of candidates_idxs is {len(candidates_idxs)}")
+            self.replace_population_4(current_population, candidates, candidates_idxs)
+
+        
+
+        max_generation_epsilon = max(self.all_distances[p] for p in self.population2[-1])
+        self.epsilons.append(max_generation_epsilon)
+        self.update_std()
+        logging.info(f"Model epsilon {max_generation_epsilon}")
+
+
         
 
     def simulate_generation_2(self):
         current_index_population = np.array(list(self.population2[-1]))
+        #To be replaced by generate_candidates()
         current_particles = [self.all_particles[x] for x in current_index_population]
         candidates = self.change_all_parameters_2(current_particles)
         self.evaluate_candidates(candidates)
+        #----
 
 
         new_index_population = []
@@ -353,13 +500,20 @@ class SimulatedAnnealing():
                 new_index_population.append(self.get_index(old_particle))
                 #Keep index in current population as it is
                 self.inner_iterations_list[i] += 1 #Add 1 to inner_iterations_list
+                logging.info(f"Keeping particle {i}") #For checking, remove later
                 
             else:
                 new_index_population.append(self.get_index(candidate_particle))
                 #Add index of this particle to self.population
                 self.inner_iterations_list[i] = 1 #Set inner_iterations_list to 1
+                logging.info(f"Replacing particle {i}")
 
         self.population2.append(new_index_population)
+        max_generation_epsilon = max(self.all_distances[p] for p in self.population2[-1])
+        self.epsilons.append(max_generation_epsilon)
+        self.update_std()
+        logging.info(f"Model epsilon {max_generation_epsilon}")
+
 
                 
 
@@ -424,10 +578,16 @@ class SimulatedAnnealing():
                 #break
             
             logging.info(f"Running generation {self.generation} of {self.maxiter}. Current temperature: {self.current_temp}")
-            self.simulate_generation_2()
+
+            #self.simulate_generation_2()
+            #self.simulate_generation_3()
+            self.simulate_generation_4()
+            logging.info("Using version 4")
+
 
             self.generation += 1
             self.current_temp *= self.cooling_rate
+            logging.debug(f" Inner iterations_list: {self.inner_iterations_list}")
             if self.save_intermediate:
                     dill.dump(self,open(self.outfile,'wb'))
         else:
