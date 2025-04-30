@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH -J evo_fva               # sensible name for the job
-#SBATCH --output=evo_fva.out
+#SBATCH -J reduce_data_size_evoonly               # sensible name for the job
+#SBATCH --output=reduce_data_size_evoonly.out
 #SBATCH --nodes=1                    
 #SBATCH -c 1
 #SBATCH -t 10:00:00             # Upper time limit for the job
@@ -12,4 +12,4 @@
 
 WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR}
-/triumvirate/home/vetleser/.conda/envs/etcFBA/bin/python3 evo_fva.py &> "../results/crowdingDE/evo_fva.log"
+/triumvirate/home/vetleser/.conda/envs/etcFBA/bin/python3 reduce_data_size_evoonly.py &> "../results/crowdingDE/reduce_data_size_evoonly.log"

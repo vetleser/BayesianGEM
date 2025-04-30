@@ -12,6 +12,7 @@ import pandas as pd
 import logging
 import pickle
 from random_sampler import RV
+from multiprocessing import cpu_count
 
 # In[]
 
@@ -23,11 +24,11 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 def main():
     task_idx = int(os.environ["SLURM_ARRAY_TASK_ID"])
     outdir = '../results/crowdingDE'
-    candidate_frame: pd.DataFrame = pickle.load(file=open(file=f'{outdir}/simulation_skeleton.pkl',mode='rb'))
+    candidate_frame: pd.DataFrame = pickle.load(file=open(file=f'{outdir}/simulation_skeleton_test.pkl',mode='rb'))
     entry = candidate_frame.iloc[task_idx]
     simulation, outfile, random_seed, scaling_factor, crossover_prob = entry[["simulation", "outfile","random_seed",
     "scaling_factor","crossover_prob"]]
-    maxiter = 1000
+    maxiter = 10
     Yobs_batch = GEMS.aerobic_exp_data()
     #Yobs_batch_an = GEMS.anaerobic_exp_data()
     dfae_batch,dfan_batch =GEMS.load_exp_batch_data('../data/ExpGrowth.tsv')
@@ -53,7 +54,7 @@ def main():
     rng = np.random.default_rng(random_seed)
     min_epsilon = -1.0 # equivalent to r2 score of 1
     population_size = 256
-    n_children = 128
+    cores = int(os.getenv("SLURM_CPUS_PER_TASK"))
     
 
     logging.info('Initialize model')
@@ -68,13 +69,14 @@ def main():
                             rng=rng,
                             scaling_factor=scaling_factor,
                             crossover_prob=crossover_prob,
-                            n_children=n_children,
-                            save_intermediate=False
+                            n_children=128,
+                            save_intermediate=False,
+                            cores=cores
                             )
     
     
     logging.info(f"""Start evolutionary simulations with CrowdingDE,
-     scaling factor {scaling_factor}, crossover probability {crossover_prob}, simulation {simulation}""")
+     scaling factor {scaling_factor}, crossover probability {crossover_prob}, simulation {simulation}, population size {population_size}, cores: {cores}""")
 
     model.run_simulation()
     logging.info("DONE")

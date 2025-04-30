@@ -8,9 +8,7 @@
 #SBATCH --mem=50G
 #SBATCH --mail-type=begin
 #SBATCH --mail-type=end
-#SBATCH --mail-user=jakob.p.pettersen@ntnu.no
-#SBATCH -p CPUQ
-#SBATCH --account=nv-ibt
+#SBATCH --mail-user=vetleser@stud.ntnu.no
 #SBATCH --export=NONE
 
 WORKDIR=${SLURM_SUBMIT_DIR}
@@ -19,4 +17,4 @@ module purge
 module load Anaconda3/2020.07
 source ~/.bash_profile
 conda activate etcFBA
-python gem_smcabc_at_two_conditions.py &> "../results/reduced_smcabc_res/gem_smcabc_at_two_conditions_$SLURM_ARRAY_TASK_ID.log"
+/triumvirate/home/vetleser/.conda/envs/etcFBA/bin/python3 gem_smcabc_at_two_conditions.py &> "../results/reduced_smcabc_res/gem_smcabc_at_two_conditions_$SLURM_ARRAY_TASK_ID.log"

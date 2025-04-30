@@ -7,7 +7,7 @@
 #SBATCH --mem=120G
 #SBATCH --mail-type=begin
 #SBATCH --mail-type=end
-#SBATCH --mail-user=jakob.p.pettersen@ntnu.no
+#SBATCH --mail-user=vetleser@stud.ntnu.no
 #SBATCH -p CPUQ
 #SBATCH --account=nv-ibt
 #SBATCH --export=NONE
@@ -19,3 +19,5 @@ module load Anaconda3/2020.07
 source ~/.bash_profile
 conda activate etcFBA
 python gem_fva_at_three_conditions.py &> "../results/permuted_smcabc_res/gem_fva_at_three_conditions.log"
+
+
