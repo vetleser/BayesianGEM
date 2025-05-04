@@ -7,7 +7,7 @@
 
 from itertools import repeat
 import logging
-from typing import Callable, Dict, Iterable, List, Set, Tuple
+from typing import Callable, Dict, Iterable, List, Set, Tuple, Optional
 import dill
 import numpy as np
 import numpy.typing as npt
@@ -161,7 +161,7 @@ class SimulatedAnnealing():
         for p, lst in parameters.items():
             self.param_std[p] = np.std(lst)
 
-    def evaluate_candidates(self, candidates: List[candidateType]):
+    def evaluate_candidates(self, candidates: List[candidateType]) -> None:
         # Specifying timeout of 30 minutes
         timeout = 30*60
         # This function both evaluates newly born individuals and store them into the archive
@@ -225,7 +225,7 @@ class SimulatedAnnealing():
         #The four lines above are in use. The one lines below are not. Must look further into it, maybe remove, maybe implement, maybe add more lines 
         self.times_challenged.extend(repeat(0,len(simulated_data))) #This is not in use in evo_etc either, just recorded as information. Or not updated either it seems
         end = time.time()
-        logging.debug('Completed parallel evaluation of candidates in {0} seconds'.format(end - start))
+        logging.info('Completed parallel evaluation of candidates in {0} seconds'.format(end - start))
         logging.debug(f"Length of all_simulated_data is {len(self.all_simulated_data)}")
         logging.debug(f"Length of all_distances is {len(self.all_distances)}")
         logging.debug(f"Length of all_particles is {len(self.all_particles)}")
