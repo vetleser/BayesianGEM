@@ -7,20 +7,21 @@ import random_sampler
 import numpy as np
 import abc_etc as abc
 import evo_etc as evo
-import sa_etc2 as sa
+import sa_etc as sa
 import os
 import math
 import logging
 import copy
+import time
 
 
-#logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
-random_seed = 5354 #Changing the seed gives new evolutionary population. Bayesian population is new even for same seed
-maxiter = 10
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
+random_seed = 5354 #Changing the seed gives new evolutionary (and simulated annealing) population . Bayesian population is new even for same seed
+maxiter = 200
 Yobs = None
 min_epsilon = -1
 population_size = 128
-outdir = "./results/toy_example" 
+outdir = "../results/sa" 
 if not os.path.exists(outdir):
     os.makedirs(outdir)
 
@@ -81,6 +82,7 @@ def distribution_is_bimodal(model: evo.CrowdingDE, tol = 10e-3):
 #                                     maxiter=maxiter)
 #     bayesian_model.run_simulation()
 
+# start = time.time()
 # for j in range(4):
 #     random_seed += 1
 #     rng = np.random.default_rng(random_seed)
@@ -102,8 +104,9 @@ def distribution_is_bimodal(model: evo.CrowdingDE, tol = 10e-3):
 #                                     )
 #         crowdingDE_model.run_simulation()
 
-
-
+# end = time.time()
+# logging.info(f"Time for evo: {end-start} seconds")
+# start = time.time()
 # for i in range(n_iterations):
 #     crowdingDE_model = evo.CrowdingDE(simulator=simulator,
 #                                 priors=copy.deepcopy(priors),
@@ -121,20 +124,66 @@ def distribution_is_bimodal(model: evo.CrowdingDE, tol = 10e-3):
 #                                 save_intermediate=False
 #                                 )
 #     crowdingDE_model.run_simulation()
+# end = time.time()
+# logging.info(f"Time for evo: {end-start} seconds")
+
+min_layer_list = [1, 1, 3, 3]
+max_layer_list = [1, 3, 5, 10]
 
 logging.info("Attempting Simulated Annealing")
-for i in range(n_iterations):
-    print(f"Simulated Annealing {i} started")
-    simanneal_model = sa.SimulatedAnnealing(
-                        simulator=simulator,
-                        priors=copy.deepcopy(priors),
-                        min_epsilon=-1,
-                        distance_function=fitness_function,
-                        Yobs=Yobs,
-                        maxiter=maxiter,
-                        generation_size = 4,
-                        outfile=f"{outdir}/simanneal_{i}.pkl"
-                        )
-    simanneal_model.run_simulation()
-    print(f"Simulated Annealing {i} finished")
+start1 = time.time()
+for j in range(4):
+    rng = np.random.default_rng(random_seed)  # fresh RNG per sim
+    for i in range(n_iterations):
+        start = time.time()
+        logging.info(f"Simulated Annealing plot {j}, simulation {i} started")
+        simanneal_model = sa.SimulatedAnnealing(
+                            simulator=simulator,
+                            priors=copy.deepcopy(priors),
+                            min_epsilon=-1,
+                            distance_function=fitness_function,
+                            Yobs=Yobs,
+                            maxiter=maxiter,
+                            generation_size = 32,
+                            outfile=f"{outdir}/simanneal_minmax_{j}_{i}.pkl",
+                            initial_temp=100,
+                            cooling_rate=0.95,
+                            final_temp=1,
+                            rng=rng,
+                            cores=1,
+                            version=1,
+                            min_layers=min_layer_list[j],
+                            max_layers=max_layer_list[j]
+                            )
+        simanneal_model.run_simulation()
+        end = time.time()
+        logging.info(f"Simulated Annealing {j} finished in {end-start} seconds")
+
+
+end1 = time.time()
+
+logging.info(f"Simulated annealing: {end1-start1} seconds")
+
+# logging.info("Attempting Simulated Annealing")
+# start = time.time()
+# for i in range(n_iterations):
+#     rng = np.random.default_rng(random_seed)  # fresh RNG per sim
+#     simanneal_model = sa.SimulatedAnnealing(
+#                         simulator=simulator,
+#                         priors=copy.deepcopy(priors),
+#                         min_epsilon=-1,
+#                         distance_function=fitness_function,
+#                         Yobs=Yobs,
+#                         maxiter=maxiter,
+#                         generation_size = 32,
+#                         outfile=f"{outdir}/simanneal_{i}.pkl",
+#                         initial_temp=100,
+#                         cooling_rate=0.95,
+#                         final_temp=1,
+#                         rng=rng,
+#                         cores=1
+#                         )
+#     simanneal_model.run_simulation_2()
+
+logging.info("DONE")
 
