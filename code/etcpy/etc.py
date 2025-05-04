@@ -12,6 +12,7 @@ import etcpy.thermal_parameters as thermal_parameters
 from .thermal_parameters import calculate_thermal_params
 
 from sympy import Float
+import gurobipy as gp
 
 T0 = 273.15
 SLACK_FACTOR = 1.0      
@@ -22,7 +23,7 @@ class OptimizationError(Exception):
 
 
 
-def simulate_growth(model: CBModel, Ts,sigma,param_dict,Tadj=0):
+def simulate_growth(model: CBModel, Ts,sigma,param_dict,Tadj=0, max_attempts = 10):
     '''
     # model, reframed model
     # Ts, a list of temperatures in K
@@ -36,6 +37,9 @@ def simulate_growth(model: CBModel, Ts,sigma,param_dict,Tadj=0):
     '''
     rs = list()
     solver: reframed.solvers.GurobiSolver = reframed.solver_instance(model)
+    #solver: reframed.solvers.CplexSolver = reframed.solver_instance(model)
+    logging.info(f"Using solver: {type(solver).__name__}")
+    #gp.setParam('Seed', 0)
     for T in Ts:
         # map temperature constraints
         mappers = reframed_mappers
@@ -44,17 +48,25 @@ def simulate_growth(model: CBModel, Ts,sigma,param_dict,Tadj=0):
         mappers.set_NGAMT(solver,T)
         mappers.set_sigma(solver,sigma)
         solver.update()
-        try:
-            solution = solver.solve(linear=model.get_objective(),minimize=False)
-            if solution.status != reframed.solvers.solution.Status.OPTIMAL:
-                raise OptimizationError(f"Solver status is {solution.status.value}")
-            r = solution.fobj
-            logging.info("Model solved successfully")
-        except OptimizationError as err:
-            logging.info(f'Failed to solve the problem, problem: {str(err)}')
-            r = 0
-        print(T-273.15,r)
-        rs.append(r)
+        success = False
+        for attempt in range(1, max_attempts+1):
+            # if(attempt>1):
+            #     gp.setParam('Seed', attempt)
+            try:
+                solution = solver.solve(linear=model.get_objective(),minimize=False)
+                if solution.status != reframed.solvers.solution.Status.OPTIMAL:
+                    raise OptimizationError(f"Solver status is {solution.status.value}")
+                r = solution.fobj
+                logging.info(f"Model solved successfully at temperature {T} at attempt {attempt}")
+                success = True
+                break
+            except OptimizationError as err:
+                logging.info(f'Attempt {attempt} failed to solve the problem, problem: {str(err)}. At Temperature {T}')
+        if success:
+            rs.append(r)
+        else:
+            logging.info(f"Failed to solve problem after {max_attempts} attempts")
+            rs.append(np.nan) #Still returns 0 after failing to solve. Should fix later. For example: Return NaN, and stop checking if NaN is encountered in distance function
     return rs
 
 
