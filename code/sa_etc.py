@@ -386,13 +386,13 @@ class SimulatedAnnealing():
         logging.info("Evaluating fitness of candidates")
         self.evaluate_candidates(candidates)
 
-    def generate_candidates(self, particle_indices): #Kan bruke change_all_parameters her istedenfor å skrive det eksplisitt
+    def generate_candidates(self, particle_idxs: List[Optional[int]])-> None: #Kan bruke change_all_parameters her istedenfor å skrive det eksplisitt
         candidates: List[candidateType] = []
-        candidate_indices = []
-        for i, index in enumerate(particle_indices):
-            if index is None:
+        #candidate_indices = []
+        for i, idx in enumerate(particle_idxs):
+            if idx is None:
                 continue
-            candidate = {parameter: value for parameter, value in self.all_particles[index].items()}
+            candidate = {parameter: value for parameter, value in self.all_particles[idx].items()}
             for key in candidate:
                 old_parameter_value = candidate[key]
                 candidate[key] += 0.1 * self.rng.normal(0, 1)
@@ -400,10 +400,10 @@ class SimulatedAnnealing():
                     #self.all_particles.append(particle) # Skal kanskje ikke være her, men i evaluate_candidates
                     candidate[key] = old_parameter_value
             candidates.append(candidate)
-            candidate_indices.append(i)
+            #candidate_indices.append(i)
         logging.info("Evaluating fitness of candidates")
         self.evaluate_candidates(candidates)
-        return candidates, candidate_indices
+        #return candidates, candidate_indices
 
     def replace_population_2(self,original_population: npt.NDArray[np.int64], candidates: npt.NDArray[np.int64]):
        logging.info(f"Replacing population with children")
@@ -425,30 +425,29 @@ class SimulatedAnnealing():
        logging.info(f"Updating population")
        self.population.append(list(current_population))
 
-    def replace_population(self,original_population, candidates, filtered_indices):
+    def replace_population(self,original_population, candidates, filtered_indices: List[Optional[int]]) -> List[int]:
         logging.info(f"Replacing population with children")
         new_candidates = candidates
-        current_population : Set[int] = set()
+        #current_population : Set[int] = set() Set does not preserve order, but is faster. Not necessarily faster in this case, list is equally fast
+        current_population : List[int] = []
         counter = 0
         for i, (old_particle, filtered_index) in enumerate(zip(original_population, filtered_indices)):
             if filtered_index is None:
                 # If candidate is None, we keep the old particle
-                current_population.add(old_particle)
-                #logging.info(f"candidate is None, keeping {old_particle}")
-                #logging.info(f"Current population is {current_population}")
+                current_population.append(old_particle) #Use add instead of append if set
                 continue
             candidate_particle = candidates[counter]
             counter += 1
             chosen_particle = self.choose_particle(old_particle, candidate_particle)
             if chosen_particle == old_particle:
-                current_population.add(old_particle)
+                current_population.append(old_particle) #Use add instead of append if set
                 #Keep index in current population as it is
                 if self.current_layer == 1:
                     self.inner_iterations_list[i] += 1
                 self.is_improved_list[i] = False
                 logging.info(f"Keeping particle {i}") #For checking, remove later
             else:
-                current_population.add(candidate_particle)
+                current_population.append(candidate_particle) #Use add instead of append if set
                 #Add index of this particle to self.population
                 self.inner_iterations_list[i] = 1
                 self.is_improved_list[i] = True
@@ -491,12 +490,25 @@ class SimulatedAnnealing():
         self.update_std()
         logging.info(f"Model epsilon {max_generation_epsilon}")
 
-    def particles_to_idxs(self, particles):
+    def particles_to_idxs(self, particles): #Unused
         idxs = [self.get_index(particle) for particle in particles]
         return idxs
 
+    def filter_candidates(self, current_population)-> Tuple[List[Optional[int]], List[Optional[int]]]: #Unused
+        improvable_candidates: List[Optional[int]] = []
+        improvable_indices: List[Optional[int]] = []
+        for i, ID in enumerate(current_population):
+            if self.current_layer <= self.inner_iterations_list[i] and not self.is_improved_list[i]:
+                improvable_candidates.append(ID)
+                improvable_indices.append(i)
+                if self.current_layer > 1:
+                    logging.info(f"Found particle to improve at index {i} in layer {self.current_layer}")
+            else:
+                improvable_candidates.append(None)
+                improvable_indices.append(None)
+        return improvable_candidates, improvable_indices
 
-    def simulate_generation(self): #Kan lage en if layer ==1, og resten i en annen løkke. Dropper det, funker nå
+    def simulate_generation(self) -> None: #Kan lage en if layer ==1, og resten i en annen løkke. Dropper det, funker nå
         current_population = np.array(list(self.population[-1]))
         current_max_layer = min(max(self.inner_iterations_list), self.max_layers) #Akkurat nå er max_layer for en partikkel begrenset av inner_iterations_list. Må kanskje endre det
         current_max_layer = max(current_max_layer, self.min_layers)
@@ -506,28 +518,15 @@ class SimulatedAnnealing():
         for layer in range(1, current_max_layer+1):
             self.current_layer = layer
             logging.info(f"Checking layer {layer}")
-            filtered_candidates = []
-            filtered_indices = []
-            for i, ID in enumerate(current_population):
-                if layer <= self.inner_iterations_list[i] and not self.is_improved_list[i]:
-                    filtered_candidates.append(ID)
-                    filtered_indices.append(i)
-                    if layer > 1:
-                        logging.info(f"Candidate obtained for index {i} in layer {layer}") #Not obtained candidate, but found particle to improve
-                else:
-                    filtered_candidates.append(None)
-                    filtered_indices.append(None)
-            logging.info(f"Filtered candidates: {filtered_candidates}")
-            logging.info(f"Current population: {current_population}")
-            self.generate_candidates(filtered_candidates)
-            #candidates_idxs = np.flatnonzero(np.array(self.birth_generation) == self.generation)
+            particles_to_improve, positions = self.filter_candidates(current_population) #Check if particles should be improved, and keep track of which particles and where they are in current_population. Replacement for commented lines below
+            self.generate_candidates(particles_to_improve)
             candidates_idxs = [
                             i for i, (gen, layer) in enumerate(self.birth_generation_layer)
                             if gen == self.generation and layer == self.current_layer
                             ]
             logging.info(f"Candidates idxs: {candidates_idxs}")
             #logging.info(f"Length of candidates_idxs is {len(candidates_idxs)}")
-            current_population = self.replace_population(current_population, candidates_idxs, filtered_indices)
+            current_population = self.replace_population(current_population, candidates_idxs, positions)
 
         logging.info(f"Current population is {current_population}")
         self.population.append(list(current_population))
@@ -647,7 +646,7 @@ class SimulatedAnnealing():
 
             self.generation += 1
             self.current_temp *= self.cooling_rate
-            logging.debug(f" Inner iterations_list: {self.inner_iterations_list}")
+            logging.info(f" Inner iterations_list: {self.inner_iterations_list}")
             if self.save_intermediate:
                     dill.dump(self,open(self.outfile,'wb'))
         else:
