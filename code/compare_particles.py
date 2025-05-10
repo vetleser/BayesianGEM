@@ -281,7 +281,7 @@ distance_function = GEMS.distance_2
 distances =[distance_function(Yobs, simulated_data) for simulated_data in simulated_data_list]
 
 logging.info("Finding difference in r2")
-logging.info(f"Difference is {max(distances - min(distances))}")
+logging.info(f"Difference is {max(distances) - min(distances)}")
 
 
 
