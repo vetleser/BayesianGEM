@@ -10,4 +10,4 @@
 WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR}
 
-/triumvirate/home/vetleser/.conda/envs/etcFBA/bin/python3 visualization_toy_example.py &> "../results/sa/visualization_toy_example.log"
+/triumvirate/home/vetleser/.conda/envs/etcFBA/bin/python3 visualization_toy_example.py &> "../results/toy_example/visualization_toy_example.log"
