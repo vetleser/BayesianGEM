@@ -153,7 +153,6 @@ def anaerobic_reduced(thermalParams):
     ran = etc.simulate_growth(man,np.array(sel_temp)+273.15,param_dict=param_dict,sigma=0.5)
     ran = [0 if x is None else x for x in ran]
     logging.info(f"ran: {ran}")
-
     rexp = dfan_batch.loc[sel_temp,'r_an'].values
     #anaerobic_exp_data()['data']
     
