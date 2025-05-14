@@ -38,14 +38,15 @@ class SimulatedAnnealing():
                  save_intermediate: bool = False,
                  
                  generation_size: int = 128,
-                 cooling_rate: float = 0.95,
+                 cooling_rate: float = None,
                  initial_temp: float = 100,
                  final_temp: float = 0.1,
                  inner_iterations: int = 1,
                  min_layers: int = 1,
                  max_layers: int = 10,
                  version: int = 1,
-                 step_size: float = 0.1
+                 step_size: float = 0.1, 
+                 normalize: bool = False
                  ):
         """Implements the Simulated Annealing algorithm designed to detect multiple optima in the fitness landscape
 
@@ -101,8 +102,11 @@ class SimulatedAnnealing():
         self.generation = 0
         self.save_intermediate = save_intermediate
 
-        self.cooling_rate = cooling_rate
-        #self.cooling_rate = (final_temp / initial_temp) ** (1 / maxiter) #cooling rate lines up with iterations
+        # self.cooling_rate = cooling_rate
+        if cooling_rate is None:
+            self.cooling_rate = (final_temp / initial_temp) ** (1 / maxiter) #cooling rate lines up with iterations
+        else:
+            self.cooling_rate = cooling_rate
         self.initial_temp = initial_temp
         self.current_temp = initial_temp
         self.final_temp = final_temp
@@ -120,6 +124,9 @@ class SimulatedAnnealing():
         self.log_ef = True
         self.log_ef_list: List[float] = []
         self.step_size = step_size
+        self.param_min : dict[str, float] = {}
+        self.param_max : dict[str, float] = {}
+        self.normalize = normalize
 
 
     def generator(self) -> candidateType:
@@ -167,7 +174,40 @@ class SimulatedAnnealing():
         for p, lst in parameters.items():
             self.param_std[p] = np.std(lst)
 
+    def update_minmax(self):
+        for p in self.parameter_names:
+            # Get the minimum and maximum values of the parameter
+            min_val = min(particle[p] for particle in self.all_particles)
+            max_val = max(particle[p] for particle in self.all_particles)
+            # Update the prior with the new minimum and maximum values
+            self.param_min[p] = min_val
+            self.param_max[p] = max_val
+
+    def indexed_simulator(self, index_candidate: Tuple[int, candidateType]) -> Tuple[int, simResultType]:
+        """
+        This method is used to evaluate the fitness of a candidate. It is used in the parallel evaluation of candidates.
+        """
+        idx, candidate = index_candidate
+        max_attempts = 3
+        for attempt in range(max_attempts):
+            try:
+                result = self.simulator(candidate)
+                return idx, result
+            except Exception as e:
+                logging.warning(f"Simulator failed for candidate {idx} on attempt {attempt+1}: {e}")
+                time.sleep(0.5)  # Optional delay
+        logging.warning(f"Simulation failed after {max_attempts} attempts for candidate {idx}")
+        standard_simdata = {
+        'rae': np.zeros(8, dtype=np.float64),
+        'ran': np.zeros(8, dtype=np.float64)
+            }        
+        return idx, standard_simdata  # Return a default value or raise an error
+
+
     def evaluate_candidates(self, candidates: List[candidateType]) -> None: #Taken straight from evo_etc
+        #TO DO: make sure new candidates are lined up correctly with the old ones
+        indexed_candidates = list(enumerate(candidates))
+        results_dict = {}
         # Specifying timeout of 30 minutes
         timeout = 30*60
         # This function both evaluates newly born individuals and store them into the archive
@@ -198,10 +238,13 @@ class SimulatedAnnealing():
                         serialized_simulator = dill.dumps(self.simulator)
                         simulator_func = dill.loads(serialized_simulator)
                         #Old attempt
-                        res_iter: Iterable[simResultType] = p.map(self.simulator, candidates,timeout=timeout).result()
+                        #res_iter: Iterable[simResultType] = p.map(self.simulator, candidates,timeout=timeout).result()
+                        #New attempt
+                        res_iter: Iterable[simResultType] = p.map(self.indexed_simulator, indexed_candidates,timeout=timeout).result()
                         while True:
                             try:
-                                raw_res = res_iter.next() # type: ignore
+                                # raw_res = res_iter.next() # type: ignore
+                                idx, raw_res = res_iter.next()
                             except StopIteration:
                                 # We have now iterated over all particles
                                 break
@@ -209,24 +252,28 @@ class SimulatedAnnealing():
                                 logging.info("Evaluation of particle timed out")
                             else:
                                 logging.info("Evaluation of particle ran successfully")
-                                simulated_data.append(raw_res)
-                                successfull_candidates.add(candidate_counter)
+                                results_dict[idx] = raw_res
+                                # simulated_data.append(raw_res)
+                                # successfull_candidates.add(candidate_counter)
                             finally:
                                 candidate_counter += 1
                 except (OSError, RuntimeError) as e:
                     logging.error('failed parallel_evaluation_mp: {0}'.format(str(e)))
                     raise
         
+        simulated_data = [results_dict[i] for i in range(len(candidates))]
         distances = [self.distance_function(self.Yobs, res) for res in simulated_data]
+        logging.info(f"Current distances are {distances}")
 
         # save all simulated results
         self.all_simulated_data.extend(simulated_data)
         self.all_distances.extend(distances)
         # This deals with the problem of candidates failing evaluation
-        self.all_particles.extend([candidate for counter, candidate in enumerate(candidates) if counter in successfull_candidates])
+        # self.all_particles.extend([candidate for counter, candidate in enumerate(candidates) if counter in successfull_candidates])
+        self.all_particles.extend(candidates)
         self.birth_generation.extend(repeat(self.generation,len(simulated_data))) #Can probably be removed, replaced by birth_generation_layer
 
-        self.birth_generation_layer.extend(repeat((self.generation,self.current_layer),len(simulated_data))) 
+        self.birth_generation_layer.extend(repeat((self.generation,self.current_layer),len(simulated_data))) #Unused, but might be useful for later
 
         #The four lines above are in use. The one lines below are not. Must look further into it, maybe remove, maybe implement, maybe add more lines 
         self.times_challenged.extend(repeat(0,len(simulated_data))) #This is not in use in evo_etc either, just recorded as information. Or not updated either it seems
@@ -258,18 +305,38 @@ class SimulatedAnnealing():
         Tm = candidate[Tm_key]
         Topt = candidate[Topt_key]
         return Tm > Topt > 0
+    
+    def check_scaled_validity(self, scaled_candidate, entry: str) -> bool:
+        # As we only change one parameter at a time, we only need to check
+        # the validity of the parameters of one enzyme
+        # Topt > Tm in real life, but mutation may disregard this constraint, so we have to account for it
+        split_entry = entry.split('_')
+        # We assume that entries are of the form PROTID_{Tm,Topt,dCpt}
+        # If this is not the case, we assume that the algorithm is used for another kind of inference problem,
+        # so we skip this domain-specific check. This also applies to the dCPt as mutatating them does not violate the constraint
+        if len(split_entry) != 2 or split_entry[1] not in ("Tm","Topt"):
+            return True
+        protein_id = split_entry[0]
+        Tm_key = protein_id + "_Tm"
+        Topt_key = protein_id + "_Topt"
+        Tm = scaled_candidate[Tm_key] * (self.param_max[Tm_key] - self.param_min[Tm_key]) + self.param_min[Tm_key]
+        Topt = scaled_candidate[Topt_key] * (self.param_max[Topt_key] - self.param_min[Topt_key]) + self.param_min[Topt_key]
+
+        return Tm > Topt > 0
 
 
 
-    def energy_function(self, d1: float, d2: float) -> bool:
+    def energy_function(self, current_dist: float, candidate_dist: float) -> bool:
+        delta = candidate_dist - current_dist
+        acceptance_probability = np.exp(-delta / self.current_temp)
         if self.log_ef:
-            logging.debug(f"Energy function is : {np.exp(-(d2-d1)/self.current_temp)}")
-            self.log_ef_list.append(np.exp(-(d2-d1)/self.current_temp))
+            logging.debug(f"Energy function value is : {np.exp(-(delta)/self.current_temp)}")
+            self.log_ef_list.append(np.exp(-(delta)/self.current_temp))
             self.log_ef = False
-        if d2 < d1:
+        if candidate_dist < current_dist:
             return True
         else:
-            return self.rng.random() < np.exp(-(d2-d1)/self.current_temp)
+            return self.rng.random() < acceptance_probability
         
 
         
@@ -362,6 +429,7 @@ class SimulatedAnnealing():
         max_generation_epsilon = max(self.all_distances[p] for p in self.population[-1])
         self.epsilons.append(max_generation_epsilon)
         self.update_std()
+        #self.update_minmax()
         logging.info(f"Model epsilon {max_generation_epsilon}")
 
     
@@ -390,17 +458,69 @@ class SimulatedAnnealing():
         self.acceptance_rates.append(acceptance_rate)
         self.population.append(list(current_population))
 
-    def generate_candidates_2(self, indices):
+    def get_bounds(self, param: str) -> Tuple[float, float]:
+        """
+        This method returns the bounds of the parameters. It is used to normalize the parameters
+        """
+        if param.endswith('_Tm'):
+            min_val = 0
+            max_val = 400
+        elif param.endswith('_Topt'):
+            min_val = 0
+            max_val = 400
+        elif param.endswith('_dCpt'):
+            min_val = -12000
+            max_val = -4000
+        else:
+            min_val = -10
+            max_val = 10
+        return min_val, max_val
+
+    def normalize_particle(self, particle_idx: np.int64) -> candidateType:
+        min_val = -10
+        max_val = 10
+        
+        #scaled_candidate = {parameter: (value - self.param_min[parameter])/(self.param_max[parameter]- self.param_min[parameter]) for parameter, value in self.all_particles[particle_idx].items()} #Max/min from current parameters
+        scaled_candidate = {
+        parameter: (value - self.get_bounds(parameter)[0]) / (self.get_bounds(parameter)[1] - self.get_bounds(parameter)[0])
+        for parameter, value in self.all_particles[particle_idx].items()
+        }        
+        return scaled_candidate
+    
+    def denormalize_particle(self, scaled_candidate: candidateType) -> candidateType:
+        min_val = -10
+        max_val = 10
+        #denormalized_candidate = {parameter: value * (self.param_max[parameter]- self.param_min[parameter]) + self.param_min[parameter] for parameter, value in scaled_candidate.items()} #Max/min from current parameters
+        denormalized_candidate = {
+        parameter: value * (self.get_bounds(parameter)[1] - self.get_bounds(parameter)[0]) + self.get_bounds(parameter)[0]
+        for parameter, value in scaled_candidate.items()
+        }        
+        return denormalized_candidate
+
+
+    def generate_candidates_2(self, particle_idxs: npt.NDArray[np.int64]) -> None: #Kan bruke change_all_parameters her istedenfor å skrive det eksplisitt
+        logging.info("Generating candidates")
         candidates: List[candidateType] = []
-        for index in indices:
-            candidate = {parameter: value for parameter, value in self.all_particles[index].items()}
-            for key in candidate:
-                old_parameter_value = candidate[key]
-                candidate[key] += self.step_size * self.rng.normal(0, 1)
-                if not self.check_validity(candidate, key):
-                    #self.all_particles.append(particle) # Skal kanskje ikke være her, men i evaluate_candidates
-                    candidate[key] = old_parameter_value
-            candidates.append(candidate)
+        if self.normalize:
+            for idx in particle_idxs:
+                scaled_candidate = self.normalize_particle(idx)
+                for key in scaled_candidate:
+                    old_parameter_value = scaled_candidate[key]
+                    scaled_candidate[key] += self.step_size * self.rng.normal(0, 1) #Endre til å bruke change_all_parameters, og/eller måte på å endre verdiene
+                    scaled_candidate[key] = np.clip(scaled_candidate[key], 0, 1) #Ensures that the scaled candidate is between 0 and 1
+                    if not self.check_scaled_validity(scaled_candidate, key):
+                        scaled_candidate[key] = old_parameter_value
+                candidate = self.denormalize_particle(scaled_candidate)
+                candidates.append(candidate)
+        else:
+            for idx in particle_idxs:
+                candidate = {parameter: value for parameter, value in self.all_particles[idx].items()}
+                for key in candidate:
+                    old_parameter_value = candidate[key]
+                    candidate[key] += self.step_size * self.rng.normal(0, 1) #* (self.current_temp/self.initial_temp). Wanted to scale step size with temperature, did not work. Population clustered in centre
+                    if not self.check_validity(candidate, key):
+                        candidate[key] = old_parameter_value
+                candidates.append(candidate)
         logging.info("Evaluating fitness of candidates")
         self.evaluate_candidates(candidates)
 
@@ -413,6 +533,7 @@ class SimulatedAnnealing():
         max_generation_epsilon = max(self.all_distances[p] for p in self.population[-1])
         self.epsilons.append(max_generation_epsilon)
         self.update_std()
+        self.update_minmax()
         logging.info(f"Model epsilon {max_generation_epsilon}")
         
 
@@ -436,6 +557,7 @@ class SimulatedAnnealing():
             max_generation_epsilon = max(self.all_distances)
             self.epsilons.append(max_generation_epsilon)
             self.update_std()
+            self.update_minmax()
             self.inner_iterations_list = [self.min_layers for _ in range(self.generation_size)]
             logging.info(f"Model epsilon {max_generation_epsilon}")
             self.generation += 1
@@ -467,6 +589,16 @@ class SimulatedAnnealing():
             self.generation += 1
             if self.current_temp > self.final_temp:
                 self.current_temp *= self.cooling_rate
+            
+            # #Adaptive cooling
+            # recent_rate = np.mean(self.acceptance_rates[-5:])
+            # if recent_rate > upper_threshold:
+            #     # Too many moves accepted → cool down faster (exploit)
+            #     self.current_temp = max(self.current_temp * self.cooling_rate, self.final_temp)
+            # elif recent_rate < lower_threshold:
+            #     # Too few moves accepted → reheat slightly (explore)
+            #     self.current_temp = min(self.current_temp / self.cooling_rate, self.initial_temp)
+
             logging.info(f" Inner_iterations_list: {self.inner_iterations_list}")
             if self.save_intermediate:
                     dill.dump(self,open(self.outfile,'wb'))
