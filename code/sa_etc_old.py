@@ -100,6 +100,49 @@ class SimulatedAnnealing():
         self.current_temp = initial_temp
         self.final_temp = final_temp
 
+    def normalize_particle(self, particle_idx: np.int64) -> candidateType:
+        scaled_candidate = {parameter: (value - self.param_min[parameter])/(self.param_max[parameter]- self.param_min[parameter]) for parameter, value in self.all_particles[particle_idx].items()}
+        return scaled_candidate
+    
+    def denormalize_particle(self, scaled_candidate: candidateType) -> candidateType:
+        denormalized_candidate = {parameter: value * (self.param_max[parameter]- self.param_min[parameter]) + self.param_min[parameter] for parameter, value in scaled_candidate.items()}
+        return denormalized_candidate
+
+    def generate_candidates_2(self, particle_idxs: npt.NDArray[np.int64]) -> None: #Kan bruke change_all_parameters her istedenfor å skrive det eksplisitt
+        candidates: List[candidateType] = []
+        for idx in particle_idxs:
+            scaled_candidate = self.normalize_particle(idx)
+            for key in scaled_candidate:
+                old_parameter_value = scaled_candidate[key]
+                scaled_candidate[key] += (self.current_temp/self.initial_temp) * self.step_size * self.rng.normal(0, 1)
+                if not self.check_scaled_validity(scaled_candidate, key):
+                    scaled_candidate[key] = old_parameter_value
+            candidate = self.denormalize_particle(scaled_candidate)
+            candidates.append(candidate)
+        logging.info("Evaluating fitness of candidates")
+        self.evaluate_candidates(candidates)
+
+    def check_scaled_validity(self, scaled_candidate, entry: str) -> bool:
+        # As we only change one parameter at a time, we only need to check
+        # the validity of the parameters of one enzyme
+        # Topt > Tm in real life, but mutation may disregard this constraint, so we have to account for it
+        split_entry = entry.split('_')
+        # We assume that entries are of the form PROTID_{Tm,Topt,dCpt}
+        # If this is not the case, we assume that the algorithm is used for another kind of inference problem,
+        # so we skip this domain-specific check. This also applies to the dCPt as mutatating them does not violate the constraint
+        if len(split_entry) != 2 or split_entry[1] not in ("Tm","Topt"):
+            return True
+        protein_id = split_entry[0]
+        Tm_key = protein_id + "_Tm"
+        Topt_key = protein_id + "_Topt"
+        Tm = scaled_candidate[Tm_key] * (self.param_max[Tm_key] - self.param_min[Tm_key]) + self.param_min[Tm_key]
+        Topt = scaled_candidate[Topt_key] * (self.param_max[Topt_key] - self.param_min[Topt_key]) + self.param_min[Topt_key]
+
+        return Tm > Topt > 0
+
+
+
+
     def choose_particle_2(self, particle1: candidateType, particle2: candidateType)-> candidateType:
         index_p1 = self.get_index(particle1)
         index_p2 = self.get_index(particle2)
