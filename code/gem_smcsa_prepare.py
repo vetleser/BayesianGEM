@@ -19,17 +19,18 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 # In[ ]:
 
 
-final_temp = [0.1, 0.01, 0.001, 0.0001]
+final_temp = [0.001, 0.0001]
 normalize = [False]
+step_size = [0.1]
 
-n_replicates = 1
+n_replicates = 2
 overall_random_seed = 200
 rng = np.random.default_rng(overall_random_seed)
 path = os.path.dirname(os.path.realpath(__file__)).replace('code','')
 params = pd.read_csv(os.path.join(path,'data/model_enzyme_params.csv'),index_col=0)
 
-candidate_frame: pd.DataFrame = pd.DataFrame(index=pd.MultiIndex.from_product([final_temp, normalize, range(n_replicates)],
- names = ["final_temp","normalize", "simulation"])).reset_index()
+candidate_frame: pd.DataFrame = pd.DataFrame(index=pd.MultiIndex.from_product([final_temp, step_size, range(n_replicates)],
+ names = ["final_temp","step_size", "simulation"])).reset_index()
 
 
 
