@@ -25,18 +25,18 @@ distanceArgType = Dict[str, npt.NDArray[np.float64]]
 
 
 class SimulatedAnnealing():
-    def __init__(self, 
-                 simulator: Callable[[candidateType], simResultType], 
-                 priors : priorType, 
+    def __init__(self,
+                 simulator: Callable[[candidateType], simResultType],
+                 priors : priorType,
                  min_epsilon: float,
                  distance_function: Callable[[distanceArgType, distanceArgType], float],
-                 Yobs: distanceArgType, 
+                 Yobs: distanceArgType,
                  outfile: str,
                  cores: int = cpu_count(),
-                 maxiter: int = 100000, 
+                 maxiter: int = 100000,
                  rng: np.random.Generator = None,  # type: ignore
                  save_intermediate: bool = False,
-                 
+
                  generation_size: int = 128,
                  cooling_rate: float = None,
                  initial_temp: float = 100,
@@ -45,7 +45,7 @@ class SimulatedAnnealing():
                  min_layers: int = 1,
                  max_layers: int = 10,
                  version: int = 1,
-                 step_size: float = 0.1, 
+                 step_size: float = 0.1,
                  normalize: bool = False
                  ):
         """Implements the Simulated Annealing algorithm designed to detect multiple optima in the fitness landscape
@@ -56,7 +56,7 @@ class SimulatedAnnealing():
             min_epsilon (float): minimal epsilon
             distance_function (Callable[[distanceArgType, distanceArgType], float]): a function that calculate the distance between observed data and simulated data
             Yobs (distanceArgType): observed data
-            outfile (str): unique id for the experiment. This will be also used to continue a simulation that 
+            outfile (str): unique id for the experiment. This will be also used to continue a simulation that
                          is partly done
             cores (int, optional): number of treads. Defaults to cpu_count().
             generation_size (int, optional): the size of each population. Defaults to 128.
@@ -66,7 +66,7 @@ class SimulatedAnnealing():
             scaling_factor (float, optional): The scaling factor for the Differential Evolution, meaning how much weight is applied to the two secondary individuals. Defaults to 0.5.
             crossover_prob (float, optional): The crossover probability for the two secondary parents. Defaults to 0.9.
             save_intermediate (bool, optional): Should intermediate results be saved for each iteration? If toggled on, computations can be resumed if interrupted prematurly, but this will come at a performance penalty which parallelism cannot alleviate.. Defaults to False.
-            
+
             !!! Distance is to be minimized!!!
         """
         self.simulator = simulator
@@ -87,7 +87,7 @@ class SimulatedAnnealing():
         # The indicies in the list specify which of the particles in self.all_particles is part of the current population
         self.population_old: List[candidateType] = []
         self.population: List[List[int]] = []
-        self.cores = cores    
+        self.cores = cores
         self.epsilons: List[float] = []          # min distance in each generation
         self.generation_size = generation_size   # number of particles to be simulated at each generation
         self.maxiter = maxiter
@@ -157,20 +157,20 @@ class SimulatedAnnealing():
                 self.mutate_param(candidate,Topt_key)
             else:
                 break
-    
-    
+
+
     def update_std(self):
         """
-        This method updates the enzyme parameter preceived standard deviations. Corresponds to update_posterior() in abc_etc 
+        This method updates the enzyme parameter preceived standard deviations. Corresponds to update_posterior() in abc_etc
         """
         logging.info('Updating standard deviations to parameters')
         parameters = dict()   # {'Protein_Tm':[]}
         for particle_idx in self.population[-1]:
             particle = self.all_particles[particle_idx]
-            for p,val in particle.items(): 
+            for p,val in particle.items():
                 lst = parameters.get(p,[])
                 lst.append(val)
-                parameters[p] = lst        
+                parameters[p] = lst
         for p, lst in parameters.items():
             self.param_std[p] = np.std(lst)
 
@@ -188,7 +188,7 @@ class SimulatedAnnealing():
         This method is used to evaluate the fitness of a candidate. It is used in the parallel evaluation of candidates.
         """
         idx, candidate = index_candidate
-        max_attempts = 3
+        max_attempts = 1
         for attempt in range(max_attempts):
             try:
                 result = self.simulator(candidate)
@@ -200,12 +200,12 @@ class SimulatedAnnealing():
         standard_simdata = {
         'rae': np.zeros(8, dtype=np.float64),
         'ran': np.zeros(8, dtype=np.float64)
-            }        
+            }
         return idx, standard_simdata  # Return a default value or raise an error
 
 
     def evaluate_candidates(self, candidates: List[candidateType]) -> None: #Taken straight from evo_etc
-        #TO DO: make sure new candidates are lined up correctly with the old ones
+        #TO DO: make sure new candidates are lined up correctly with the old ones. Indexed_simulater takes too long
         indexed_candidates = list(enumerate(candidates))
         results_dict = {}
         # Specifying timeout of 30 minutes
@@ -216,6 +216,7 @@ class SimulatedAnnealing():
         # Candidates for which evaluating fitness was successful
         successfull_candidates = set()
         candidate_counter = 0
+        timed_out = False
         if self.cores == 1:
             # No need for creating a parallel cluster in this case
             res_iter: Iterable[simResultType] = map(self.simulator,candidates)
@@ -235,33 +236,46 @@ class SimulatedAnnealing():
                 try:
                     with pebble.ProcessPool(self.cores) as p:
                         #Wrapping simulator
-                        serialized_simulator = dill.dumps(self.simulator)
-                        simulator_func = dill.loads(serialized_simulator)
+                        # serialized_simulator = dill.dumps(self.simulator)
+                        # simulator_func = dill.loads(serialized_simulator)
                         #Old attempt
-                        #res_iter: Iterable[simResultType] = p.map(self.simulator, candidates,timeout=timeout).result()
+                        res_iter: Iterable[simResultType] = p.map(self.simulator, candidates,timeout=timeout).result()
                         #New attempt
-                        res_iter: Iterable[simResultType] = p.map(self.indexed_simulator, indexed_candidates,timeout=timeout).result()
+                        # res_iter: Iterable[simResultType] = p.map(self.indexed_simulator, indexed_candidates,timeout=timeout).result()
                         while True:
                             try:
-                                # raw_res = res_iter.next() # type: ignore
-                                idx, raw_res = res_iter.next()
+                                raw_res = res_iter.next() # type: ignore
+                                # idx, raw_res = res_iter.next()
                             except StopIteration:
                                 # We have now iterated over all particles
                                 break
                             except TimeoutError:
+                                timed_out = True
                                 logging.info("Evaluation of particle timed out")
                             else:
                                 logging.info("Evaluation of particle ran successfully")
-                                results_dict[idx] = raw_res
-                                # simulated_data.append(raw_res)
-                                # successfull_candidates.add(candidate_counter)
+                                # results_dict[idx] = raw_res
+                                simulated_data.append(raw_res)
+                                successfull_candidates.add(candidate_counter)
                             finally:
                                 candidate_counter += 1
                 except (OSError, RuntimeError) as e:
                     logging.error('failed parallel_evaluation_mp: {0}'.format(str(e)))
                     raise
-        
-        simulated_data = [results_dict[i] for i in range(len(candidates))]
+
+        if timed_out:
+            standard_simdata = {
+            'rae': np.zeros(8, dtype=np.float64),
+            'ran': np.zeros(8, dtype=np.float64)
+                }
+            simulated_data = [raw_res if counter in successfull_candidates else standard_simdata
+                for counter, raw_res in enumerate(simulated_data)]
+            
+            #simulated_data = [results_dict.get(i, {key: value.copy() for key, value in standard_simdata.items()}) for i in range(len(candidates))] #Use standard_simdata to handle TimeoutError
+
+
+
+
         distances = [self.distance_function(self.Yobs, res) for res in simulated_data]
         logging.info(f"Current distances are {distances}")
 
@@ -270,12 +284,14 @@ class SimulatedAnnealing():
         self.all_distances.extend(distances)
         # This deals with the problem of candidates failing evaluation
         # self.all_particles.extend([candidate for counter, candidate in enumerate(candidates) if counter in successfull_candidates])
+        # self.all_particles.extend(candidates)
         self.all_particles.extend(candidates)
+
         self.birth_generation.extend(repeat(self.generation,len(simulated_data))) #Can probably be removed, replaced by birth_generation_layer
 
         self.birth_generation_layer.extend(repeat((self.generation,self.current_layer),len(simulated_data))) #Unused, but might be useful for later
 
-        #The four lines above are in use. The one lines below are not. Must look further into it, maybe remove, maybe implement, maybe add more lines 
+        #The four lines above are in use. The one lines below are not. Must look further into it, maybe remove, maybe implement, maybe add more lines
         self.times_challenged.extend(repeat(0,len(simulated_data))) #This is not in use in evo_etc either, just recorded as information. Or not updated either it seems
         end = time.time()
         logging.info('Completed parallel evaluation of candidates in {0} seconds'.format(end - start))
@@ -305,7 +321,7 @@ class SimulatedAnnealing():
         Tm = candidate[Tm_key]
         Topt = candidate[Topt_key]
         return Tm > Topt > 0
-    
+
     def check_scaled_validity(self, scaled_candidate, entry: str) -> bool:
         # As we only change one parameter at a time, we only need to check
         # the validity of the parameters of one enzyme
@@ -337,17 +353,17 @@ class SimulatedAnnealing():
             return True
         else:
             return self.rng.random() < acceptance_probability
-        
 
-        
-    def choose_particle(self, idx1: int, idx2: int)-> int: 
+
+
+    def choose_particle(self, idx1: int, idx2: int)-> int:
         d1 = self.all_distances[idx1]
         d2 = self.all_distances[idx2]
         if self.energy_function(d1, d2):
             return idx2
         else:
             return idx1
-        
+
 
 
     def generate_candidates(self, particle_idxs: npt.NDArray[np.int64])-> None: #Kan bruke change_all_parameters her istedenfor å skrive det eksplisitt
@@ -385,11 +401,11 @@ class SimulatedAnnealing():
 
         return current_population
 
-        
+
 
 
     def filter_candidates(self, current_population: npt.NDArray[np.int64])-> Tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
-        logging.info("Finding candidates to improve") 
+        logging.info("Finding candidates to improve")
         improvable_candidates: List[int] = []
         improvable_indices: List[int] = []
         for i, ID in enumerate(current_population):
@@ -427,27 +443,29 @@ class SimulatedAnnealing():
         self.population.append(list(current_population))
 
         max_generation_epsilon = max(self.all_distances[p] for p in self.population[-1])
+        min_generation_epsilon = min(self.all_distances[p] for p in self.population[-1])
         self.epsilons.append(max_generation_epsilon)
         self.update_std()
         #self.update_minmax()
         logging.info(f"Model epsilon {max_generation_epsilon}")
+        logging.info(f"Model min epsilon {min_generation_epsilon}")
 
-    
+
 
     def replace_population_2(self,original_population: npt.NDArray[np.int64], candidates: npt.NDArray[np.int64]):
         logging.info(f"Replacing population with candidates")
-        current_population : Set[int] = set()
+        current_population : List[int] = []
         acceptance_counter: int = 0
         for i, (old_particle, candidate_particle) in enumerate(zip(original_population, candidates)):
             chosen_particle = self.choose_particle(old_particle, candidate_particle)
             if chosen_particle == old_particle:
-                current_population.add(old_particle)
+                current_population.append(old_particle)
                 #Keep index in current population as it is
                 self.inner_iterations_list[i] += 1 #Add 1 to inner_iterations_list
                 logging.debug(f"Keeping particle {i}") #For checking, remove later
-                
+
             else:
-                current_population.add(candidate_particle)
+                current_population.append(candidate_particle)
                 #Add index of this particle to self.population
                 acceptance_counter += 1
                 self.inner_iterations_list[i] = self.min_layers #Set inner_iterations_list to 1
@@ -479,14 +497,14 @@ class SimulatedAnnealing():
     def normalize_particle(self, particle_idx: np.int64) -> candidateType:
         min_val = -10
         max_val = 10
-        
+
         #scaled_candidate = {parameter: (value - self.param_min[parameter])/(self.param_max[parameter]- self.param_min[parameter]) for parameter, value in self.all_particles[particle_idx].items()} #Max/min from current parameters
         scaled_candidate = {
         parameter: (value - self.get_bounds(parameter)[0]) / (self.get_bounds(parameter)[1] - self.get_bounds(parameter)[0])
         for parameter, value in self.all_particles[particle_idx].items()
-        }        
+        }
         return scaled_candidate
-    
+
     def denormalize_particle(self, scaled_candidate: candidateType) -> candidateType:
         min_val = -10
         max_val = 10
@@ -494,7 +512,7 @@ class SimulatedAnnealing():
         denormalized_candidate = {
         parameter: value * (self.get_bounds(parameter)[1] - self.get_bounds(parameter)[0]) + self.get_bounds(parameter)[0]
         for parameter, value in scaled_candidate.items()
-        }        
+        }
         return denormalized_candidate
 
 
@@ -530,12 +548,15 @@ class SimulatedAnnealing():
         candidates_idxs = np.flatnonzero(np.array(self.birth_generation) == self.generation)
         self.replace_population_2(current_population, candidates_idxs)
 
+        logging.info(f"Current population is {self.population[-1]}")
         max_generation_epsilon = max(self.all_distances[p] for p in self.population[-1])
+        min_generation_epsilon = min(self.all_distances[p] for p in self.population[-1])
         self.epsilons.append(max_generation_epsilon)
         self.update_std()
         self.update_minmax()
         logging.info(f"Model epsilon {max_generation_epsilon}")
-        
+        logging.info(f"Model min epsilon {min_generation_epsilon}")
+
 
 
     def run_simulation(self) -> None:
@@ -572,7 +593,7 @@ class SimulatedAnnealing():
                 logging.info(f"Temperature has reached a minimum at generation {self.generation}. Fitness objective not reached.")
                 logging.info(f"Exiting simulated annealing")
                 #break
-            
+
             logging.info(f"Running generation {self.generation} of {self.maxiter}. Current temperature: {self.current_temp}")
             self.log_ef = True
             if self.version == 1:
@@ -581,15 +602,15 @@ class SimulatedAnnealing():
                 self.simulate_generation_2()
             # else:
             #     self.simulate_generation_3()
-            
-            
+
+
             end_generation = time.time()
             logging.info(f"Generation {self.generation} completed in {end_generation-start_generation} seconds")
 
             self.generation += 1
             if self.current_temp > self.final_temp:
                 self.current_temp *= self.cooling_rate
-            
+
             # #Adaptive cooling
             # recent_rate = np.mean(self.acceptance_rates[-5:])
             # if recent_rate > upper_threshold:
@@ -600,7 +621,7 @@ class SimulatedAnnealing():
             #     self.current_temp = min(self.current_temp / self.cooling_rate, self.initial_temp)
 
             logging.info(f" Inner_iterations_list: {self.inner_iterations_list}")
-            if self.save_intermediate:
+            if self.save_intermediate and self.generation % 10 == 0:
                     dill.dump(self,open(self.outfile,'wb'))
         else:
             # This else-clause belongs to the main simulated annealing loop
@@ -612,6 +633,6 @@ class SimulatedAnnealing():
 
         logging.info(f"Saving results to {self.outfile}")
         dill.dump(self, file=open(self.outfile,mode='wb'))
-        
+
 
 
