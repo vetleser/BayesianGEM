@@ -9,6 +9,7 @@ import numpy as np
 import abc_etc as abc
 import evo_etc as evo
 import sa_etc as sa
+import sa_etc_new as sa_new
 import os
 import math
 import logging
@@ -18,7 +19,7 @@ import pandas as pd
 import dill
 
 
-logging.basicConfig(level=logging.WARNING, format='%(asctime)s %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 
 # Convenient pickle wrappers
 def load_pickle(filename):
@@ -99,6 +100,17 @@ def general_fitness_function(dummy, candidate, minima_list, scaling_list, sigma=
     value = compute_R2(candidate["x"], candidate["y"])
     return -value / max_R2
 
+def rastrigin_function(dummy, candidate):
+    A = 10
+    n = 2
+    x, y = candidate["x"], candidate["y"]
+    # Calculate the Rastrigin function for x and y
+    sum1 = (x**2 - A * np.cos(2 * np.pi * x))
+    sum2 = (y**2 - A * np.cos(2 * np.pi * y))
+    
+    # Sum them together with the constant A * n
+    return -(A * n + sum1 + sum2)
+
 test1 = fitness_function4(None, {"x": 0, "y": 0})
 test2 = fitness_function4(None, {"x": 1, "y": 1})
 test3 = fitness_function4(None, {"x": -1, "y": -1})
@@ -159,9 +171,12 @@ def perform_sa(generation_size,
                minima_list, 
                scaling_list, 
                n_plots=4, 
-               n_iterations=4):
+               n_iterations=4,
+               fitness_function = None,
+               min_epsilon: float = -1,):
     
-    fitness_function = partial(general_fitness_function, minima_list=minima_list, scaling_list=scaling_list)
+    if fitness_function is None:
+        fitness_function = partial(general_fitness_function, minima_list=minima_list, scaling_list=scaling_list)
     testing_fitness_function(fitness_function, minima_list)
     cooling_rate_list = [(final_temp / initial_temp) ** (1 / maxiter) for final_temp in final_temp_list]
     for j in range(n_plots):
@@ -172,12 +187,53 @@ def perform_sa(generation_size,
             simanneal_model = sa.SimulatedAnnealing(
                                 simulator=simulator,
                                 priors=copy.deepcopy(priors),
-                                min_epsilon=-1,
+                                min_epsilon=min_epsilon,
                                 distance_function=fitness_function,
                                 Yobs=Yobs,
                                 maxiter=maxiter,
                                 generation_size = generation_size,
                                 outfile=f"{outdir}/{filename}_{j}_{i}.pkl",
+                                initial_temp=initial_temp,
+                                cooling_rate=cooling_rate_list[j],
+                                final_temp=final_temp_list[j],
+                                rng=rng,
+                                cores=1,
+                                version=2,
+                                step_size=step_size,
+                                )
+            simanneal_model.run_simulation()
+            end = time.time()
+            #logging.info(f"Time for SA {j}: {end-start} seconds")
+
+def perform_sa_new(generation_size, 
+               final_temp_list, 
+               filename, 
+               step_size, 
+               minima_list, 
+               scaling_list, 
+               n_plots=4, 
+               n_iterations=4,
+               fitness_function = None,
+               min_epsilon: float = -1,):
+    
+    if fitness_function is None:
+        fitness_function = partial(general_fitness_function, minima_list=minima_list, scaling_list=scaling_list)
+    testing_fitness_function(fitness_function, minima_list)
+    cooling_rate_list = [(final_temp / initial_temp) ** (1 / maxiter) for final_temp in final_temp_list]
+    for j in range(n_plots):
+        rng = np.random.default_rng(random_seed)  # fresh RNG per sim
+        for i in range(n_iterations):
+            start = time.time()
+            logging.warning(f"Simulated Annealing plot {j} of {n_plots}, simulation {i} of {n_iterations} started")
+            simanneal_model = sa_new.SimulatedAnnealing(
+                                simulator=simulator,
+                                priors=copy.deepcopy(priors),
+                                min_epsilon=min_epsilon,
+                                distance_function=fitness_function,
+                                Yobs=Yobs,
+                                maxiter=maxiter,
+                                generation_size = generation_size,
+                                outfile=f"{outdir}/{filename}_new_{j}_{i}.pkl",
                                 initial_temp=initial_temp,
                                 cooling_rate=cooling_rate_list[j],
                                 final_temp=final_temp_list[j],
@@ -246,8 +302,39 @@ initial_temp = 100
 n_plots = 4
 n_simulations = 4
 
-# for figure in toy_example_df["Figure"]:
-#     row = toy_example_df.loc[toy_example_df["Figure"] == figure].iloc[0]  # safely get the matching row
+# perform_sa(
+#     generation_size=32,
+#     final_temp_list=[1.0, 0.1, 0.01, 0.001],
+#     filename="simanneal_rastr",
+#     step_size=0.01,
+#     minima_list=[],
+#     scaling_list=[],
+#     n_plots=n_plots,
+#     n_iterations=n_simulations,
+#     fitness_function=rastrigin_function,
+#     min_epsilon=-80.70658039
+
+# )
+
+for figure in toy_example_df["Figure"]:
+    row = toy_example_df.loc[toy_example_df["Figure"] == figure].iloc[0]  # safely get the matching row
+    logging.warning(f"Performing simulated annealing for figure {figure}")
+    perform_sa_new(
+        #fitness_function= rastrigin_function,
+        generation_size=row["Generation_size"],
+        final_temp_list=row["Final_temp_list"],
+        filename=f"simanneal_fig{figure}",
+        step_size=row["Step_size"],
+        minima_list=row["Minima_list"],
+        scaling_list=row["Scaling_list"],
+        n_plots=n_plots,
+        n_iterations=n_simulations
+    )
+    
+    
+
+# for figure in toy_example_df2["Figure"]:
+#     row = toy_example_df2.loc[toy_example_df2["Figure"] == figure].iloc[0]  # safely get the matching row
 #     logging.warning(f"Performing simulated annealing for figure {figure}")
 #     perform_sa(
 #         generation_size=row["Generation_size"],
@@ -259,20 +346,6 @@ n_simulations = 4
 #         n_plots=n_plots,
 #         n_iterations=n_simulations
 #     )
-
-for figure in toy_example_df2["Figure"]:
-    row = toy_example_df2.loc[toy_example_df2["Figure"] == figure].iloc[0]  # safely get the matching row
-    logging.warning(f"Performing simulated annealing for figure {figure}")
-    perform_sa(
-        generation_size=row["Generation_size"],
-        final_temp_list=row["Final_temp_list"],
-        filename=f"simanneal_fig{figure}",
-        step_size=row["Step_size"],
-        minima_list=row["Minima_list"],
-        scaling_list=row["Scaling_list"],
-        n_plots=n_plots,
-        n_iterations=n_simulations
-    )
 
 
 logging.warning("DONE")

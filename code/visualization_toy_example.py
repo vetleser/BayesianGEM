@@ -14,6 +14,9 @@ import evo_etc
 import sa_etc
 from matplotlib.lines import Line2D
 import logging
+import sa_etc_new as sa2
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 
 
 # Convenient pickle wrappers
@@ -37,6 +40,9 @@ def extract_simulated_annealing_final_generation(model: sa_etc.SimulatedAnnealin
         return [model.all_particles[particle] for particle in particles_to_pick]
     except IndexError:
         return model.population_old
+    
+def extract_simulated_annealing_final_generation_2(model: sa2.SimulatedAnnealing):
+    return model.current_population
 
 def contour_function(x,y):
     denomenator = 1+((x-1)**2+(y-1)**2)*((x+1)**2+(y+1)**2)
@@ -106,6 +112,16 @@ def general_contour_function(x, y, minima_list, scaling_list, sigma=0.6):
 
     return -R2 / max_R2
 
+def rastrigin_contour_function(x, y):
+    A = 10
+    n = 2
+    # Calculate the Rastrigin function for x and y
+    sum1 = (x**2 - A * np.cos(2 * np.pi * x))
+    sum2 = (y**2 - A * np.cos(2 * np.pi * y))
+    
+    # Sum them together with the constant A * n
+    return -(A * n + sum1 + sum2)
+
 
 
 def make_plot(fig_number,
@@ -113,7 +129,9 @@ def make_plot(fig_number,
               minima_list,
               scaling_list,
               xlim=(-2.5, 2.5),
-              ylim=(-2.5, 2.5)
+              ylim=(-2.5, 2.5),
+              contour_func=None,
+              filename = None,
             ):
     # Set up figure size and font
     plt.figure(figsize=(2 * 12.5, 2 * 12.5))
@@ -128,9 +146,10 @@ def make_plot(fig_number,
                     marker=markers[simulation % len(markers)], linewidths=2.5)
 
         # CAN CHANGE THE LIMITS HERE
+        # plt.xlim(xlim)
+        # plt.ylim(ylim)
         plt.xlim(xlim)
         plt.ylim(ylim)
-
 
         plt.xlabel("x")
         plt.ylabel("y")
@@ -143,8 +162,8 @@ def make_plot(fig_number,
     cmap = matplotlib.cm.get_cmap('tab10', n_simulations)
     markers = ["o", "s", "*", "^"]  # Customize with different markers if needed
     
-
-    contour_func = lambda x, y: general_contour_function(x, y, minima_list, scaling_list)
+    if contour_func is None:
+        contour_func = lambda x, y: general_contour_function(x, y, minima_list, scaling_list)
     # Loop to create subplots for each plot
     for j, plot in enumerate(range(n_plots)):
         ax = plt.subplot(2, 2, j + 1)
@@ -178,16 +197,21 @@ def make_plot(fig_number,
         # Loop through all simulations for this plot and plot the population
         for i, simulation in enumerate(range(n_simulations)):
             # Get the final generation data for the given plot and simulation
-            filename = f"simanneal_fig{fig_number}_{plot}_{simulation}.pkl"
-            model = load_pickle(f"../results/toy_example_new/{filename}")
-            particles = extract_simulated_annealing_final_generation(model)
+            if filename == None:
+                filename_sim = f"simanneal_fig{fig_number}_new_{plot}_{simulation}.pkl"
+            else:
+                filename_sim = f"{filename}_{plot}_{simulation}.pkl"
+            model = load_pickle(f"../results/toy_example_new/{filename_sim}")
+            particles = extract_simulated_annealing_final_generation_2(model)
+            logging.info(f"Particles: {particles}")
             
             # Plot particles for this simulation
             plot_population_2(particles, simulation, cmap, markers)
 
     # Save and show the plot
     plt.tight_layout()
-    plt.savefig(f"../figures/toy_example_new/toy_example_fig{fig_number}_wtitle.png", dpi=300)
+    logging.info(f"Saving figure {fig_number}")
+    plt.savefig(f"../figures/toy_example_new/toy_example_fig{fig_number}_new_wtitle.png", dpi=300)
     plt.show()
 
 
@@ -202,8 +226,32 @@ n_plots = 4
 toy_example_df = load_pickle(f"{outdir}/toy_example_df.pkl")
 toy_example_df2 = load_pickle(f"{outdir}/toy_example_df2.pkl")
 
-# for figure in toy_example_df["Figure"]:
-#     row = toy_example_df.loc[toy_example_df["Figure"] == figure].iloc[0]  # robust row access
+# make_plot(
+#     fig_number="rastr",
+#     final_temp_list=[1, 0.1, 0.01, 0.001],
+#     minima_list=[(-1, 1), (1, 1), (-1, -1), (1, -1)],
+#     scaling_list=[1, 0.9, 0.8, 0.7],
+#     xlim=(-5.12, 5.12),
+#     ylim=(-5.12, 5.12),
+#     contour_func=rastrigin_contour_function,
+#     filename="simanneal_rastr"
+# )    
+
+for figure in toy_example_df["Figure"]:
+    row = toy_example_df.loc[toy_example_df["Figure"] == figure].iloc[0]  # robust row access
+    logging.info(f"Figure {figure} loaded")
+    make_plot(#contour_func=rastrigin_contour_function,
+        fig_number=figure,
+        final_temp_list=row["Final_temp_list"],
+        minima_list=row["Minima_list"],
+        scaling_list=row["Scaling_list"],
+        xlim=row["X_lim"],
+        ylim=row["Y_lim"]
+    ) 
+    #break #Uncomment this line to only run the first figure
+
+# for figure in toy_example_df2["Figure"]:
+#     row = toy_example_df2.loc[toy_example_df2["Figure"] == figure].iloc[0]  # robust row access
 #     logging.info(f"Figure {figure} loaded")
 #     make_plot(
 #         fig_number=figure,
@@ -212,19 +260,7 @@ toy_example_df2 = load_pickle(f"{outdir}/toy_example_df2.pkl")
 #         scaling_list=row["Scaling_list"],
 #         xlim=row["X_lim"],
 #         ylim=row["Y_lim"]
-#     ) 
-
-for figure in toy_example_df2["Figure"]:
-    row = toy_example_df2.loc[toy_example_df2["Figure"] == figure].iloc[0]  # robust row access
-    logging.info(f"Figure {figure} loaded")
-    make_plot(
-        fig_number=figure,
-        final_temp_list=row["Final_temp_list"],
-        minima_list=row["Minima_list"],
-        scaling_list=row["Scaling_list"],
-        xlim=row["X_lim"],
-        ylim=row["Y_lim"]
-    )
+#     )
 
 # toy_example_results = pd.DataFrame(index=pd.MultiIndex.from_product([range(n_plots),range(n_simulations)],names=["Plot","Simulation"])).reset_index()
 # toy_example_results["modelfile"] = list(itertools.starmap(lambda plot,simulation: f"{'simanneal_test'}_{plot}_{simulation}.pkl",
@@ -540,52 +576,54 @@ n_simulations = 4
 cmap = matplotlib.cm.get_cmap('tab10', n_simulations)
 markers = ["o", "s", "*", "^"]  # Customize with different markers if needed
 
+rastr_lim = (-5.12, 5.12)
+
 # Loop to create subplots for each plot
 #plt.subplot(2, 2, j + 1)  # Create subplots in a 2x2 grid
-X, Y = np.meshgrid(np.linspace(-5, 5, 1000), np.linspace(-5, 5, 1000))
-Z = contour_function3(X, Y)
+X, Y = np.meshgrid(np.linspace(rastr_lim[0], rastr_lim[1], 1000), np.linspace(rastr_lim[0], rastr_lim[1], 1000))
+Z = rastrigin_contour_function(X, Y)
 plt.contour(X, Y, Z, 10, colors="black")  # Add contour lines
 
 x_pos = [1, -1, 1, -1]
 y_pos = [1, -1, -1, 1]
 # Plot the four points
-for i in range(4):
-    plt.scatter(x_pos[i], y_pos[i], s=200, alpha=0.8, facecolors="green", edgecolors="green", 
-                linewidths=2.5)
-    plt.text(x_pos[i], y_pos[i]+0.3, f"({x_pos[i]}, {y_pos[i]})", fontsize=22, fontweight="normal", color="black", 
-             verticalalignment='top', horizontalalignment='right', bbox=dict(
-        facecolor='white',
-        alpha=0.7,       # Transparency: 0 = fully transparent, 1 = opaque
-        edgecolor='black',
-        boxstyle='round,pad=0.3'
-    ))
-# plt.scatter(x_pos[i], y_pos[i], s=200, alpha=1, facecolors="none", edgecolors=cmap(i),
-plt.scatter(0, 0, s=200, alpha=0.8, facecolors="blue", edgecolors="blue")
-plt.text(0, 0+0.3, f"(-1.1)", fontsize=22, fontweight="normal", color="black", 
-         verticalalignment='top', horizontalalignment='right', bbox=dict(
-    facecolor='white',
-    alpha=0.7,       # Transparency: 0 = fully transparent, 1 = opaque
-    edgecolor='black',
-    boxstyle='round,pad=0.3'
-))
+# for i in range(4):
+#     plt.scatter(x_pos[i], y_pos[i], s=200, alpha=0.8, facecolors="green", edgecolors="green", 
+#                 linewidths=2.5)
+#     plt.text(x_pos[i], y_pos[i]+0.3, f"({x_pos[i]}, {y_pos[i]})", fontsize=22, fontweight="normal", color="black", 
+#              verticalalignment='top', horizontalalignment='right', bbox=dict(
+#         facecolor='white',
+#         alpha=0.7,       # Transparency: 0 = fully transparent, 1 = opaque
+#         edgecolor='black',
+#         boxstyle='round,pad=0.3'
+#     ))
+# # plt.scatter(x_pos[i], y_pos[i], s=200, alpha=1, facecolors="none", edgecolors=cmap(i),
+# plt.scatter(0, 0, s=200, alpha=0.8, facecolors="blue", edgecolors="blue")
+# plt.text(0, 0+0.3, f"(-1.1)", fontsize=22, fontweight="normal", color="black", 
+#          verticalalignment='top', horizontalalignment='right', bbox=dict(
+#     facecolor='white',
+#     alpha=0.7,       # Transparency: 0 = fully transparent, 1 = opaque
+#     edgecolor='black',
+#     boxstyle='round,pad=0.3'
+# ))
 
-green_dot = Line2D([0], [0], marker='o', color='w', label='Global minima, R² = -1.0',
-                       markerfacecolor='green', markersize=15)
-blue_dot = Line2D([0], [0], marker='o', color='w', label='Local minimum, R² ≈ -0.25',
-                      markerfacecolor='blue', markersize=15)
+# green_dot = Line2D([0], [0], marker='o', color='w', label='Global minima, R² = -1.0',
+#                        markerfacecolor='green', markersize=15)
+# blue_dot = Line2D([0], [0], marker='o', color='w', label='Local minimum, R² ≈ -0.25',
+#                       markerfacecolor='blue', markersize=15)
 
-# Add legend
-plt.legend(handles=[green_dot, blue_dot], loc='upper right', fontsize=14, frameon=True)
+# # Add legend
+# plt.legend(handles=[green_dot, blue_dot], loc='upper right', fontsize=14, frameon=True)
 
-plt.title("Toy Example Fitness Landscape", loc="center", fontsize=36, fontweight="bold")
+plt.title("Toy Example Fitness Landscape1", loc="center", fontsize=36, fontweight="bold")
 
 
-plt.xlim((-2.5, 2.5))
-plt.ylim((-2.5, 2.5))
+plt.xlim(rastr_lim)
+plt.ylim(rastr_lim)
 plt.xlabel("x")
 plt.ylabel("y")
 
 # Save and show the plot
 plt.tight_layout()
-plt.savefig("../figures/toy_example/toy_example_blank_title.png", dpi=300)
+plt.savefig("../figures/toy_example_new/toy_example_blank_rastrigin.png", dpi=300)
 plt.show()
