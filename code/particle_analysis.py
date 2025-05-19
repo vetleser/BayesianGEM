@@ -12,6 +12,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.lines import Line2D
+from scipy.stats import entropy, spearmanr
 
 
 
@@ -39,13 +40,13 @@ protein_IDs = pd.read_csv("../data/model_enzyme_params.csv").iloc[:,0].tolist()
 
 
 logging.info("Loading combined df")
-df = load_pickle(f"{outdir}/df_simulation_0_R098.pkl")
+df = load_pickle(f"{outdir}/evo_combined_df_R098.pkl")
 
 logging.info(f"Parameter data: \n{df}")
 
 
 
-def plot_histogram(col):
+def plot_histogram_ymax(col):
     global plot_counter
     # Define bins (e.g., from min to max with step size 5)
     start = math.floor(df[col].min())
@@ -61,6 +62,8 @@ def plot_histogram(col):
     # Use pd.cut with these bins
     binned = pd.cut(df[col], bins=bins)
     bin_counts = binned.value_counts().sort_index()
+    param_entropy = entropy(bin_counts)
+    logging.info(f"Entropy for {col} is: {param_entropy}")
     x = [interval.mid for interval in bin_counts.index]
     y = bin_counts.values
     if y.max() > 500:
@@ -82,15 +85,64 @@ def plot_histogram(col):
         logging.info("Too many bins, skipping histogram")
         return
 
+def plot_histogram_entropy(col):
+    global plot_counter
+    # Define bins (e.g., from min to max with step size 5)
+    start = math.floor(df[col].min())
+    end = math.ceil(df[col].max())
+    step = 0.5
+    if col.endswith("_dCpt"):
+        #logging.info("This is a dCpt column")
+        step = 100
+
+    # Create bin edges using numpy
+    bins = np.arange(start, end + step, step)
+
+    # Use pd.cut with these bins
+    binned = pd.cut(df[col], bins=bins)
+    bin_counts = binned.value_counts().sort_index()
+    param_entropy = entropy(bin_counts)
+    if param_entropy < 3:
+        logging.info(f"Entropy for {col} is: {param_entropy}")
+    x = [interval.mid for interval in bin_counts.index]
+    y = bin_counts.values
+    if param_entropy < 2.9:
+        logging.info(f" Y.max() is: {y.max()} for {col}")
+        logging.info(f"Entropy for {col} is: {param_entropy}")
+        logging.info(f"plot_counter is: {plot_counter}")
+        plot_counter += 1
+
+        plt.figure(figsize=(12, 5))
+        plt.bar(x, y, width=step, align='center')
+
+        plt.xlabel('Temperature (°K)')
+        plt.ylabel('Count')
+        plt.title(f'Distribution of {col}. Entropy: {param_entropy:.4f}')
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
+        plt.savefig(f"../figures/analysis/histogram_{col}_entropy1.png")
+    if plot_counter ==10:
+        logging.info("Too many bins, skipping histogram")
+        return
+
 col = 'O13525_Tm'
 
 plot_counter = 0
 
 
 cols = df.columns.tolist()
+# for col in cols:
+#     plot_histogram_entropy(col)
+#     plt.close()
+#     if plot_counter == 10:
+#         logging.info("Too many bins, skipping histogram")
+#         break
+
 for col in cols:
-    plot_histogram(col)
-    plt.close()
-    if plot_counter == 10:
-        logging.info("Too many bins, skipping histogram")
-        break
+    corr, pval = spearmanr(df[col], df['r2'])
+    if abs(corr) > 0.18:
+        logging.info(f"Spearman correlation for {col} and r2 is: {corr}")
+        logging.info(f"p-value for {col} and r2 is: {pval}")
+        #plot_histogram_ymax(col)
+        
