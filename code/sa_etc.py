@@ -374,6 +374,7 @@ class SimulatedAnnealing():
             for key in candidate:
                 old_parameter_value = candidate[key]
                 candidate[key] += self.step_size * self.rng.normal(0, 1) #Endre til å bruke change_all_parameters, og/eller måte på å endre verdiene
+                #candidate[key += self.step_size * (self.rng.random() - 0.5)] #Ensures that the candidate is between 0 and 1
                 if not self.check_validity(candidate, key):
                     candidate[key] = old_parameter_value
             candidates.append(candidate)
