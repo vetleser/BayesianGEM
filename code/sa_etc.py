@@ -445,7 +445,7 @@ class SimulatedAnnealing():
         max_generation_epsilon = max(self.all_distances[p] for p in self.population[-1])
         min_generation_epsilon = min(self.all_distances[p] for p in self.population[-1])
         self.epsilons.append(max_generation_epsilon)
-        self.update_std()
+        #self.update_std() takes a long time, and not used
         #self.update_minmax()
         logging.info(f"Model epsilon {max_generation_epsilon}")
         logging.info(f"Model min epsilon {min_generation_epsilon}")
@@ -552,7 +552,7 @@ class SimulatedAnnealing():
         max_generation_epsilon = max(self.all_distances[p] for p in self.population[-1])
         min_generation_epsilon = min(self.all_distances[p] for p in self.population[-1])
         self.epsilons.append(max_generation_epsilon)
-        self.update_std()
+        #self.update_std() Takes a long time, and not used
         self.update_minmax()
         logging.info(f"Model epsilon {max_generation_epsilon}")
         logging.info(f"Model min epsilon {min_generation_epsilon}")
@@ -577,7 +577,7 @@ class SimulatedAnnealing():
 
             max_generation_epsilon = max(self.all_distances)
             self.epsilons.append(max_generation_epsilon)
-            self.update_std()
+            #self.update_std() takes a long time, and not used
             self.update_minmax()
             self.inner_iterations_list = [self.min_layers for _ in range(self.generation_size)]
             logging.info(f"Model epsilon {max_generation_epsilon}")
