@@ -109,7 +109,7 @@ def plot_histogram_entropy(col):
         logging.info(f"Entropy for {col} is: {param_entropy}")
     x = [interval.mid for interval in bin_counts.index]
     y = bin_counts.values
-    if param_entropy < 3.4:
+    if param_entropy < 10:
         logging.info(f" Y.max() is: {y.max()} for {col}")
         logging.info(f"Entropy for {col} is: {param_entropy}")
         logging.info(f"plot_counter is: {plot_counter}")
@@ -139,35 +139,53 @@ cols = df.columns.tolist()
 #         logging.info("Too many bins, skipping histogram")
 #         break
 
-entropy_list = []
 for col in cols:
-    start = math.floor(df[col].min())
-    end = math.ceil(df[col].max())
-    step = 0.5
-    if col.endswith("_dCpt"):
-        #logging.info("This is a dCpt column")
-        step = 100
+    if col.endswith("_Topt"):
+        plot_histogram_entropy(col)
+        plt.close()
+        
 
-    # Create bin edges using numpy
-    bins = np.arange(start, end + step, step)
+        if plot_counter == 10:
+            logging.info("Too many bins, skipping histogram")
+            break
 
-    # Use pd.cut with these bins
-    binned = pd.cut(df[col], bins=bins)
-    bin_counts = binned.value_counts().sort_index()
-    param_entropy = entropy(bin_counts)
-    entropy_list.append(param_entropy)
+# entropy_list = []
+# for col in cols:
+#     # if not (col.endswith("_Tm") or col.endswith("_Topt")):
+#         # continue
+#     # if not (col.endswith("_dCpt")):
+#     #     continue
+#     start = math.floor(df[col].min())
+#     end = math.ceil(df[col].max())
+#     step = 0.5
+#     if col.endswith("_dCpt"):
+#         #logging.info("This is a dCpt column")
+#         step = 100
 
-# Plotting the entropy values
-# Pair column names with their entropies
-entropies = pd.Series(entropy_list, index=cols)
+#     # Create bin edges using numpy
+#     bins = np.arange(start, end + step, step)
+#     logging.info(f"Number of bins for {col} are: {len(bins)}")
 
-plt.figure(figsize=(8,4))
-entropies.plot(kind="bar")
-plt.ylabel("Shannon entropy")
-plt.title("Entropy of each feature")
-#plt.xticks(rotation=45, ha="right")
-plt.tight_layout()
-plt.show()
-plt.savefig(f"../figures/analysis/entropy.png")
+#     # Use pd.cut with these bins
+#     binned = pd.cut(df[col], bins=bins)
+#     bin_counts = binned.value_counts().sort_index()
+#     param_entropy = entropy(bin_counts)
+#     entropy_list.append(param_entropy)
 
-logging.info("DONE")
+# # Plotting the entropy values
+# # Pair column names with their entropies
+# #entropies = pd.Series(entropy_list, index=cols)
+
+# logging.info(f"Entropy list minimum: {min(entropy_list)}")
+# logging.info(f"Entropy list maximum: {max(entropy_list)}")
+
+# plt.figure(figsize=(8,4))
+# plt.bar(range(len(entropy_list)), entropy_list)
+# plt.ylabel("Shannon entropy")
+# plt.title("Entropy of each feature")
+# #plt.xticks(rotation=45, ha="right")
+# plt.tight_layout()
+# plt.show()
+# plt.savefig(f"../figures/analysis/entropy.png")
+
+# logging.info("DONE")
