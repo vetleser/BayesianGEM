@@ -19,9 +19,10 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 # In[ ]:
 
 
-final_temp = [0.001, 0.0001]
+final_temp = [0.0001]
 normalize = [False]
-step_size = [0.1]
+step_size = [1.0]
+move_type = ['normal', 'gaussian']
 
 n_replicates = 2
 overall_random_seed = 200
@@ -29,8 +30,8 @@ rng = np.random.default_rng(overall_random_seed)
 path = os.path.dirname(os.path.realpath(__file__)).replace('code','')
 params = pd.read_csv(os.path.join(path,'data/model_enzyme_params.csv'),index_col=0)
 
-candidate_frame: pd.DataFrame = pd.DataFrame(index=pd.MultiIndex.from_product([final_temp, step_size, range(n_replicates)],
- names = ["final_temp","step_size", "simulation"])).reset_index()
+candidate_frame: pd.DataFrame = pd.DataFrame(index=pd.MultiIndex.from_product([final_temp, move_type, range(n_replicates)],
+ names = ["final_temp","move_type", "simulation"])).reset_index()
 
 
 
@@ -43,7 +44,7 @@ population_size = 100
 outdir = '../results/sa'
 if not os.path.exists(outdir):
     os.makedirs(outdir)
-candidate_frame['outfile'] = [f'{outdir}/smcsa_gem_{final_temp}_{simulation}.pkl' for
+candidate_frame['outfile'] = [f'{outdir}/smcsa_gem_may19_{final_temp}_{simulation}.pkl' for
  final_temp, simulation in zip(candidate_frame['final_temp'],candidate_frame['simulation'])]
 candidate_frame['random_seed'] = rng.choice(range(0,100000), candidate_frame.shape[0])
 

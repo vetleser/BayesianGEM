@@ -7,7 +7,7 @@
 #SBATCH --array=1
 #SBATCH --mem=100G
 #SBATCH --export=NONE
-#SBATCH --nodelist=pompey
+#SBATCH --nodelist=caesar
 
 echo "Running SLURM_ARRAY_TASK_ID=$SLURM_ARRAY_TASK_ID on $(hostname)"
 
