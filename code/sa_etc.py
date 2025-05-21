@@ -46,7 +46,8 @@ class SimulatedAnnealing():
                  max_layers: int = 10,
                  version: int = 1,
                  step_size: float = 0.1,
-                 normalize: bool = False
+                 normalize: bool = False,
+                 move_type : str= 'normal'
                  ):
         """Implements the Simulated Annealing algorithm designed to detect multiple optima in the fitness landscape
 
@@ -127,6 +128,7 @@ class SimulatedAnnealing():
         self.param_min : dict[str, float] = {}
         self.param_max : dict[str, float] = {}
         self.normalize = normalize
+        self.move_type = move_type
 
 
     def generator(self) -> candidateType:
@@ -366,94 +368,7 @@ class SimulatedAnnealing():
 
 
 
-    def generate_candidates(self, particle_idxs: npt.NDArray[np.int64])-> None: #Kan bruke change_all_parameters her istedenfor å skrive det eksplisitt
-        logging.info("Generating candidates")
-        candidates: List[candidateType] = []
-        for idx in particle_idxs.tolist():
-            candidate = {parameter: value for parameter, value in self.all_particles[idx].items()}
-            for key in candidate:
-                old_parameter_value = candidate[key]
-                candidate[key] += self.step_size * self.rng.normal(0, 1) #Endre til å bruke change_all_parameters, og/eller måte på å endre verdiene
-                #candidate[key += self.step_size * (self.rng.random() - 0.5)] #Ensures that the candidate is between 0 and 1
-                if not self.check_validity(candidate, key):
-                    candidate[key] = old_parameter_value
-            candidates.append(candidate)
-        logging.info("Evaluating fitness of candidates")
-        self.evaluate_candidates(candidates)
-
-
-    def replace_population(self,original_population: npt.NDArray[np.int64], candidates: npt.NDArray[np.int64], filtered_indices: npt.NDArray[np.int64]) -> npt.NDArray[np.int64]:
-        logging.info(f"Replacing population with candidates")
-        current_population = original_population.copy()
-        for candidate, i in zip(candidates, filtered_indices):
-            original_particle = original_population[i]
-            chosen_particle = self.choose_particle(original_particle, candidate)
-            if chosen_particle == original_particle:
-                current_population[i] = original_particle
-                if self.current_layer == 1:
-                    self.inner_iterations_list[i] += 1
-                self.is_improved_list[i] = False
-                logging.debug(f"Keeping particle {i}")
-            else:
-                current_population[i] = candidate
-                self.inner_iterations_list[i] = self.min_layers
-                self.is_improved_list[i] = True
-                logging.debug(f"Replacing particle {i}")
-
-        return current_population
-
-
-
-
-    def filter_candidates(self, current_population: npt.NDArray[np.int64])-> Tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
-        logging.info("Finding candidates to improve")
-        improvable_candidates: List[int] = []
-        improvable_indices: List[int] = []
-        for i, ID in enumerate(current_population):
-            if self.current_layer <= self.inner_iterations_list[i] and not self.is_improved_list[i]:
-                improvable_candidates.append(ID)
-                improvable_indices.append(i)
-                if self.current_layer > 1:
-                    logging.info(f"Found particle to improve at index {i} in layer {self.current_layer}")
-
-        return (
-                np.array(improvable_candidates, dtype=np.int64),
-                np.array(improvable_indices, dtype=np.int64)
-                )
-
-    def simulate_generation(self) -> None: #Kan lage en if layer ==1, og resten i en annen løkke. Dropper det, funker nå
-        current_population = np.array(list(self.population[-1]))
-        current_max_layer = min(max(self.inner_iterations_list), self.max_layers) #Akkurat nå er max_layer for en partikkel begrenset av inner_iterations_list. Må kanskje endre det
-        current_max_layer = max(current_max_layer, self.min_layers)
-        self.is_improved_list = [False for _ in range(self.generation_size)]
-        self.current_layer = 1
-        logging.info(f"Max layer is {current_max_layer}")
-        for layer in range(1, current_max_layer+1):
-            self.current_layer = layer
-            logging.info(f"Checking layer {layer}")
-            particles_to_improve, positions = self.filter_candidates(current_population) #Check if particles should be improved, and keep track of which particles and where they are in current_population. Replacement for commented lines below
-            self.generate_candidates(particles_to_improve)
-            candidates_idxs = np.array([
-                i for i, (gen, layer) in enumerate(self.birth_generation_layer)
-                if gen == self.generation and layer == self.current_layer
-            ], dtype=np.int64)
-            logging.debug(f"Candidates idxs: {candidates_idxs}")
-            current_population = self.replace_population(current_population, candidates_idxs, positions)
-
-        logging.info(f"Current population is {current_population}")
-        self.population.append(list(current_population))
-
-        max_generation_epsilon = max(self.all_distances[p] for p in self.population[-1])
-        min_generation_epsilon = min(self.all_distances[p] for p in self.population[-1])
-        self.epsilons.append(max_generation_epsilon)
-        #self.update_std() takes a long time, and not used
-        #self.update_minmax()
-        logging.info(f"Model epsilon {max_generation_epsilon}")
-        logging.info(f"Model min epsilon {min_generation_epsilon}")
-
-
-
-    def replace_population_2(self,original_population: npt.NDArray[np.int64], candidates: npt.NDArray[np.int64]):
+    def replace_population(self,original_population: npt.NDArray[np.int64], candidates: npt.NDArray[np.int64]):
         logging.info(f"Replacing population with candidates")
         current_population : List[int] = []
         acceptance_counter: int = 0
@@ -517,7 +432,7 @@ class SimulatedAnnealing():
         return denormalized_candidate
 
 
-    def generate_candidates_2(self, particle_idxs: npt.NDArray[np.int64]) -> None: #Kan bruke change_all_parameters her istedenfor å skrive det eksplisitt
+    def generate_candidates(self, particle_idxs: npt.NDArray[np.int64]) -> None: #Kan bruke change_all_parameters her istedenfor å skrive det eksplisitt
         logging.info("Generating candidates")
         candidates: List[candidateType] = []
         if self.normalize:
@@ -536,25 +451,28 @@ class SimulatedAnnealing():
                 candidate = {parameter: value for parameter, value in self.all_particles[idx].items()}
                 for key in candidate:
                     old_parameter_value = candidate[key]
-                    candidate[key] += self.step_size * self.rng.normal(0, 1) #* (self.current_temp/self.initial_temp). Wanted to scale step size with temperature, did not work. Population clustered in centre
+                    if self.move_type == 'gaussian':
+                        candidate[key] += self.step_size * self.rng.normal(0, 1) #* (self.current_temp/self.initial_temp). Wanted to scale step size with temperature, did not work. Population clustered in centre
+                    elif self.move_type == 'normal':
+                        candidate[key] += self.step_size * (self.rng.random() - 0.5)
                     if not self.check_validity(candidate, key):
                         candidate[key] = old_parameter_value
                 candidates.append(candidate)
         logging.info("Evaluating fitness of candidates")
         self.evaluate_candidates(candidates)
 
-    def simulate_generation_2(self):
+    def simulate_generation(self):
         current_population = np.array(list(self.population[-1]))
-        self.generate_candidates_2(current_population)
+        self.generate_candidates(current_population)
         candidates_idxs = np.flatnonzero(np.array(self.birth_generation) == self.generation)
-        self.replace_population_2(current_population, candidates_idxs)
+        self.replace_population(current_population, candidates_idxs)
 
         logging.info(f"Current population is {self.population[-1]}")
         max_generation_epsilon = max(self.all_distances[p] for p in self.population[-1])
         min_generation_epsilon = min(self.all_distances[p] for p in self.population[-1])
         self.epsilons.append(max_generation_epsilon)
         #self.update_std() Takes a long time, and not used
-        self.update_minmax()
+        #self.update_minmax()
         logging.info(f"Model epsilon {max_generation_epsilon}")
         logging.info(f"Model min epsilon {min_generation_epsilon}")
 
@@ -597,16 +515,7 @@ class SimulatedAnnealing():
 
             logging.info(f"Running generation {self.generation} of {self.maxiter}. Current temperature: {self.current_temp}")
             self.log_ef = True
-            if self.version == 1:
-                self.simulate_generation()
-            elif self.version == 2:
-                self.simulate_generation_2()
-            # else:
-            #     self.simulate_generation_3()
-
-
-            end_generation = time.time()
-            logging.info(f"Generation {self.generation} completed in {end_generation-start_generation} seconds")
+            self.simulate_generation()
 
             self.generation += 1
             if self.current_temp > self.final_temp:
@@ -622,8 +531,13 @@ class SimulatedAnnealing():
             #     self.current_temp = min(self.current_temp / self.cooling_rate, self.initial_temp)
 
             logging.info(f" Inner_iterations_list: {self.inner_iterations_list}")
-            if self.save_intermediate and self.generation % 10 == 0:
-                    dill.dump(self,open(self.outfile,'wb'))
+            if self.save_intermediate and self.generation % 100 == 0:
+                logging.info(f"Saving intermediate results to {self.outfile}")
+                dill.dump(self,open(self.outfile,'wb'))
+            
+            end_generation = time.time()
+            logging.info(f"Generation {self.generation} completed in {end_generation-start_generation} seconds")
+
         else:
             # This else-clause belongs to the main simulated annealing loop
             logging.info("Fitness objective not reached after maximum number of generations")
