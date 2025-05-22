@@ -4,7 +4,7 @@
 #SBATCH --nodes=1                    
 #SBATCH -c 20
 #SBATCH -t 150:00:00             # Upper time limit for the job
-#SBATCH --array=1
+#SBATCH --array=0
 #SBATCH --mem=100G
 #SBATCH --export=NONE
 #SBATCH --nodelist=caesar

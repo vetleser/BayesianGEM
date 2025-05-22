@@ -21,7 +21,7 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 
 final_temp = [0.0001]
 normalize = [False]
-step_size = [1.0]
+step_size = [0.1, 0.5]
 move_type = ['normal', 'gaussian']
 
 n_replicates = 2
@@ -30,9 +30,12 @@ rng = np.random.default_rng(overall_random_seed)
 path = os.path.dirname(os.path.realpath(__file__)).replace('code','')
 params = pd.read_csv(os.path.join(path,'data/model_enzyme_params.csv'),index_col=0)
 
-candidate_frame: pd.DataFrame = pd.DataFrame(index=pd.MultiIndex.from_product([final_temp, move_type, range(n_replicates)],
- names = ["final_temp","move_type", "simulation"])).reset_index()
-
+candidate_frame = pd.DataFrame(
+    index=pd.MultiIndex.from_product(
+        [final_temp, move_type, step_size, range(n_replicates)],
+        names=["final_temp", "move_type", "step_size", "simulation"]
+    )
+).reset_index()
 
 
 
@@ -44,12 +47,12 @@ population_size = 100
 outdir = '../results/sa'
 if not os.path.exists(outdir):
     os.makedirs(outdir)
-candidate_frame['outfile'] = [f'{outdir}/smcsa_gem_may19_{final_temp}_{simulation}.pkl' for
- final_temp, simulation in zip(candidate_frame['final_temp'],candidate_frame['simulation'])]
+candidate_frame['outfile'] = [f'{outdir}/smcsa_gem_may22_{step_size}_{simulation}.pkl' for
+ step_size, simulation in zip(candidate_frame['step_size'],candidate_frame['simulation'])]
 candidate_frame['random_seed'] = rng.choice(range(0,100000), candidate_frame.shape[0])
 
 pickle.dump(file=open(file=f'{outdir}/simulation_skeleton.pkl',mode='wb'),obj=candidate_frame)
 
 logging.info(f'Frame columns : {candidate_frame.columns}')
-logging.info(f'Simulation skeleton : {candidate_frame}')
+logging.info(f'Simulation skeleton : {candidate_frame.to_string()}')
 

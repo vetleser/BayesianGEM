@@ -26,8 +26,8 @@ def main():
     outdir = '../results/sa'
     candidate_frame: pd.DataFrame = pickle.load(file=open(file=f'{outdir}/simulation_skeleton.pkl',mode='rb'))
     entry = candidate_frame.iloc[task_idx]
-    simulation, outfile, random_seed, final_temp, move_type = entry[["simulation", "outfile","random_seed",
-    "final_temp", "move_type"]]
+    simulation, outfile, random_seed, final_temp, move_type, step_size = entry[["simulation", "outfile","random_seed",
+    "final_temp", "move_type", "step_size"]]
     maxiter = 1000
     Yobs_batch = GEMS.aerobic_exp_data()
     #Yobs_batch_an = GEMS.anaerobic_exp_data()
@@ -71,12 +71,12 @@ def main():
                              normalize=False,
                              final_temp=final_temp,
                              save_intermediate=True,
-                             step_size=1.0,
+                             step_size=step_size,
                              move_type=move_type)
     
     
     logging.info(f"""Start evolutionary simulations with Simulated Annealing,
-     final_temp: {final_temp}, normalize: False, simulation: {simulation}, step_size: {1.0}, move_type: {move_type}""")
+     final_temp: {final_temp}, normalize: False, simulation: {simulation}, step_size: {step_size}, move_type: {move_type}""")
 
     model.run_simulation()
     logging.info("DONE")
