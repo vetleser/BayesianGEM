@@ -279,7 +279,7 @@ class SimulatedAnnealing():
 
 
         distances = [self.distance_function(self.Yobs, res) for res in simulated_data]
-        logging.info(f"Current distances are {distances}")
+        logging.info(f"Candidate distances are {distances}")
 
         # save all simulated results
         self.all_simulated_data.extend(simulated_data)
@@ -297,9 +297,9 @@ class SimulatedAnnealing():
         self.times_challenged.extend(repeat(0,len(simulated_data))) #This is not in use in evo_etc either, just recorded as information. Or not updated either it seems
         end = time.time()
         logging.info('Completed parallel evaluation of candidates in {0} seconds'.format(end - start))
-        logging.debug(f"Length of all_simulated_data is {len(self.all_simulated_data)}")
-        logging.debug(f"Length of all_distances is {len(self.all_distances)}")
-        logging.debug(f"Length of all_particles is {len(self.all_particles)}")
+        # logging.debug(f"Length of all_simulated_data is {len(self.all_simulated_data)}")
+        # logging.debug(f"Length of all_distances is {len(self.all_distances)}")
+        # logging.debug(f"Length of all_particles is {len(self.all_particles)}")
 
 
 
