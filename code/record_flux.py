@@ -43,7 +43,7 @@ import gurobipy as gp
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 logging.info("BEGIN")
-outdir = "../results/analysis/apr14"
+outdir = "../results/analysis"
 start_full = time.time()
 
 simResultType = Dict[str, npt.NDArray[np.float64]]
@@ -72,16 +72,7 @@ np.random.seed(default_seed)
 rng = np.random.Generator(np.random.PCG64(default_seed))
 
 
-# Load the data, create particle as dict
-logging.info("Load particle and transform to dict")
-file = load_pickle(f"{outdir}/evo_combined_df_R098.pkl")
-best_row = file.loc[file["particle_ID"] == 119932.0].iloc[0] #Particle ID of the particle with highest r2 score, found in previous simulations
-model_particle: candidateType = best_row.drop(["r2", "particle_ID", "frame_ID"]).to_dict()
-r2_value = -best_row["r2"]
 
-logging.info(f"Selected particle ID: {best_row['particle_ID']}, r2 value: {r2_value}")
-
-particle_id_str = "119932.0"
 
 #Import necessary functions and data
 logging.info("Import necessary functions and data")
@@ -108,15 +99,15 @@ def simulate_at_two_conditions_2(args):
     combined_data = []
     
     for temp, flux in ae_output['flux_dict_by_temp'].items():
-        combined_data.append({'temperature': temp, 'condition': 'aerobic', **flux})
+        combined_data.append({**flux})
 
     for temp, flux in an_output['flux_dict_by_temp'].items():
-        combined_data.append({'temperature': temp, 'condition': 'anaerobic', **flux})
+        combined_data.append({**flux})
     
-    # Create a DataFrame from combined_data
-    df_flux = pd.DataFrame(combined_data)
-    # Save the DataFrame to a pickle file
-    dump_pickle(df_flux, f"../results/analysis/flux_analysis/combined_flux_data_{particle_id_str}.pkl")
+    # # Create a DataFrame from combined_data
+    # df_flux = pd.DataFrame(combined_data)
+    # # Save the DataFrame to a pickle file
+    # dump_pickle(df_flux, f"../results/analysis/flux_analysis/combined_flux_data_{particle_id_str}.pkl")
 
     for reaction in reac_importance_ae:
         reac_importance_tot[reaction] = reac_importance_ae[reaction] + reac_importance_an[reaction]
@@ -127,7 +118,7 @@ def simulate_at_two_conditions_2(args):
     # reac_importance = {key: reac_importance_ae.get(key, 0) + reac_importance_an.get(key, 0) 
     #                    for key in set(reac_importance_ae) | set(reac_importance_an)}
     
-    return {'rae': data_batch, 'ran': data_batch_an }#'reac_importance_tot': reac_importance_tot}# , reac_importance
+    return combined_data#'reac_importance_tot': reac_importance_tot}# , reac_importance
 
 def simulate_growth(model: CBModel, Ts,sigma,param_dict,Tadj=0, max_attempts = 10):
     '''
@@ -177,6 +168,7 @@ def simulate_growth(model: CBModel, Ts,sigma,param_dict,Tadj=0, max_attempts = 1
             #logging.info(flux)
         else:
             #logging.info(f"Failed to solve problem after {max_attempts} attempts at temperature {T}")
+            
             rs.append(0) #Still returns 0 after failing to solve. Should fix later. For example: Return NaN, and stop checking if NaN is encountered in distance function
             #fluxes.append(None)
     return rs, fluxes
@@ -199,7 +191,7 @@ def aerobic(thermalParams):
     for flux in fluxes:
         for key in flux:
             if flux[key] > 0:
-                reac_importance[key] += 1/16
+                reac_importance[key] += 1/len(fluxes)
     r_reactions_ae = {k: v for k, v in reac_importance.items() if k.startswith("r_") and not k.endswith("_REV")}
 
     # Log the sorted dictionary
@@ -232,7 +224,7 @@ def anaerobic_reduced(thermalParams):
     logging.info("Simulated anaerobic growth finished")
 
     flux_dict_by_temp = {}
-    temps = dfae_batch.index + 273.15
+    temps = np.array(sel_temp)+273.15
     for temp, flux in zip(temps, fluxes):
         flux_dict_by_temp[temp] = flux
 
@@ -240,7 +232,7 @@ def anaerobic_reduced(thermalParams):
     for flux in fluxes:
         for key in flux:
             if flux[key] > 0:
-                reac_importance[key] += 1/16
+                reac_importance[key] += 1/len(fluxes)
     sorted_reac_importance = dict(sorted(reac_importance.items(), key=lambda item: item[1], reverse=True))
 
     # Log the sorted dictionary
@@ -285,7 +277,7 @@ def evaluate_candidate(candidate: candidateType):
     #simulated_data = None
     # No need for parallel processing
     try:
-        simulated_data = simulator(candidate)
+        combined_data = simulator(candidate)
         logging.info("Evaluation of candidate ran successfully")
         success = True
     except Exception as e:
@@ -300,25 +292,9 @@ def evaluate_candidate(candidate: candidateType):
     # r_REV_reactions = {k: v for k, v in reac_importance_tot.items() if k.startswith("r_")}
     # r_reactions = {k: v for k, v in reac_importance_tot.items() if k.startswith("r_") and not k.endswith("_REV")}
 
-    # total_use = {k: v for k, v in reac_importance_tot.items() if v == 1}
-    # r_REV_total_use = {k:v for k, v in r_REV_reactions.items() if v == 1}
-    # r_total_use = {k: v for k, v in r_reactions.items() if v==1}
-
-
-    # logging.info(f"r_REV_reactions length: {len(r_REV_reactions)}")
-    # logging.info(f"r_reactions length: {len(r_reactions)}")
-    # logging.info(f"total_use length: {len(total_use)}")
-    # logging.info(f"r_REV_total_use length: {len(r_REV_total_use)}")
-    # logging.info(f"r_total_use length: {len(r_total_use)}")
-    # convert_to_dataframe(reac_importance_tot, "reac_importance_tot")
-    # convert_to_dataframe(r_REV_reactions, "r_REV_reactions")
-    # convert_to_dataframe(r_reactions, "r_reactions")
-    # convert_to_dataframe(total_use, "total_use")
-    # convert_to_dataframe(r_REV_total_use, "r_REV_total_use")
-    # convert_to_dataframe(r_total_use, "r_total_use")
 
     
-    distance = distance_function(Yobs, simulated_data)
+    #distance = distance_function(Yobs, simulated_data)
 
     #dump_pickle(simulated_data, f"{outdir}/simulated_data_{task_idx}.pkl")
     #print(simulated_data)
@@ -327,12 +303,51 @@ def evaluate_candidate(candidate: candidateType):
 
     end = time.time()
     logging.debug(f'Completed evaluation of candidate in {end - start} seconds')
-    logging.info(f"r2: {distance}")
-    return distance
+    #logging.info(f"r2: {distance}")
+    return combined_data
+
+# Load the data, create particle as dict
+# logging.info("Load particle and transform to dict")
+# file = load_pickle(f"{outdir}/evo_combined_df_R098.pkl")
+# best_row = file.loc[file["particle_ID"] == 119932.0].iloc[0] #Particle ID of the particle with highest r2 score, found in previous simulations
+# model_particle: candidateType = best_row.drop(["r2", "particle_ID", "frame_ID"]).to_dict()
+# r2_value = -best_row["r2"]
+
+logging.info("Load particle and transform to dict")
+n_particles = 2
+file = load_pickle(f"{outdir}/evo_combined_df_R098.pkl")
+param_columns = [col for col in file.columns if col not in ["particle_ID", "frame_ID", "r2"]]
+
+# Sort by r2, drop duplicates based on parameter values
+file_unique_particles = file.sort_values("r2", ascending=False).drop_duplicates(subset=param_columns, keep="first")
 
 
-evaluate_candidate(model_particle)
+logging.info(f"Loaded file: {file_unique_particles}")
+best_rows = file_unique_particles.nlargest(n_particles, "r2")
+#model_particle: candidateType = best_row.to_dict()
+particles_to_evaluate = []
+for _, best_row in best_rows.iterrows():
+    particle_dict = best_row.to_dict()
+    particles_to_evaluate.append(particle_dict)
 
-# Placeholder for the convert function. Define its purpose and implementation.
+#logging.info(f"Selected particle ID: {best_row['particle_ID']}")
+
+for p in particles_to_evaluate:
+    particle_ID = p.pop("particle_ID")
+    frame_ID = p.pop("frame_ID")
+    r2_value = p.pop("r2")
+
+    logging.info(f"Evaluating candidate: {particle_ID}")
+    combined_data = evaluate_candidate(p)
+    df_flux = pd.DataFrame(combined_data)
+    
+    dump_pickle(df_flux, f"../results/analysis/flux_analysis/combined_flux_data_{particle_ID}.pkl")
+        
+
+        
+    # Evaluate the candidate
+
+logging.info(f"Flux data:\n {df_flux}")
+
 
 logging.info("DONE")

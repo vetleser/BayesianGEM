@@ -124,12 +124,18 @@ def plot_histogram_entropy(col):
         plt.grid(True)
         plt.tight_layout()
         plt.show()
-        plt.savefig(f"../figures/analysis/histogram_{col}_entropy.png")
+        plt.savefig(f"../figures/analysis/aa_histogram_{col}_entropy.png")
 
 col = 'O13525_Tm'
 
 plot_counter = 0
 
+cols1 = ['P08566', 'Q99190', 'P38286', 'P40857', 'P47176', 'P00815', 'P05375', 'P07245', 'P40319', 'P36010']
+
+for prot in cols1:
+    param = prot + '_Tm'
+    plot_histogram_entropy(param)
+    plt.close()
 
 cols = df.columns.tolist()
 # for col in cols:
@@ -139,15 +145,15 @@ cols = df.columns.tolist()
 #         logging.info("Too many bins, skipping histogram")
 #         break
 
-for col in cols:
-    if col.endswith("_Topt"):
-        plot_histogram_entropy(col)
-        plt.close()
+# for col in cols:
+#     if col.endswith("_Topt"):
+#         plot_histogram_entropy(col)
+#         plt.close()
         
 
-        if plot_counter == 10:
-            logging.info("Too many bins, skipping histogram")
-            break
+#         if plot_counter == 10:
+#             logging.info("Too many bins, skipping histogram")
+#             break
 
 # entropy_list = []
 # for col in cols:
