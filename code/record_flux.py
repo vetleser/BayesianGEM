@@ -314,7 +314,7 @@ def evaluate_candidate(candidate: candidateType):
 # r2_value = -best_row["r2"]
 
 logging.info("Load particle and transform to dict")
-n_particles = 2
+n_particles = 10
 file = load_pickle(f"{outdir}/evo_combined_df_R098.pkl")
 param_columns = [col for col in file.columns if col not in ["particle_ID", "frame_ID", "r2"]]
 
@@ -331,13 +331,16 @@ for _, best_row in best_rows.iterrows():
     particles_to_evaluate.append(particle_dict)
 
 #logging.info(f"Selected particle ID: {best_row['particle_ID']}")
-
+p_str_to_evaluate = []
+counter = 0
 for p in particles_to_evaluate:
+    counter += 1
     particle_ID = p.pop("particle_ID")
+    p_str_to_evaluate.append(particle_ID)
     frame_ID = p.pop("frame_ID")
     r2_value = p.pop("r2")
 
-    logging.info(f"Evaluating candidate: {particle_ID}")
+    logging.info(f"Evaluating candidate: {particle_ID}, {counter} of {n_particles}")
     combined_data = evaluate_candidate(p)
     df_flux = pd.DataFrame(combined_data)
     
@@ -347,6 +350,7 @@ for p in particles_to_evaluate:
         
     # Evaluate the candidate
 
+dump_pickle(p_str_to_evaluate, f"../results/analysis/flux_analysis/particle_IDs_to_evaluate.pkl")
 logging.info(f"Flux data:\n {df_flux}")
 
 
