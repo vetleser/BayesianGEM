@@ -45,9 +45,10 @@ class SimulatedAnnealing():
                  min_layers: int = 1,
                  max_layers: int = 10,
                  version: int = 1,
-                 step_size: float = 0.1,
+                 temp_step_size: float = 0.1,
                  normalize: bool = False,
-                 move_type : str= 'normal'
+                 move_type : str= 'normal',
+                 dCpt_step_size: float = 1.0
                  ):
         """Implements the Simulated Annealing algorithm designed to detect multiple optima in the fitness landscape
 
@@ -124,7 +125,8 @@ class SimulatedAnnealing():
 
         self.log_ef = True
         self.log_ef_list: List[float] = []
-        self.step_size = step_size
+        self.temp_step_size = temp_step_size
+        self.dCpt_step_size = dCpt_step_size
         self.param_min : dict[str, float] = {}
         self.param_max : dict[str, float] = {}
         self.normalize = normalize
@@ -452,9 +454,15 @@ class SimulatedAnnealing():
                 for key in candidate:
                     old_parameter_value = candidate[key]
                     if self.move_type == 'gaussian':
-                        candidate[key] += self.step_size * self.rng.normal(0, 1) #* (self.current_temp/self.initial_temp). Wanted to scale step size with temperature, did not work. Population clustered in centre
+                        if key.endswith('_dCpt'):
+                            candidate[key] += self.dCpt_step_size * self.rng.normal(0, 1)
+                        else:
+                            candidate[key] += self.temp_step_size * self.rng.normal(0, 1) #* (self.current_temp/self.initial_temp). Wanted to scale step size with temperature, did not work. Population clustered in centre
                     elif self.move_type == 'normal':
-                        candidate[key] += self.step_size * (self.rng.random() - 0.5)
+                        if key.endswith('_dCpt'):
+                            candidate[key] += self.dCpt_step_size * (self.rng.random() - 0.5)
+                        else:
+                            candidate[key] += self.temp_step_size * (self.rng.random() - 0.5)
                     if not self.check_validity(candidate, key):
                         candidate[key] = old_parameter_value
                 candidates.append(candidate)
@@ -531,7 +539,7 @@ class SimulatedAnnealing():
             #     self.current_temp = min(self.current_temp / self.cooling_rate, self.initial_temp)
 
             logging.info(f" Inner_iterations_list: {self.inner_iterations_list}")
-            if self.save_intermediate and self.generation % 100 == 0:
+            if self.save_intermediate and self.generation % 250 == 0:
                 logging.info(f"Saving intermediate results to {self.outfile}")
                 dill.dump(self,open(self.outfile,'wb'))
             
