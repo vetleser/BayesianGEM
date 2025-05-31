@@ -1,0 +1,15 @@
+#!/bin/bash
+#SBATCH -J reduce_data_size_sa               # sensible name for the job
+#SBATCH --output=reduce_data_size_sa.out
+#SBATCH --nodes=1                    
+#SBATCH -c 1
+#SBATCH -t 10:00:00             # Upper time limit for the job
+#SBATCH --mem=120G
+#SBATCH --mail-type=begin
+#SBATCH --mail-type=end
+#SBATCH --mail-user=vetleser@stud.ntnu.no
+#SBATCH --export=NONE
+
+WORKDIR=${SLURM_SUBMIT_DIR}
+cd ${WORKDIR}
+/triumvirate/home/vetleser/.conda/envs/etcFBA/bin/python3 reduce_data_size_sa.py &> "../results/sa/reduce_data_size_sa.log"
