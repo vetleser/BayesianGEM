@@ -37,6 +37,8 @@ def dump_pickle(obj,filename):
 logging.info("Loading protein IDs")
 protein_IDs = pd.read_csv("../data/model_enzyme_params.csv").iloc[:,0].tolist()
 
+combined_normalized_importance = load_pickle(f"{outdir}/flux_analysis/combined_normalized_importance.pkl")
+
 
 
 logging.info("Loading combined df")
@@ -105,45 +107,113 @@ def plot_histogram_entropy(col):
     binned = pd.cut(df[col], bins=bins)
     bin_counts = binned.value_counts().sort_index()
     param_entropy = entropy(bin_counts)
-    if param_entropy < 3.5:
-        logging.info(f"Entropy for {col} is: {param_entropy}")
+    max_entropy = math.log2(len(bin_counts)) if len(bin_counts) > 1 else 1
+    normalized_entropy = param_entropy / max_entropy
+    logging.info(f"Entropy for {col} is normalized: {normalized_entropy}")
+    logging.info(f"Length of bin_counts for {col} is: {len(bin_counts)}")
+
+    # if param_entropy < 3.5:
+    #     logging.info(f"Entropy for {col} is: {param_entropy}")
     x = [interval.mid for interval in bin_counts.index]
     y = bin_counts.values
-    if param_entropy < 10:
-        logging.info(f" Y.max() is: {y.max()} for {col}")
-        logging.info(f"Entropy for {col} is: {param_entropy}")
-        logging.info(f"plot_counter is: {plot_counter}")
-        plot_counter += 1
+    # if param_entropy < 0:
+    #     logging.info(f" Y.max() is: {y.max()} for {col}")
+    #     logging.info(f"Entropy for {col} is: {param_entropy}")
+    #     logging.info(f"plot_counter is: {plot_counter}")
+    #     plot_counter += 1
 
-        plt.figure(figsize=(12, 5))
-        plt.bar(x, y, width=step, align='center')
+    #     plt.figure(figsize=(12, 5))
+    #     plt.bar(x, y, width=step, align='center')
 
-        plt.xlabel('Temperature (°K)')
-        plt.ylabel('Count')
-        plt.title(f'Distribution of {col}. Entropy: {param_entropy:.4f}')
-        plt.grid(True)
-        plt.tight_layout()
-        plt.show()
-        plt.savefig(f"../figures/analysis/aa_histogram_{col}_entropy.png")
+    #     plt.xlabel('Temperature (°K)')
+    #     plt.ylabel('Count')
+    #     plt.title(f'Distribution of {col}. Entropy: {param_entropy:.4f}')
+    #     plt.grid(True)
+    #     plt.tight_layout()
+    #     plt.show()
+    #     plt.savefig(f"../figures/analysis/aa_histogram_{col}_entropy.png")
 
-col = 'O13525_Tm'
 
+# tot_entropy = {k: 0.0 for k in combined_normalized_importance.keys()}
+# for key in df.columns.tolist():
+#     if key.split('_')[0] not in protein_IDs:
+#         logging.info(f"Skipping {key} as it is not in protein_IDs")
+#         continue
+#     start = math.floor(df[key].min())
+#     end = math.ceil(df[key].max())
+#     step = 0.5
+#     if key.endswith("_dCpt"):
+#         #logging.info("This is a dCpt column")
+#         step = 100
+
+#     # Create bin edges using numpy
+#     bins = np.arange(start, end + step, step)
+
+#     # Use pd.cut with these bins
+#     binned = pd.cut(df[key], bins=bins)
+#     bin_counts = binned.value_counts().sort_index()
+#     param_entropy = entropy(bin_counts)
+#     max_entropy = math.log2(len(bin_counts)) if len(bin_counts) > 1 else 1
+#     normalized_entropy = param_entropy / max_entropy
+#     tot_entropy[key.split('_')[0]] += normalized_entropy
+
+# bar_colors = []
+# for k in tot_entropy.keys():
+#     importance = combined_normalized_importance.get(k, None)
+#     if importance == 0:
+#         bar_colors.append('red')     # Color for importance = 0
+#     elif importance == 1:
+#         bar_colors.append('green')   # Color for importance = 1
+#     else:
+#         bar_colors.append('blue')    # Default color for in-between values
+
+# entropy_0 = []
+# entropy_1 = []
+# entropy_mid = []
+
+# for k, entropy_val in tot_entropy.items():
+#     importance = combined_normalized_importance.get(k, None)
+#     if importance is None:
+#         continue
+#     if importance == 0:
+#         entropy_0.append(entropy_val)
+#     elif importance == 1:
+#         entropy_1.append(entropy_val)
+#     elif 0 < importance < 1:
+#         entropy_mid.append(entropy_val)
+
+# # Compute averages
+# avg_entropy_0 = np.mean(entropy_0) if entropy_0 else float('nan')
+# avg_entropy_1 = np.mean(entropy_1) if entropy_1 else float('nan')
+# avg_entropy_mid = np.mean(entropy_mid) if entropy_mid else float('nan')
+# std_entropy_0 = np.std(entropy_0) if entropy_0 else float('nan')
+# std_entropy_1 = np.std(entropy_1) if entropy_1 else float('nan')
+# std_entropy_mid = np.std(entropy_mid) if entropy_mid else float('nan')
+# logging.info(f"Average entropy for importance = 0: {avg_entropy_0} (std: {std_entropy_0})")
+# logging.info(f"Average entropy for importance = 1: {avg_entropy_1} (std: {std_entropy_1})")
+# logging.info(f"Average entropy for importance between 0 and 1: {avg_entropy_mid} (std: {std_entropy_mid})")
+
+
+
+# logging.info(f"Length of tot_entropy: {len(tot_entropy)}")
+
+#logging.info(f"Total entropy for each parameter: {tot_entropy}")
 plot_counter = 0
 
-cols1 = ['P08566', 'Q99190', 'P38286', 'P40857', 'P47176', 'P00815', 'P05375', 'P07245', 'P40319', 'P36010']
+# cols1 = ['P08566', 'Q99190', 'P38286', 'P40857', 'P47176', 'P00815', 'P05375', 'P07245', 'P40319', 'P36010']
 
-for prot in cols1:
-    param = prot + '_Tm'
-    plot_histogram_entropy(param)
-    plt.close()
+# for prot in cols1:
+#     param = prot + '_Tm'
+#     plot_histogram_entropy(param)
+#     plt.close()
 
 cols = df.columns.tolist()
-# for col in cols:
-#     plot_histogram_entropy(col)
-#     plt.close()
-#     if plot_counter == 10:
-#         logging.info("Too many bins, skipping histogram")
-#         break
+for col in cols:
+    plot_histogram_entropy(col)
+    plt.close()
+    if plot_counter == 10:
+        logging.info("Too many bins, skipping histogram")
+        break
 
 # for col in cols:
 #     if col.endswith("_Topt"):
