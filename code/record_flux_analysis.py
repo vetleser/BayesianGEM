@@ -113,24 +113,26 @@ logging.info(f"Number of enzymes that have zero importance in all simulations: {
 logging.info(f"Combined parameter importance: {combined_parameter_importance}")
 combined_normalized_importance = {k: v / len(particle_IDs_to_evaluate) for k, v in combined_parameter_importance.items()}
 
-value_counts = Counter(combined_normalized_importance.values())
+dump_pickle(combined_normalized_importance, f"{outdir}/combined_normalized_importance.pkl")
 
-# Optional: sort by value
-sorted_items = sorted(value_counts.items())  # list of (value, count)
+# value_counts = Counter(combined_normalized_importance.values())
 
-# Step 3: Plot
-values, counts = zip(*sorted_items)
+# # Optional: sort by value
+# sorted_items = sorted(value_counts.items())  # list of (value, count)
 
-plt.figure(figsize=(10, 5))
-plt.bar(values, counts, width=0.01)  # you can adjust width based on how close the values are
-plt.yscale('log')  # Optional: log scale for better visibility
-plt.xlabel("Parameter importance value")
-plt.ylabel("Number of particles with this value")
-plt.title(f"Distribution of average parameter importance values across {len(particle_IDs_to_evaluate)} particles")
-plt.grid(True)
-plt.tight_layout()
-plt.show()
-plt.savefig(f"../figures/parameter_importance_distribution.png")
+# # Step 3: Plot
+# values, counts = zip(*sorted_items)
+
+# plt.figure(figsize=(10, 5))
+# plt.bar(values, counts, width=0.01)  # you can adjust width based on how close the values are
+# plt.yscale('log')  # Optional: log scale for better visibility
+# plt.xlabel("Parameter importance value")
+# plt.ylabel("Number of particles with this value")
+# plt.title(f"Distribution of average parameter importance values across {len(particle_IDs_to_evaluate)} particles")
+# plt.grid(True)
+# plt.tight_layout()
+# plt.show()
+# plt.savefig(f"../figures/parameter_importance_distribution.png")
 
 
 
