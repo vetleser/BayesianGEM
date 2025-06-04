@@ -48,7 +48,8 @@ class SimulatedAnnealing():
                  temp_step_size: float = 0.1,
                  normalize: bool = False,
                  move_type : str= 'normal',
-                 dCpt_step_size: float = 1.0
+                 dCpt_step_size: float = 1.0,
+                 step_size: float = 0.1,  # This is the step size for the normal move type
                  ):
         """Implements the Simulated Annealing algorithm designed to detect multiple optima in the fitness landscape
 
@@ -125,6 +126,7 @@ class SimulatedAnnealing():
 
         self.log_ef = True
         self.log_ef_list: List[float] = []
+        self.step_size = step_size  # This is the step size for the normal move type
         self.temp_step_size = temp_step_size
         self.dCpt_step_size = dCpt_step_size
         self.param_min : dict[str, float] = {}
@@ -317,6 +319,9 @@ class SimulatedAnnealing():
         # We assume that entries are of the form PROTID_{Tm,Topt,dCpt}
         # If this is not the case, we assume that the algorithm is used for another kind of inference problem,
         # so we skip this domain-specific check. This also applies to the dCPt as mutatating them does not violate the constraint
+        if split_entry[1] == 'dCpt':
+            if candidate[entry] < -16000 or candidate[entry] > -4000:
+                logging.info(f"Invalid dCpt value {candidate[entry]} for {entry}. Can work, but inspect carefully.")
         if len(split_entry) != 2 or split_entry[1] not in ("Tm","Topt"):
             return True
         protein_id = split_entry[0]
@@ -348,7 +353,9 @@ class SimulatedAnnealing():
 
     def energy_function(self, current_dist: float, candidate_dist: float) -> bool:
         delta = candidate_dist - current_dist
-        acceptance_probability = np.exp(-delta / self.current_temp)
+        exponent = -delta / self.current_temp
+        exponent = min(exponent, 700)  # Prevent overflow in exp
+        acceptance_probability = np.exp(exponent)
         if self.log_ef:
             logging.debug(f"Energy function value is : {np.exp(-(delta)/self.current_temp)}")
             self.log_ef_list.append(np.exp(-(delta)/self.current_temp))
@@ -439,14 +446,16 @@ class SimulatedAnnealing():
         candidates: List[candidateType] = []
         if self.normalize:
             for idx in particle_idxs:
-                scaled_candidate = self.normalize_particle(idx)
-                for key in scaled_candidate:
-                    old_parameter_value = scaled_candidate[key]
-                    scaled_candidate[key] += self.step_size * self.rng.normal(0, 1) #Endre til å bruke change_all_parameters, og/eller måte på å endre verdiene
-                    scaled_candidate[key] = np.clip(scaled_candidate[key], 0, 1) #Ensures that the scaled candidate is between 0 and 1
-                    if not self.check_scaled_validity(scaled_candidate, key):
-                        scaled_candidate[key] = old_parameter_value
-                candidate = self.denormalize_particle(scaled_candidate)
+                candidate = {parameter: value for parameter, value in self.all_particles[idx].items()}
+                for key in candidate:
+                    old_parameter_value = candidate[key]
+                    if key.endswith('_dCpt'):
+                        rel_step_size = self.step_size/300
+                    else:
+                        rel_step_size = self.step_size/old_parameter_value
+                    candidate[key] *= 1 + rel_step_size * (self.rng.random()-0.5) #Endre til å bruke change_all_parameters, og/eller måte på å endre verdiene
+                    if not self.check_validity(candidate, key):
+                        candidate[key] = old_parameter_value
                 candidates.append(candidate)
         else:
             for idx in particle_idxs:
@@ -456,13 +465,17 @@ class SimulatedAnnealing():
                     if self.move_type == 'gaussian':
                         if key.endswith('_dCpt'):
                             candidate[key] += self.dCpt_step_size * self.rng.normal(0, 1)
-                        else:
+                        elif key.endswith('_Tm') or key.endswith('_Topt'):
                             candidate[key] += self.temp_step_size * self.rng.normal(0, 1) #* (self.current_temp/self.initial_temp). Wanted to scale step size with temperature, did not work. Population clustered in centre
+                        else:
+                            candidate[key] += self.step_size * self.rng.normal(0, 1)
                     elif self.move_type == 'normal':
                         if key.endswith('_dCpt'):
                             candidate[key] += self.dCpt_step_size * (self.rng.random() - 0.5)
-                        else:
+                        elif key.endswith('_Tm') or key.endswith('_Topt'):
                             candidate[key] += self.temp_step_size * (self.rng.random() - 0.5)
+                        else:
+                            candidate[key] += self.step_size * (self.rng.random() - 0.5)
                     if not self.check_validity(candidate, key):
                         candidate[key] = old_parameter_value
                 candidates.append(candidate)
