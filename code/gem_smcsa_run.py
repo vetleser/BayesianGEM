@@ -26,8 +26,8 @@ def main():
     outdir = '../results/sa'
     candidate_frame: pd.DataFrame = pickle.load(file=open(file=f'{outdir}/simulation_skeleton.pkl',mode='rb'))
     entry = candidate_frame.iloc[task_idx]
-    simulation, outfile, random_seed, final_temp, move_type, dCpt_step_size = entry[["simulation", "outfile","random_seed",
-    "final_temp", "move_type", "dCpt_step_size"]]
+    simulation, outfile, random_seed, final_temp, move_type, dCpt_step_size, temp_step_size = entry[["simulation", "outfile","random_seed",
+    "final_temp", "move_type", "dCpt_step_size", "temp_step_size"]]
     maxiter = 1000
     Yobs_batch = GEMS.aerobic_exp_data()
     #Yobs_batch_an = GEMS.anaerobic_exp_data()
@@ -55,6 +55,7 @@ def main():
     min_epsilon = -1.0 # equivalent to r2 score of 1
     population_size = 128
     n_children = 128
+    cooling_rate = (final_temp/100)**(1/(500))
     
 
     logging.info('Initialize model')
@@ -68,15 +69,18 @@ def main():
                              rng=rng,
                              distance_function=GEMS.distance_2,
                              version = 2,
-                             normalize=False,
+                             normalize=True,
                              final_temp=final_temp,
                              save_intermediate=True,
+                             step_size=dCpt_step_size,
+                             temp_step_size=temp_step_size,
                              dCpt_step_size=dCpt_step_size,
-                             move_type=move_type)
+                             move_type=move_type,
+                             cooling_rate=cooling_rate)
     
     
     logging.info(f"""Start evolutionary simulations with Simulated Annealing: \n
-     final_temp: {final_temp}, normalize: False, simulation: {simulation}, step_size: {dCpt_step_size}, move_type: {move_type}, outfile: {outfile}""")
+     final_temp: {final_temp}, cooling rate: {cooling_rate},  normalize: True, step_size: {dCpt_step_size} simulation: {simulation}, temp_step_size: {temp_step_size} dCpt_step_size: {dCpt_step_size}, move_type: {move_type}, outfile: {outfile}""")
 
     model.run_simulation()
     logging.info("DONE")

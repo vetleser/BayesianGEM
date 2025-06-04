@@ -4,7 +4,7 @@
 #SBATCH --nodes=1                    
 #SBATCH -c 20
 #SBATCH -t 150:00:00             # Upper time limit for the job
-#SBATCH --array=3
+#SBATCH --array=1
 #SBATCH --mem=100G
 #SBATCH --export=NONE
 #SBATCH --nodelist=antony
@@ -14,4 +14,4 @@ echo "Running SLURM_ARRAY_TASK_ID=$SLURM_ARRAY_TASK_ID on $(hostname)"
 
 WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR}
-/triumvirate/home/vetleser/.conda/envs/etcFBA/bin/python3 gem_smcsa_run.py &> "../results/sa/gem_smcsa_may31_$SLURM_ARRAY_TASK_ID.log"
+/triumvirate/home/vetleser/.conda/envs/etcFBA/bin/python3 gem_smcsa_run.py &> "../results/sa/gem_smcsa_june4_$SLURM_ARRAY_TASK_ID.log"
