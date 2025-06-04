@@ -109,7 +109,8 @@ def rastrigin_function(dummy, candidate):
     sum2 = (y**2 - A * np.cos(2 * np.pi * y))
     
     # Sum them together with the constant A * n
-    return -(A * n + sum1 + sum2)
+    return -(A * n + sum1 + sum2)/80.70658039
+
 
 test1 = fitness_function4(None, {"x": 0, "y": 0})
 test2 = fitness_function4(None, {"x": 1, "y": 1})
@@ -177,7 +178,7 @@ def perform_sa(generation_size,
     
     if fitness_function is None:
         fitness_function = partial(general_fitness_function, minima_list=minima_list, scaling_list=scaling_list)
-    testing_fitness_function(fitness_function, minima_list)
+    #testing_fitness_function(fitness_function, minima_list)
     cooling_rate_list = [(final_temp / initial_temp) ** (1 / maxiter) for final_temp in final_temp_list]
     for j in range(n_plots):
         rng = np.random.default_rng(random_seed)  # fresh RNG per sim
@@ -302,34 +303,34 @@ initial_temp = 100
 n_plots = 4
 n_simulations = 4
 
-# perform_sa(
-#     generation_size=32,
-#     final_temp_list=[1.0, 0.1, 0.01, 0.001],
-#     filename="simanneal_rastr",
-#     step_size=0.01,
-#     minima_list=[],
-#     scaling_list=[],
-#     n_plots=n_plots,
-#     n_iterations=n_simulations,
-#     fitness_function=rastrigin_function,
-#     min_epsilon=-80.70658039
+perform_sa(
+    generation_size=32,
+    final_temp_list=[1.0, 0.1, 0.01, 0.001],
+    filename="simanneal_rastr",
+    step_size=1,
+    minima_list=[4.5229936666666666666666666, 4.5229936666666666666666666],
+    scaling_list=[],
+    n_plots=n_plots,
+    n_iterations=n_simulations,
+    fitness_function=rastrigin_function,
+    min_epsilon=-1
 
-# )
+)
 
-for figure in toy_example_df["Figure"]:
-    row = toy_example_df.loc[toy_example_df["Figure"] == figure].iloc[0]  # safely get the matching row
-    logging.warning(f"Performing simulated annealing for figure {figure}")
-    perform_sa_new(
-        #fitness_function= rastrigin_function,
-        generation_size=row["Generation_size"],
-        final_temp_list=row["Final_temp_list"],
-        filename=f"simanneal_fig{figure}",
-        step_size=row["Step_size"],
-        minima_list=row["Minima_list"],
-        scaling_list=row["Scaling_list"],
-        n_plots=n_plots,
-        n_iterations=n_simulations
-    )
+# for figure in toy_example_df["Figure"]:
+#     row = toy_example_df.loc[toy_example_df["Figure"] == figure].iloc[0]  # safely get the matching row
+#     logging.warning(f"Performing simulated annealing for figure {figure}")
+#     perform_sa_new(
+#         #fitness_function= rastrigin_function,
+#         generation_size=row["Generation_size"],
+#         final_temp_list=row["Final_temp_list"],
+#         filename=f"simanneal_fig{figure}",
+#         step_size=row["Step_size"],
+#         minima_list=row["Minima_list"],
+#         scaling_list=row["Scaling_list"],
+#         n_plots=n_plots,
+#         n_iterations=n_simulations
+#     )
     
     
 

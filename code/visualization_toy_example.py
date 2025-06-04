@@ -120,7 +120,7 @@ def rastrigin_contour_function(x, y):
     sum2 = (y**2 - A * np.cos(2 * np.pi * y))
     
     # Sum them together with the constant A * n
-    return -(A * n + sum1 + sum2)
+    return -(A * n + sum1 + sum2)/80.70658039
 
 
 
@@ -171,6 +171,8 @@ def make_plot(fig_number,
         
         Z = contour_func(X, Y) #Change contour function here
         ax.contour(X, Y, Z, 10, colors="black") 
+        ax.pcolormesh(X, Y, Z, shading='auto', cmap='viridis')
+        #plt.colorbar(label="Function value")
         
         # Set subplot title
         ax.set_title(["A", "B", "C", "D"][j], loc="left", fontsize=45, fontweight="bold")
@@ -202,7 +204,7 @@ def make_plot(fig_number,
             else:
                 filename_sim = f"{filename}_{plot}_{simulation}.pkl"
             model = load_pickle(f"../results/toy_example_new/{filename_sim}")
-            particles = extract_simulated_annealing_final_generation_2(model)
+            particles = extract_simulated_annealing_final_generation(model)
             logging.info(f"Particles: {particles}")
             
             # Plot particles for this simulation
@@ -226,28 +228,28 @@ n_plots = 4
 toy_example_df = load_pickle(f"{outdir}/toy_example_df.pkl")
 toy_example_df2 = load_pickle(f"{outdir}/toy_example_df2.pkl")
 
-# make_plot(
-#     fig_number="rastr",
-#     final_temp_list=[1, 0.1, 0.01, 0.001],
-#     minima_list=[(-1, 1), (1, 1), (-1, -1), (1, -1)],
-#     scaling_list=[1, 0.9, 0.8, 0.7],
-#     xlim=(-5.12, 5.12),
-#     ylim=(-5.12, 5.12),
-#     contour_func=rastrigin_contour_function,
-#     filename="simanneal_rastr"
-# )    
+make_plot(
+    fig_number="rastr",
+    final_temp_list=[1, 0.1, 0.01, 0.001],
+    minima_list=[(-1, 1), (1, 1), (-1, -1), (1, -1)],
+    scaling_list=[1, 0.9, 0.8, 0.7],
+    xlim=(-5.12, 5.12),
+    ylim=(-5.12, 5.12),
+    contour_func=rastrigin_contour_function,
+    filename="simanneal_rastr"
+)    
 
-for figure in toy_example_df["Figure"]:
-    row = toy_example_df.loc[toy_example_df["Figure"] == figure].iloc[0]  # robust row access
-    logging.info(f"Figure {figure} loaded")
-    make_plot(#contour_func=rastrigin_contour_function,
-        fig_number=figure,
-        final_temp_list=row["Final_temp_list"],
-        minima_list=row["Minima_list"],
-        scaling_list=row["Scaling_list"],
-        xlim=row["X_lim"],
-        ylim=row["Y_lim"]
-    ) 
+# for figure in toy_example_df["Figure"]:
+#     row = toy_example_df.loc[toy_example_df["Figure"] == figure].iloc[0]  # robust row access
+#     logging.info(f"Figure {figure} loaded")
+#     make_plot(contour_func=rastrigin_contour_function,
+#         fig_number=figure,
+#         final_temp_list=row["Final_temp_list"],
+#         minima_list=row["Minima_list"],
+#         scaling_list=row["Scaling_list"],
+#         xlim=row["X_lim"],
+#         ylim=row["Y_lim"]
+#     ) 
     #break #Uncomment this line to only run the first figure
 
 # for figure in toy_example_df2["Figure"]:
@@ -582,7 +584,11 @@ rastr_lim = (-5.12, 5.12)
 #plt.subplot(2, 2, j + 1)  # Create subplots in a 2x2 grid
 X, Y = np.meshgrid(np.linspace(rastr_lim[0], rastr_lim[1], 1000), np.linspace(rastr_lim[0], rastr_lim[1], 1000))
 Z = rastrigin_contour_function(X, Y)
-plt.contour(X, Y, Z, 10, colors="black")  # Add contour lines
+#plt.contour(X, Y, Z, 10, colors="black")  # Add contour lines
+plt.pcolormesh(X, Y, Z, shading='auto', cmap='viridis')
+plt.colorbar(label="Function value")
+
+
 
 x_pos = [1, -1, 1, -1]
 y_pos = [1, -1, -1, 1]
@@ -615,7 +621,7 @@ y_pos = [1, -1, -1, 1]
 # # Add legend
 # plt.legend(handles=[green_dot, blue_dot], loc='upper right', fontsize=14, frameon=True)
 
-plt.title("Toy Example Fitness Landscape1", loc="center", fontsize=36, fontweight="bold")
+plt.title("Toy Example Rastrigin Fitness Landscape", loc="center", fontsize=36, fontweight="bold")
 
 
 plt.xlim(rastr_lim)
