@@ -48,6 +48,42 @@ df = load_pickle(f"{outdir}/evo_combined_df_R098.pkl")
 
 logging.info(f"Parameter data: \n{df}")
 
+# Collect all columns that end with _Tm, _Topt, or _dCpt
+tm_cols = [col for col in df.columns if col.endswith('_Tm')]
+topt_cols = [col for col in df.columns if col.endswith('_Topt')]
+dcpt_cols = [col for col in df.columns if col.endswith('_dCpt')]
+
+# Compute global min and max for each parameter type
+tm_min, tm_max = df[tm_cols].min().min(), df[tm_cols].max().max()
+topt_min, topt_max = df[topt_cols].min().min(), df[topt_cols].max().max()
+dcpt_min, dcpt_max = df[dcpt_cols].min().min(), df[dcpt_cols].max().max()
+
+# Log or print the result
+logging.info(f"Tm:    min = {tm_min:.2f}, max = {tm_max:.2f}")
+logging.info(f"Topt:  min = {topt_min:.2f}, max = {topt_max:.2f}")
+logging.info(f"dCpt:  min = {dcpt_min:.2f}, max = {dcpt_max:.2f}")
+
+df_sa = load_pickle(f"../results/sa/smcsa_gem_may31_5.0_0_df.pkl")
+logging.info(f"SA df: \n{df_sa}")
+
+tm_min_sa, tm_max_sa = df_sa[tm_cols].min().min(), df_sa[tm_cols].max().max()
+topt_min_sa, topt_max_sa = df_sa[topt_cols].min().min(), df_sa[topt_cols].max().max()
+dcpt_min_sa, dcpt_max_sa = df_sa[dcpt_cols].min().min(), df_sa[dcpt_cols].max().max()
+# Log or print the result for SA
+logging.info(f"SA Tm:    min = {tm_min_sa:.2f}, max = {tm_max_sa:.2f}")
+logging.info(f"SA Topt:  min = {topt_min_sa:.2f}, max = {topt_max_sa:.2f}")
+logging.info(f"SA dCpt:  min = {dcpt_min_sa:.2f}, max = {dcpt_max_sa:.2f}")
+
+df_sa_090 = df_sa[df_sa['r2'] > 0.90]
+logging.info(f"SA df with r2 > 0.90: \n{df_sa_090}")
+
+tm_min_sa_090, tm_max_sa_090 = df_sa_090[tm_cols].min().min(), df_sa_090[tm_cols].max().max()
+topt_min_sa_090, topt_max_sa_090 = df_sa_090[topt_cols].min().min(), df_sa_090[topt_cols].max().max()
+dcpt_min_sa_090, dcpt_max_sa_090 = df_sa_090[dcpt_cols].min().min(), df_sa_090[dcpt_cols].max().max()
+# Log or print the result for SA with r2 > 0.90
+logging.info(f"SA Tm (r2 > 0.90):    min = {tm_min_sa_090:.2f}, max = {tm_max_sa_090:.2f}")
+logging.info(f"SA Topt (r2 > 0.90):  min = {topt_min_sa_090:.2f}, max = {topt_max_sa_090:.2f}")
+logging.info(f"SA dCpt (r2 > 0.90):  min = {dcpt_min_sa_090:.2f}, max = {dcpt_max_sa_090:.2f}")
 
 
 def plot_histogram_ymax(col):
@@ -207,13 +243,13 @@ plot_counter = 0
 #     plot_histogram_entropy(param)
 #     plt.close()
 
-cols = df.columns.tolist()
-for col in cols:
-    plot_histogram_entropy(col)
-    plt.close()
-    if plot_counter == 10:
-        logging.info("Too many bins, skipping histogram")
-        break
+# cols = df.columns.tolist()
+# for col in cols:
+#     plot_histogram_entropy(col)
+#     plt.close()
+#     if plot_counter == 10:
+#         logging.info("Too many bins, skipping histogram")
+#         break
 
 # for col in cols:
 #     if col.endswith("_Topt"):
