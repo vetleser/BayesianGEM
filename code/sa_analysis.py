@@ -21,6 +21,16 @@ def dump_pickle(obj,filename):
 
 def build_a_dataframe_for_all_particles(file, n_priors = 128, r2_threshold = 0.9):
     results = load_pickle(file)
+
+    particles = results.all_particles
+    distances = results.all_distances
+    
+    # Ensure lengths match
+    min_len = min(len(particles), len(distances))
+    if len(particles) != len(distances):
+        logging.warning(f"Length mismatch: {len(particles)} particles vs {len(distances)} distances. Truncating to {min_len}.")
+        particles = particles[:min_len]
+        distances = distances[:min_len]
     columns = list(results.all_particles[0].keys())
     columns.sort()
     logging.info("Iterating over particles")
@@ -52,6 +62,19 @@ def inspect_acceptance_rate(filename, n_priors = 128):
 
     return acceptance_rates 
 
+def count_particles_by_r2(df, filename, combined_count_df):
+    r2_col = df['r2']
+    
+    row = {'file': filename}
+    
+    for threshold in [0.9, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99]:
+        count = (r2_col > threshold).sum()
+        logging.info(f"Count of particles with r2 > {threshold}: {count}")
+        row[f"r2_{threshold}"] = count
+
+    combined_count_df.loc[len(combined_count_df)] = row  # Append new row
+    return count
+
 outdir = '../results/sa'
 
 file_0 = f'{outdir}/smcsa_gem_0.001_0.pkl'
@@ -61,6 +84,46 @@ file_2 = f'{outdir}/smcsa_gem_may19_0.0001_0.pkl'
 file_3 = f'{outdir}/smcsa_gem_may22_0.1_0.pkl'
 file_4 = f'{outdir}/smcsa_gem_may22_0.5_0.pkl'
 file_5 = f'{outdir}/smcsa_gem_may22_0.5_1.pkl'
+
+file_6 = f'{outdir}/smcsa_gem_may31_0.5_0.pkl'
+file_7 = f'{outdir}/smcsa_gem_may31_1.0_0.pkl'
+file_8 = f'{outdir}/smcsa_gem_may31_5.0_0.pkl'
+file_9 = f'{outdir}/smcsa_gem_may31_10.0_0.pkl'
+
+filenames = ['smcsa_gem_0.001_0', 'smcsa_gem_may19_0.0001_0',
+             'smcsa_gem_may22_0.1_0', 'smcsa_gem_may22_0.5_0', 'smcsa_gem_may22_0.5_1',
+             'smcsa_gem_may31_0.5_0', 'smcsa_gem_may31_1.0_0', 'smcsa_gem_may31_5.0_0', 'smcsa_gem_may31_10.0_0'] #Removed file_1, different length of all_particles and all_distances due to timeouterror
+
+files = [file_0, file_2, file_3, file_4, file_5, file_6, file_7, file_8, file_9] #Removed file_1, different length of all_particles and all_distances due to timeouterror
+# for file, filename in zip(files, filenames):
+#     logging.info(f"Processing file: {file}")
+#     df = build_a_dataframe_for_all_particles(file)
+#     dump_pickle(df, f"{outdir}/{filename}_df.pkl")
+#     logging.info(f"Data Frame shape: {df.shape}")
+#     logging.info(f"Data Frame columns: {df.columns}")
+#     logging.info(f"Data Frame head: {df.head()}")
+#     logging.info(f"Data Frame tail: {df.tail()}")
+columns = ['file'] + [f'r2_{threshold}' for threshold in [0.9, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99]]
+combined_count_df = pd.DataFrame(columns=columns) 
+
+for filename in filenames:
+    df = load_pickle(f"{outdir}/{filename}_df.pkl")
+    logging.info(f"Loaded Data Frame for {filename} with shape: {df.shape}")
+    count_particles_by_r2(df,filename,  combined_count_df)
+
+logging.info("Combined count Data Frame:")
+with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', 1000):
+    logging.warning(f"Combined count Data Frame:\n{combined_count_df}")
+filename = '../results/analysis/df_simulation_0_R098.pkl'
+
+logging.info(f"Loading Data Frame from {filename}")
+df_0 = load_pickle(filename)
+# logging.info(f"Data Frame 0 shape: {df_0.shape}")
+# logging.info(f"Data Frame 0 columns: {df_0.columns}")
+# logging.info(f"Data Frame 0 head: {df_0.head()}")
+# logging.info(f"Data Frame 0 tail: {df_0.tail()}")
+#count_particles_by_r2(df_0)
+# Uncomment the following lines to build a DataFrame for all particles
 
 # df_0 = build_a_dataframe_for_all_particles(file_0)
 
@@ -122,41 +185,41 @@ font = {'family' : 'normal',
         'size'   : 30}
 
 
-model_frame = load_pickle("../results/sa/distance_frame.pkl")
-logging.info(f"Model frame shape: {model_frame.shape}")
-logging.info(f"Model frame columns: {model_frame.columns}")
-logging.info(f"Model frame head: {model_frame.head()}")
+# model_frame = load_pickle("../results/sa/distance_frame.pkl")
+# logging.info(f"Model frame shape: {model_frame.shape}")
+# logging.info(f"Model frame columns: {model_frame.columns}")
+# logging.info(f"Model frame head: {model_frame.head()}")
 
-for idx, row in model_frame.iterrows():
-    logging.info(f"Processing row index: {idx}")
-    # logging.info(f"Processing row: {row.Index}")
-    # logging.info(f"Final temperature: {row.final_temp}, Move type: {row.move_type}, Step size: {row.step_size}, Simulation: {row.simulation}")
+# for idx, row in model_frame.iterrows():
+#     logging.info(f"Processing row index: {idx}")
+#     # logging.info(f"Processing row: {row.Index}")
+#     # logging.info(f"Final temperature: {row.final_temp}, Move type: {row.move_type}, Step size: {row.step_size}, Simulation: {row.simulation}")
 
-    #row = model_frame.iloc[0]
-    all_distances = row["all_distances"]
-    population = row["population"]
-    indices = [i for i, p in enumerate(population[-1]) if all_distances[p] < -0.97]
-    final_distances = [all_distances[p] for p in population[-1] if all_distances[p] < 3]
-    logging.info(f"Final generation distances: {final_distances}")
-    mean_distances = []
-    gen_iter = 0
-    for gen in population:
-        gen_iter += 1
-        #logging.info(f"Processing generation {gen_iter} with {len(gen)} particles")
-        # distances = [all_distances[p] for i, p in enumerate(gen) if all_distances[p] < 5 and i in indices]
-        distances = [all_distances[p] for i, p in enumerate(gen) if i in indices]
+#     #row = model_frame.iloc[0]
+#     all_distances = row["all_distances"]
+#     population = row["population"]
+#     indices = [i for i, p in enumerate(population[-1]) if all_distances[p] < -0.97]
+#     final_distances = [all_distances[p] for p in population[-1] if all_distances[p] < 3]
+#     logging.info(f"Final generation distances: {final_distances}")
+#     mean_distances = []
+#     gen_iter = 0
+#     for gen in population:
+#         gen_iter += 1
+#         #logging.info(f"Processing generation {gen_iter} with {len(gen)} particles")
+#         # distances = [all_distances[p] for i, p in enumerate(gen) if all_distances[p] < 5 and i in indices]
+#         distances = [all_distances[p] for i, p in enumerate(gen) if i in indices]
 
-        logging.info(f"Generation {gen_iter} n_distances: {len(distances)}")
-        mean_distances.append(-np.mean(distances))
+#         logging.info(f"Generation {gen_iter} n_distances: {len(distances)}")
+#         mean_distances.append(-np.mean(distances))
 
-    plt.figure(figsize=(10, 5))
-    plt.plot(mean_distances, label='Mean Distances')
-    #plt.ylim([-2, 1])
-    plt.xlabel('Generation')
-    plt.ylabel('Mean Distance')
-    plt.title(f'Mean Distances over Generations Simulation {idx}')
-    plt.legend()
-    plt.savefig(f'../figures/mean_distances_{idx}.png')
+#     plt.figure(figsize=(10, 5))
+#     plt.plot(mean_distances, label='Mean Distances')
+#     #plt.ylim([-2, 1])
+#     plt.xlabel('Generation')
+#     plt.ylabel('Mean Distance')
+#     plt.title(f'Mean Distances over Generations Simulation {idx}')
+#     plt.legend()
+#     plt.savefig(f'../figures/mean_distances_{idx}.png')
 
 # matplotlib.rc('font', **font)
 # proper_names = {'unpermuted': "Unpermuted", 'permuted_0': "Permuted 1",

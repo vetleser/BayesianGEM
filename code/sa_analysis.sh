@@ -3,7 +3,7 @@
 #SBATCH --output=sa_analysis.out
 #SBATCH --nodes=1                    
 #SBATCH -c 1
-#SBATCH -t 00:10:00             # Upper time limit for the job
+#SBATCH -t 02:00:00             # Upper time limit for the job
 #SBATCH --mem=100G
 
 
