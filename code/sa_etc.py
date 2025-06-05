@@ -50,6 +50,9 @@ class SimulatedAnnealing():
                  move_type : str= 'normal',
                  dCpt_step_size: float = 1.0,
                  step_size: float = 0.1,  # This is the step size for the normal move type
+                 end_exploration: float = 0.5,
+                 initial_step_size: float = 10,  # This is the initial step size for the normal move type
+                 final_step_size: float = 0.1,  # This is the final step size for the normal move type, after cooling down
                  ):
         """Implements the Simulated Annealing algorithm designed to detect multiple optima in the fitness landscape
 
@@ -107,7 +110,7 @@ class SimulatedAnnealing():
 
         # self.cooling_rate = cooling_rate
         if cooling_rate is None:
-            self.cooling_rate = (final_temp / initial_temp) ** (1 / maxiter) #cooling rate lines up with iterations
+            self.cooling_rate = (final_temp / initial_temp) ** (1 / (maxiter*end_exploration)) #cooling rate lines up with iterations
         else:
             self.cooling_rate = cooling_rate
         self.initial_temp = initial_temp
@@ -133,7 +136,10 @@ class SimulatedAnnealing():
         self.param_max : dict[str, float] = {}
         self.normalize = normalize
         self.move_type = move_type
+        self.end_exploration = end_exploration
 
+        self.initial_step_size = initial_step_size  # This is the initial step size for the normal move type
+        self.final_step_size = final_step_size  # This is the final step size for the normal move type, after cooling down
 
     def generator(self) -> candidateType:
             candidate = {param: self.priors[param].rvfv() for param in self.parameter_names}
@@ -270,14 +276,21 @@ class SimulatedAnnealing():
                     raise
 
         if timed_out:
-            standard_simdata = {
+            final_simulated_data = []
+            counter = 0
+            for i in range(len(candidates)):
+                if i in successfull_candidates:
+                    final_simulated_data.append(simulated_data[counter])
+                    counter += 1
+                else:
+                    standard_simdata = {
             'rae': np.zeros(8, dtype=np.float64),
             'ran': np.zeros(8, dtype=np.float64)
                 }
-            simulated_data = [raw_res if counter in successfull_candidates else standard_simdata
-                for counter, raw_res in enumerate(simulated_data)]
+                    final_simulated_data.append(standard_simdata)
+
+            simulated_data = final_simulated_data
             
-            #simulated_data = [results_dict.get(i, {key: value.copy() for key, value in standard_simdata.items()}) for i in range(len(candidates))] #Use standard_simdata to handle TimeoutError
 
 
 
@@ -320,8 +333,8 @@ class SimulatedAnnealing():
         # If this is not the case, we assume that the algorithm is used for another kind of inference problem,
         # so we skip this domain-specific check. This also applies to the dCPt as mutatating them does not violate the constraint
         if split_entry[1] == 'dCpt':
-            if candidate[entry] < -16000 or candidate[entry] > -4000:
-                logging.info(f"Invalid dCpt value {candidate[entry]} for {entry}. Can work, but inspect carefully.")
+            if candidate[entry] < -29675.04 or candidate[entry] > 19962.98:
+                logging.info(f"Invalid dCpt value {candidate[entry]} for {entry}. Can work, but inspect carefully.") #Values from evo simulations
         if len(split_entry) != 2 or split_entry[1] not in ("Tm","Topt"):
             return True
         protein_id = split_entry[0]
@@ -349,7 +362,11 @@ class SimulatedAnnealing():
 
         return Tm > Topt > 0
 
-
+    def adaptive_step_size(self) -> float:
+        if self.generation > self.maxiter * self.end_exploration:
+            return self.final_step_size
+        decay_rate = np.log(self.final_step_size/ self.initial_step_size) / (self.maxiter*self.end_exploration)
+        return self.initial_step_size * np.exp(decay_rate * self.generation)
 
     def energy_function(self, current_dist: float, candidate_dist: float) -> bool:
         delta = candidate_dist - current_dist
@@ -449,10 +466,11 @@ class SimulatedAnnealing():
                 candidate = {parameter: value for parameter, value in self.all_particles[idx].items()}
                 for key in candidate:
                     old_parameter_value = candidate[key]
+                    step_size = self.adaptive_step_size()
                     if key.endswith('_dCpt'):
-                        rel_step_size = self.step_size/300
+                        rel_step_size = step_size/30
                     else:
-                        rel_step_size = self.step_size/old_parameter_value
+                        rel_step_size = step_size/old_parameter_value
                     candidate[key] *= 1 + rel_step_size * (self.rng.random()-0.5) #Endre til å bruke change_all_parameters, og/eller måte på å endre verdiene
                     if not self.check_validity(candidate, key):
                         candidate[key] = old_parameter_value
@@ -462,22 +480,24 @@ class SimulatedAnnealing():
                 candidate = {parameter: value for parameter, value in self.all_particles[idx].items()}
                 for key in candidate:
                     old_parameter_value = candidate[key]
-                    if self.move_type == 'gaussian':
+                    if self.end_exploration < 1.0:
+                        #logging.info("Using adaptive step size")
+                        step_size = self.adaptive_step_size()
                         if key.endswith('_dCpt'):
-                            candidate[key] += self.dCpt_step_size * self.rng.normal(0, 1)
+                            candidate[key] += step_size * (self.rng.random() - 0.5)
                         elif key.endswith('_Tm') or key.endswith('_Topt'):
-                            candidate[key] += self.temp_step_size * self.rng.normal(0, 1) #* (self.current_temp/self.initial_temp). Wanted to scale step size with temperature, did not work. Population clustered in centre
+                            candidate[key] += step_size * (self.rng.random() - 0.5)
                         else:
-                            candidate[key] += self.step_size * self.rng.normal(0, 1)
-                    elif self.move_type == 'normal':
+                            candidate[key] += step_size * (self.rng.random() - 0.5)
+                    else:
                         if key.endswith('_dCpt'):
                             candidate[key] += self.dCpt_step_size * (self.rng.random() - 0.5)
                         elif key.endswith('_Tm') or key.endswith('_Topt'):
                             candidate[key] += self.temp_step_size * (self.rng.random() - 0.5)
                         else:
                             candidate[key] += self.step_size * (self.rng.random() - 0.5)
-                    if not self.check_validity(candidate, key):
-                        candidate[key] = old_parameter_value
+                        if not self.check_validity(candidate, key):
+                            candidate[key] = old_parameter_value
                 candidates.append(candidate)
         logging.info("Evaluating fitness of candidates")
         self.evaluate_candidates(candidates)
