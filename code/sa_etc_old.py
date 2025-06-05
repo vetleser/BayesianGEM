@@ -483,4 +483,47 @@ class SimulatedAnnealing():
         logging.info(f"Model epsilon {max_generation_epsilon}")
         logging.info(f"Model min epsilon {min_generation_epsilon}")
 
+
+    def generate_candidates(self, particle_idxs: npt.NDArray[np.int64]) -> None: #Kan bruke change_all_parameters her istedenfor å skrive det eksplisitt
+        logging.info("Generating candidates")
+        candidates: List[candidateType] = []
+        if self.normalize:
+            for idx in particle_idxs:
+                candidate = {parameter: value for parameter, value in self.all_particles[idx].items()}
+                for key in candidate:
+                    old_parameter_value = candidate[key]
+                    if key.endswith('_dCpt'):
+                        rel_step_size = self.step_size/300
+                    else:
+                        rel_step_size = self.step_size/old_parameter_value
+                    candidate[key] *= 1 + rel_step_size * (self.rng.random()-0.5) #Endre til å bruke change_all_parameters, og/eller måte på å endre verdiene
+                    if not self.check_validity(candidate, key):
+                        candidate[key] = old_parameter_value
+                candidates.append(candidate)
+        else:
+            for idx in particle_idxs:
+                candidate = {parameter: value for parameter, value in self.all_particles[idx].items()}
+                for key in candidate:
+                    old_parameter_value = candidate[key]
+                    if self.move_type == 'gaussian':
+                        if key.endswith('_dCpt'):
+                            candidate[key] += self.dCpt_step_size * self.rng.normal(0, 1)
+                        elif key.endswith('_Tm') or key.endswith('_Topt'):
+                            candidate[key] += self.temp_step_size * self.rng.normal(0, 1) #* (self.current_temp/self.initial_temp). Wanted to scale step size with temperature, did not work. Population clustered in centre
+                        else:
+                            candidate[key] += self.step_size * self.rng.normal(0, 1)
+                    elif self.move_type == 'normal':
+                        if key.endswith('_dCpt'):
+                            candidate[key] += self.dCpt_step_size * (self.rng.random() - 0.5)
+                        elif key.endswith('_Tm') or key.endswith('_Topt'):
+                            candidate[key] += self.temp_step_size * (self.rng.random() - 0.5)
+                        else:
+                            candidate[key] += self.step_size * (self.rng.random() - 0.5)
+                    if not self.check_validity(candidate, key):
+                        candidate[key] = old_parameter_value
+                candidates.append(candidate)
+        logging.info("Evaluating fitness of candidates")
+        self.evaluate_candidates(candidates)
+
+
     #-----------------------------------------------------------------
