@@ -63,7 +63,7 @@ logging.info(f"Tm:    min = {tm_min:.2f}, max = {tm_max:.2f}")
 logging.info(f"Topt:  min = {topt_min:.2f}, max = {topt_max:.2f}")
 logging.info(f"dCpt:  min = {dcpt_min:.2f}, max = {dcpt_max:.2f}")
 
-df_sa = load_pickle(f"../results/sa/smcsa_gem_may31_5.0_0_df.pkl")
+df_sa = load_pickle(f"../results/sa/smcsa_gem_june2_0.1_0.5_0_df.pkl")
 logging.info(f"SA df: \n{df_sa}")
 
 tm_min_sa, tm_max_sa = df_sa[tm_cols].min().min(), df_sa[tm_cols].max().max()
@@ -74,16 +74,16 @@ logging.info(f"SA Tm:    min = {tm_min_sa:.2f}, max = {tm_max_sa:.2f}")
 logging.info(f"SA Topt:  min = {topt_min_sa:.2f}, max = {topt_max_sa:.2f}")
 logging.info(f"SA dCpt:  min = {dcpt_min_sa:.2f}, max = {dcpt_max_sa:.2f}")
 
-df_sa_090 = df_sa[df_sa['r2'] > 0.90]
-logging.info(f"SA df with r2 > 0.90: \n{df_sa_090}")
+df_sa_098 = df_sa[df_sa['r2'] > 0.98]
+logging.info(f"SA df with r2 > 0.98: \n{df_sa_098}")
 
-tm_min_sa_090, tm_max_sa_090 = df_sa_090[tm_cols].min().min(), df_sa_090[tm_cols].max().max()
-topt_min_sa_090, topt_max_sa_090 = df_sa_090[topt_cols].min().min(), df_sa_090[topt_cols].max().max()
-dcpt_min_sa_090, dcpt_max_sa_090 = df_sa_090[dcpt_cols].min().min(), df_sa_090[dcpt_cols].max().max()
+tm_min_sa_098, tm_max_sa_098 = df_sa_098[tm_cols].min().min(), df_sa_098[tm_cols].max().max()
+topt_min_sa_098, topt_max_sa_098 = df_sa_098[topt_cols].min().min(), df_sa_098[topt_cols].max().max()
+dcpt_min_sa_098, dcpt_max_sa_098 = df_sa_098[dcpt_cols].min().min(), df_sa_098[dcpt_cols].max().max()
 # Log or print the result for SA with r2 > 0.90
-logging.info(f"SA Tm (r2 > 0.90):    min = {tm_min_sa_090:.2f}, max = {tm_max_sa_090:.2f}")
-logging.info(f"SA Topt (r2 > 0.90):  min = {topt_min_sa_090:.2f}, max = {topt_max_sa_090:.2f}")
-logging.info(f"SA dCpt (r2 > 0.90):  min = {dcpt_min_sa_090:.2f}, max = {dcpt_max_sa_090:.2f}")
+logging.info(f"SA Tm (r2 > 0.98):    min = {tm_min_sa_098:.2f}, max = {tm_max_sa_098:.2f}")
+logging.info(f"SA Topt (r2 > 0.98):  min = {topt_min_sa_098:.2f}, max = {topt_max_sa_098:.2f}")
+logging.info(f"SA dCpt (r2 > 0.98):  min = {dcpt_min_sa_098:.2f}, max = {dcpt_max_sa_098:.2f}")
 
 
 def plot_histogram_ymax(col):
