@@ -81,21 +81,47 @@ file_0 = f'{outdir}/smcsa_gem_0.001_0.pkl'
 file_1 = "../results/sa/smcsa_gem_may19_0.0001_1.pkl"
 file_2 = f'{outdir}/smcsa_gem_may19_0.0001_0.pkl'
 
+batch_may19 = [file_0, file_1, file_2]
+
 file_3 = f'{outdir}/smcsa_gem_may22_0.1_0.pkl'
 file_4 = f'{outdir}/smcsa_gem_may22_0.5_0.pkl'
 file_5 = f'{outdir}/smcsa_gem_may22_0.5_1.pkl'
+
+batch_may22 = [file_3, file_4, file_5]
+batch_may22_filenames = [f'smcsa_gem_may22_0.1_0', f'smcsa_gem_may22_0.5_0', f'smcsa_gem_may22_0.5_1']
 
 file_6 = f'{outdir}/smcsa_gem_may31_0.5_0.pkl'
 file_7 = f'{outdir}/smcsa_gem_may31_1.0_0.pkl'
 file_8 = f'{outdir}/smcsa_gem_may31_5.0_0.pkl'
 file_9 = f'{outdir}/smcsa_gem_may31_10.0_0.pkl'
 
+batch_may31 = [file_6, file_7, file_8, file_9]
+batch_may31_filenames = [f'smcsa_gem_may31_0.5_0', f'smcsa_gem_may31_1.0_0', f'smcsa_gem_may31_5.0_0', f'smcsa_gem_may31_10.0_0']
+
+file_10 = f'{outdir}/smcsa_gem_june2_0.1_0.5_0.pkl'
+file_11 = f'{outdir}/smcsa_gem_june2_0.1_0.5_1.pkl'
+file_12 = f'{outdir}/smcsa_gem_june2_0.1_1.0_0.pkl' #Mismatch length of all_particles and all_distances due to timeouterror
+file_13 = f'{outdir}/smcsa_gem_june2_0.1_1.0_1.pkl' #Mismatch length of all_particles and all_distances due to timeouterror
+
+batch_june2 = [file_10, file_11]
+batch_june2_filenames = [f'smcsa_gem_june2_0.1_0.5_0', f'smcsa_gem_june2_0.1_0.5_1']
+
+file_14 = f'{outdir}/smcsa_gem_june4_ee0.5_1.pkl'
+file_15 = f'{outdir}/smcsa_gem_june4_ee0.5_normalize_2.pkl'
+file_16 = f'{outdir}/smcsa_gem_june4_ee0.75_0.pkl'
+file_17 = f'{outdir}/smcsa_gem_june5_ee0.75_normalize_3.pkl'
+
+batch_june4 = [file_14, file_15, file_16, file_17]
+batch_june4_filenames = [f'smcsa_gem_june4_ee0.5_1', f'smcsa_gem_june4_ee0.5_normalize_2', f'smcsa_gem_june4_ee0.75_0', f'smcsa_gem_june5_ee0.75_normalize_3']
+
+
+
 filenames = ['smcsa_gem_0.001_0', 'smcsa_gem_may19_0.0001_0',
              'smcsa_gem_may22_0.1_0', 'smcsa_gem_may22_0.5_0', 'smcsa_gem_may22_0.5_1',
              'smcsa_gem_may31_0.5_0', 'smcsa_gem_may31_1.0_0', 'smcsa_gem_may31_5.0_0', 'smcsa_gem_may31_10.0_0'] #Removed file_1, different length of all_particles and all_distances due to timeouterror
 
 files = [file_0, file_2, file_3, file_4, file_5, file_6, file_7, file_8, file_9] #Removed file_1, different length of all_particles and all_distances due to timeouterror
-# for file, filename in zip(files, filenames):
+# for file, filename in zip(batch_june2, batch_june2_filenames):
 #     logging.info(f"Processing file: {file}")
 #     df = build_a_dataframe_for_all_particles(file)
 #     dump_pickle(df, f"{outdir}/{filename}_df.pkl")
@@ -106,7 +132,7 @@ files = [file_0, file_2, file_3, file_4, file_5, file_6, file_7, file_8, file_9]
 columns = ['file'] + [f'r2_{threshold}' for threshold in [0.9, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99]]
 combined_count_df = pd.DataFrame(columns=columns) 
 
-for filename in filenames:
+for filename in batch_june2_filenames:
     df = load_pickle(f"{outdir}/{filename}_df.pkl")
     logging.info(f"Loaded Data Frame for {filename} with shape: {df.shape}")
     count_particles_by_r2(df,filename,  combined_count_df)
