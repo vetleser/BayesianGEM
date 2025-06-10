@@ -63,6 +63,22 @@ logging.info(f"Tm:    min = {tm_min:.2f}, max = {tm_max:.2f}")
 logging.info(f"Topt:  min = {topt_min:.2f}, max = {topt_max:.2f}")
 logging.info(f"dCpt:  min = {dcpt_min:.2f}, max = {dcpt_max:.2f}")
 
+enzyme_id = 'P08566'
+# Filter the DataFrame for the specific enzyme ID
+df_enzyme = df[[col for col in df.columns if col.startswith(enzyme_id)]]
+logging.info(f"Filtered DataFrame for enzyme {enzyme_id}: \n{df_enzyme}")
+# Compute min and max for the specific enzyme
+tm_cols = [col for col in df_enzyme.columns if col.endswith('_Tm')]
+topt_cols = [col for col in df_enzyme.columns if col.endswith('_Topt')]
+dcpt_cols = [col for col in df_enzyme.columns if col.endswith('_dCpt')]
+tm_min_enzyme, tm_max_enzyme = df_enzyme[enzyme_id+"_Tm"].min().min(), df_enzyme[tm_cols].max().max()
+topt_min_enzyme, topt_max_enzyme = df_enzyme[topt_cols].min().min(), df_enzyme[topt_cols].max().max()
+dcpt_min_enzyme, dcpt_max_enzyme = df_enzyme[dcpt_cols].min().min(), df_enzyme[dcpt_cols].max().max()
+# Log or print the result for the specific enzyme
+logging.info(f"{enzyme_id} Tm:    min = {tm_min_enzyme:.2f}, max = {tm_max_enzyme:.2f}")
+logging.info(f"{enzyme_id} Topt:  min = {topt_min_enzyme:.2f}, max = {topt_max_enzyme:.2f}")
+logging.info(f"{enzyme_id} dCpt:  min = {dcpt_min_enzyme:.2f}, max = {dcpt_max_enzyme:.2f}")
+
 df_sa = load_pickle(f"../results/sa/smcsa_gem_june2_0.1_0.5_0_df.pkl")
 logging.info(f"SA df: \n{df_sa}")
 
