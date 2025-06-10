@@ -19,7 +19,7 @@ import pandas as pd
 import dill
 
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 
 # Convenient pickle wrappers
 def load_pickle(filename):
@@ -33,7 +33,7 @@ maxiter = 200
 Yobs = None
 min_epsilon = -1
 population_size = 32
-outdir = "../results/toy_example_new" 
+outdir = "../results/toy_example" 
 if not os.path.exists(outdir):
     os.makedirs(outdir)
 
@@ -59,40 +59,13 @@ def fitness_function2(dummy,candidate):
     return -R2
 
 
-def fitness_function3(dummy, candidate):
-    minima_list = [(-1, -1), (1, 1), (-1, 1), (1, -1)]
-    sigma = 0.6  # Standard deviation of each Gaussian
-    R2 = 0
-
-    for min_x, min_y in minima_list:
-        dx = candidate["x"] - min_x
-        dy = candidate["y"] - min_y
-        exponent = -(dx**2 + dy**2) / (2 * sigma**2)
-        R2 += math.exp(exponent)
-
-    return -R2/1.0077467856174704
-
-def fitness_function4(dummy, candidate):
-    minima_list = [(-1, 1), (1, 1), (-1, -1), (1, -1)]
-    sigma = 0.6  # Standard deviation of each Gaussian
-    R2 = 0
-    scaling_list = [1, 0.9, 0.8, 0.7]
-
-    for i, (min_x, min_y) in enumerate(minima_list):
-        dx = candidate["x"] - min_x
-        dy = candidate["y"] - min_y
-        exponent = -(dx**2 + dy**2) / (2 * sigma**2)
-        R2 += math.exp(exponent) * scaling_list[i]
-
-    return -R2/1.006582525974071
-
-def general_fitness_function(dummy, candidate, minima_list, scaling_list, sigma=0.6):
+def general_fitness_function(dummy, candidate, minima_list, scaling_list, sigma_list):
     def compute_R2(x, y):
         R2 = 0
         for i, (min_x, min_y) in enumerate(minima_list):
             dx = x - min_x
             dy = y - min_y
-            exponent = -(dx**2 + dy**2) / (2 * sigma**2)
+            exponent = -(dx**2 + dy**2) / (2 * sigma_list[i]**2)
             R2 += math.exp(exponent) * scaling_list[i]
         return R2
 
@@ -112,30 +85,6 @@ def rastrigin_function(dummy, candidate):
     return -(A * n + sum1 + sum2)/80.70658039
 
 
-test1 = fitness_function4(None, {"x": 0, "y": 0})
-test2 = fitness_function4(None, {"x": 1, "y": 1})
-test3 = fitness_function4(None, {"x": -1, "y": -1})
-test4 = fitness_function4(None, {"x": 1, "y": -1})
-test5 = fitness_function4(None, {"x": -1, "y": 1})
-logging.info(f"Test fitness function 4, (0, 0): {test1}")
-logging.info(f"Test fitness function 4, (1, 1): {test2}")
-logging.info(f"Test fitness function 4, (-1, -1): {test3}")
-logging.info(f"Test fitness function 4, (1, -1): {test4}")
-logging.info(f"Test fitness function 4, (-1, 1): {test5}")
-
-def fitness_function5(dummy, candidate):
-    minima_list = [(-1, 1), (1, 1), (-1, -1), (-3, 3)]
-    sigma = 0.6  # Standard deviation of each Gaussian
-    R2 = 0
-    scaling_list = [1, 0, 0, 1]
-
-    for i, (min_x, min_y) in enumerate(minima_list):
-        dx = candidate["x"] - min_x
-        dy = candidate["y"] - min_y
-        exponent = -(dx**2 + dy**2) / (2 * sigma**2)
-        R2 += math.exp(exponent) * scaling_list[i]
-
-    return -R2/1.0054182663306717
 
 
 
@@ -170,15 +119,17 @@ def perform_sa(generation_size,
                filename, 
                step_size, 
                minima_list, 
-               scaling_list, 
+               scaling_list,
+               sigma_list, 
                n_plots=4, 
                n_iterations=4,
                fitness_function = None,
                min_epsilon: float = -1,):
     
     if fitness_function is None:
-        fitness_function = partial(general_fitness_function, minima_list=minima_list, scaling_list=scaling_list)
-    #testing_fitness_function(fitness_function, minima_list)
+        fitness_function = partial(general_fitness_function, minima_list=minima_list, scaling_list=scaling_list, sigma_list=sigma_list)
+        logging.warning("Using general fitness function")
+    testing_fitness_function(fitness_function, minima_list)
     cooling_rate_list = [(final_temp / initial_temp) ** (1 / maxiter) for final_temp in final_temp_list]
     for j in range(n_plots):
         rng = np.random.default_rng(random_seed)  # fresh RNG per sim
@@ -204,7 +155,7 @@ def perform_sa(generation_size,
                                 )
             simanneal_model.run_simulation()
             end = time.time()
-            #logging.info(f"Time for SA {j}: {end-start} seconds")
+            logging.warning(f"Time for SA {j}: {end-start} seconds")
 
 def perform_sa_new(generation_size, 
                final_temp_list, 
@@ -245,77 +196,181 @@ def perform_sa_new(generation_size,
                                 )
             simanneal_model.run_simulation()
             end = time.time()
-            #logging.info(f"Time for SA {j}: {end-start} seconds")
+            logging.info(f"Time for SA {j}: {end-start} seconds")
         
 
+n_peaks = 20
+toy_example_df = pd.DataFrame()
 
-figures = [0, 1, 2, 3, 4, 5]
-final_temp_list1 = [1.0, 0.1, 0.01, 0.001]
-final_temp_list2 = [0.01, 0.001, 0.0001, 0.00001]
-minima_list1 = [(-1, 1), (1, 1), (-1, -1), (1, -1)]
-minima_list2 = [(1, 1), (2, 2)]
-scaling_list1 = [1, 1, 1, 1]
-scaling_list2 = [1, 0.8, 0.6, 0.4]
-scaling_list3 = [1, 0.8, 0.6, 0]
-scaling_list4 = [1, 1]
-step_size1 = 0.1
-step_size2 = 1
-x_lim1 = (-2.5, 2.5)
-y_lim1 = (-2.5, 2.5)
-x_lim2 = (-1, 5)
-y_lim2 = (-1, 5)
-population_size = 32
+step = 2
+peak_limit = (-2, 2)
+x_vals = np.arange(peak_limit[0], peak_limit[1] + step, step)
+y_vals = np.arange(peak_limit[0], peak_limit[1] + step, step)
 
+# Generate all (x, y) coordinate pairs
+minima_list = [(x, y) for x in x_vals for y in y_vals]
+rng.shuffle(minima_list)
+n_peaks = len(minima_list)
+logging.warning(f"Number of peaks: {n_peaks}")
 
-toy_example_df = pd.DataFrame({"Figure": figures})
+# minima_list = [(rng.uniform(*peak_limit), rng.uniform(*peak_limit)) for _ in range(n_peaks)]
+# toy_example_df["Minima_list"] = [(rng.uniform(*peak_limit), rng.uniform(*peak_limit)) for _ in range(n_peaks)]
+toy_example_df["Minima_list"] = minima_list
 
-toy_example_df["Final_temp_list"] = [final_temp_list1] * 5 + [final_temp_list2] * 1
-toy_example_df["Minima_list"] = [minima_list1] * 3 + [minima_list2] * 3
-toy_example_df["Scaling_list"] = [scaling_list1] + [scaling_list2] + [scaling_list3] + [scaling_list4] * 3
-toy_example_df["Step_size"] = [step_size1] * 4 + [step_size2] * 2
-toy_example_df["X_lim"] = [x_lim1] * 3 + [x_lim2] * 3
-toy_example_df["Y_lim"] = [y_lim1] * 3 + [y_lim2] * 3
-toy_example_df["Generation_size"] = [population_size] * 6
+logging.warning(f"Minima list: {minima_list}")
+toy_example_df["Sigma_list"] = [round(rng.uniform(0.4, 0.8), 1) for _ in range(n_peaks)]
+logging.warning(f"Sigma list: {toy_example_df['Sigma_list'].tolist()}")
+toy_example_df["Scaling_list"] = [round(rng.uniform(0.2, 0.9), 1) for _ in range(n_peaks-2)] + ([1, 1])  # Ensure we have the same number of scaling factors as minima
+
+logging.warning(f"Scaling list: {toy_example_df['Scaling_list'].tolist()}")
+
+toy_example_df = toy_example_df[toy_example_df["Minima_list"] != (0, 0)]
+
 
 with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', 1000):
     logging.warning(f"Toy example dataframe:\n{toy_example_df}")
 
-#dump_pickle(toy_example_df, f"{outdir}/toy_example_df.pkl")
-
-toy_example_df2 = pd.DataFrame({"Figure": [6, 7, 8]})
-toy_example_df2["Final_temp_list"] = [final_temp_list1] * 2 + [final_temp_list2] * 1
-toy_example_df2["Minima_list"] = [[(1, 1), (3, 3)]] * 3
-toy_example_df2["Scaling_list"] = [scaling_list4] * 3
-toy_example_df2["Step_size"] = [step_size1] * 1 + [step_size2] * 2
-toy_example_df2["X_lim"] = [x_lim2] * 3
-toy_example_df2["Y_lim"] = [y_lim2] * 3
-toy_example_df2["Generation_size"] = [population_size] * 3
-with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', 1000):
-    logging.warning(f"Toy example dataframe 2:\n{toy_example_df2}")
-
-dump_pickle(toy_example_df2, f"{outdir}/toy_example_df2.pkl")
+dump_pickle(toy_example_df, f"{outdir}/toy_example_df.pkl")
 
 initial_temp = 100
-#final_temp_list = [1.0, 0.1, 0.01, 0.001]
-# final_temp_list = [0.0001, 0.00001, 0.000001, 0.0000001]
-#cooling_rate_list = [(final_temp / initial_temp) ** (1 / maxiter) for final_temp in final_temp_list]
-
-n_plots = 4
-n_simulations = 4
+perform_sa(
+    generation_size=population_size,
+    final_temp_list=[0.001],
+    filename="simanneal_gaussian",
+    step_size=0.5,
+    minima_list=toy_example_df["Minima_list"].tolist(),
+    scaling_list=toy_example_df["Scaling_list"].tolist(),
+    sigma_list=toy_example_df["Sigma_list"].tolist(),
+    n_plots=1,
+    n_iterations=4,
+    min_epsilon=min_epsilon
+)
 
 perform_sa(
     generation_size=32,
-    final_temp_list=[1.0, 0.1, 0.01, 0.001],
+    final_temp_list=[0.001],
     filename="simanneal_rastr",
     step_size=1,
-    minima_list=[4.5229936666666666666666666, 4.5229936666666666666666666],
+    minima_list=[(4.5229936666666666666666666, 4.5229936666666666666666666)],
     scaling_list=[],
-    n_plots=n_plots,
-    n_iterations=n_simulations,
+    sigma_list=[],
+    n_plots=1,
+    n_iterations=4,
     fitness_function=rastrigin_function,
     min_epsilon=-1
 
 )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# figures = [0, 1, 2, 3, 4, 5]
+# final_temp_list1 = [1.0, 0.1, 0.01, 0.001]
+# final_temp_list2 = [0.01, 0.001, 0.0001, 0.00001]
+# minima_list1 = [(-1, 1), (1, 1), (-1, -1), (1, -1)]
+# minima_list2 = [(1, 1), (2, 2)]
+# scaling_list1 = [1, 1, 1, 1]
+# scaling_list2 = [1, 0.8, 0.6, 0.4]
+# scaling_list3 = [1, 0.8, 0.6, 0]
+# scaling_list4 = [1, 1]
+# step_size1 = 0.1
+# step_size2 = 1
+# x_lim1 = (-2.5, 2.5)
+# y_lim1 = (-2.5, 2.5)
+# x_lim2 = (-1, 5)
+# y_lim2 = (-1, 5)
+# population_size = 32
+
+
+# toy_example_df = pd.DataFrame({"Figure": figures})
+
+# toy_example_df["Final_temp_list"] = [final_temp_list1] * 5 + [final_temp_list2] * 1
+# toy_example_df["Minima_list"] = [minima_list1] * 3 + [minima_list2] * 3
+# toy_example_df["Scaling_list"] = [scaling_list1] + [scaling_list2] + [scaling_list3] + [scaling_list4] * 3
+# toy_example_df["Step_size"] = [step_size1] * 4 + [step_size2] * 2
+# toy_example_df["X_lim"] = [x_lim1] * 3 + [x_lim2] * 3
+# toy_example_df["Y_lim"] = [y_lim1] * 3 + [y_lim2] * 3
+# toy_example_df["Generation_size"] = [population_size] * 6
+
+# with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', 1000):
+#     logging.warning(f"Toy example dataframe:\n{toy_example_df}")
+
+# #dump_pickle(toy_example_df, f"{outdir}/toy_example_df.pkl")
+
+# toy_example_df2 = pd.DataFrame({"Figure": [6, 7, 8]})
+# toy_example_df2["Final_temp_list"] = [final_temp_list1] * 2 + [final_temp_list2] * 1
+# toy_example_df2["Minima_list"] = [[(1, 1), (3, 3)]] * 3
+# toy_example_df2["Scaling_list"] = [scaling_list4] * 3
+# toy_example_df2["Step_size"] = [step_size1] * 1 + [step_size2] * 2
+# toy_example_df2["X_lim"] = [x_lim2] * 3
+# toy_example_df2["Y_lim"] = [y_lim2] * 3
+# toy_example_df2["Generation_size"] = [population_size] * 3
+# with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', 1000):
+#     logging.warning(f"Toy example dataframe 2:\n{toy_example_df2}")
+
+# dump_pickle(toy_example_df2, f"{outdir}/toy_example_df2.pkl")
+
+# initial_temp = 100
+# #final_temp_list = [1.0, 0.1, 0.01, 0.001]
+# # final_temp_list = [0.0001, 0.00001, 0.000001, 0.0000001]
+# #cooling_rate_list = [(final_temp / initial_temp) ** (1 / maxiter) for final_temp in final_temp_list]
+
+# n_plots = 4
+# n_simulations = 4
+
+# perform_sa(
+#     generation_size=32,
+#     final_temp_list=[1.0, 0.1, 0.01, 0.001],
+#     filename="simanneal_rastr",
+#     step_size=1,
+#     minima_list=[4.5229936666666666666666666, 4.5229936666666666666666666],
+#     scaling_list=[],
+#     n_plots=n_plots,
+#     n_iterations=n_simulations,
+#     fitness_function=rastrigin_function,
+#     min_epsilon=-1
+
+# )
 
 # for figure in toy_example_df["Figure"]:
 #     row = toy_example_df.loc[toy_example_df["Figure"] == figure].iloc[0]  # safely get the matching row
