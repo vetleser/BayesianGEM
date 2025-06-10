@@ -2,6 +2,7 @@
 # coding: utf-8
 
 import pickle
+from typing import List
 import matplotlib
 import pandas as pd
 import numpy as np
@@ -55,12 +56,7 @@ def build_a_dataframe_for_all_particles(file, n_priors = 128, r2_threshold = 0.9
 
     return df
 
-def inspect_acceptance_rate(filename, n_priors = 128):
-    logging.info(f"Loading file: {filename}")
-    results = load_pickle(filename)
-    acceptance_rates = results.acceptance_rates
-
-    return acceptance_rates 
+ 
 
 def count_particles_by_r2(df, filename, combined_count_df):
     r2_col = df['r2']
@@ -114,14 +110,19 @@ file_17 = f'{outdir}/smcsa_gem_june5_ee0.75_normalize_3.pkl'
 batch_june4 = [file_14, file_15, file_16, file_17]
 batch_june4_filenames = [f'smcsa_gem_june4_ee0.5_1', f'smcsa_gem_june4_ee0.5_normalize_2', f'smcsa_gem_june4_ee0.75_0', f'smcsa_gem_june5_ee0.75_normalize_3']
 
-
+file_18 = f'{outdir}/smcsa_gem_june9_ee0.25_normalize_2.pkl'
+file_19 = f'{outdir}/smcsa_gem_june9_ee0.25_normalize_3.pkl'
+file_20 = f'{outdir}/smcsa_gem_june9_ee0.5_normalize_0.pkl'
+file_21 = f'{outdir}/smcsa_gem_june9_ee0.75_normalize_1.pkl' 
+batch_june9 = [file_18, file_19, file_20, file_21]
+batch_june9_filenames = [f'smcsa_gem_june9_ee0.25_normalize_2', f'smcsa_gem_june9_ee0.25_normalize_3', f'smcsa_gem_june9_ee0.5_normalize_0', f'smcsa_gem_june9_ee0.75_normalize_1']
 
 filenames = ['smcsa_gem_0.001_0', 'smcsa_gem_may19_0.0001_0',
              'smcsa_gem_may22_0.1_0', 'smcsa_gem_may22_0.5_0', 'smcsa_gem_may22_0.5_1',
              'smcsa_gem_may31_0.5_0', 'smcsa_gem_may31_1.0_0', 'smcsa_gem_may31_5.0_0', 'smcsa_gem_may31_10.0_0'] #Removed file_1, different length of all_particles and all_distances due to timeouterror
 
-files = [file_0, file_2, file_3, file_4, file_5, file_6, file_7, file_8, file_9] #Removed file_1, different length of all_particles and all_distances due to timeouterror
-# for file, filename in zip(batch_june2, batch_june2_filenames):
+# files = [file_0, file_2, file_3, file_4, file_5, file_6, file_7, file_8, file_9] #Removed file_1, different length of all_particles and all_distances due to timeouterror
+# for file, filename in zip(batch_june4, batch_june4_filenames):
 #     logging.info(f"Processing file: {file}")
 #     df = build_a_dataframe_for_all_particles(file)
 #     dump_pickle(df, f"{outdir}/{filename}_df.pkl")
@@ -132,18 +133,17 @@ files = [file_0, file_2, file_3, file_4, file_5, file_6, file_7, file_8, file_9]
 columns = ['file'] + [f'r2_{threshold}' for threshold in [0.9, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99]]
 combined_count_df = pd.DataFrame(columns=columns) 
 
-for filename in batch_june2_filenames:
+for filename in batch_june4_filenames:
     df = load_pickle(f"{outdir}/{filename}_df.pkl")
     logging.info(f"Loaded Data Frame for {filename} with shape: {df.shape}")
     count_particles_by_r2(df,filename,  combined_count_df)
 
-logging.info("Combined count Data Frame:")
 with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', 1000):
     logging.warning(f"Combined count Data Frame:\n{combined_count_df}")
-filename = '../results/analysis/df_simulation_0_R098.pkl'
+# filename = '../results/analysis/df_simulation_0_R098.pkl'
 
-logging.info(f"Loading Data Frame from {filename}")
-df_0 = load_pickle(filename)
+# logging.info(f"Loading Data Frame from {filename}")
+# df_0 = load_pickle(filename)
 # logging.info(f"Data Frame 0 shape: {df_0.shape}")
 # logging.info(f"Data Frame 0 columns: {df_0.columns}")
 # logging.info(f"Data Frame 0 head: {df_0.head()}")
@@ -158,6 +158,40 @@ df_0 = load_pickle(filename)
 # logging.info(f"Data Frame 0 head: {df_0.head()}")
 # logging.info(f"Data Frame 0 tail: {df_0.tail()}")
 
+#------------------------------------------------------------------------
+
+
+def get_acceptance_rate(file):
+    """
+    Get the acceptance rate from a SimulatedAnnealing object stored in a pickle file.
+    """
+    logging.info(f"Loading acceptance rates from file")
+    results = load_pickle(file)
+    acceptance_rates : List[float]= results.acceptance_rates
+    #logging.info(f"Acceptance rate: {acceptance_rates}")
+    return acceptance_rates
+
+outdir = "../results/sa"
+file1 = f"{outdir}/smcsa_gem_june2_0.1_0.5_1.pkl"
+file2 = f"{outdir}/smcsa_gem_june2_0.1_0.5_0.pkl"
+
+# acceptance_rates1 = get_acceptance_rate(file1)
+# acceptance_rates2 = get_acceptance_rate(file2)
+
+
+#acceptance_rates_list = map(get_acceptance_rate, batch_june4)
+for i, file in enumerate(batch_june4):
+    acceptance_rates = get_acceptance_rate(file)
+    #logging.info(f"Acceptance rates for {file}: {acceptance_rates}")
+    plt.plot(acceptance_rates, label=file)
+
+# plt.plot(acceptance_rates1, label='Acceptance Rate 1')
+# plt.plot(acceptance_rates2, label='Acceptance Rate 2')
+plt.xlabel("Iteration")
+plt.ylabel("Acceptance Rate")
+plt.title("Acceptance Rate Over Iterations")
+plt.legend()
+plt.savefig(f"../figures/acceptance_rate_plot_june4.png")
 # acceptance_rates_0 = inspect_acceptance_rate(file_0)
 # acceptance_rates_1 = inspect_acceptance_rate(file_1)
 # acceptance_rates_2 = inspect_acceptance_rate(file_2)
