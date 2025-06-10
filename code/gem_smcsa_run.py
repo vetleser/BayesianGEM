@@ -80,12 +80,21 @@ def main():
     
     # logging.info(f"""Start evolutionary simulations with Simulated Annealing: \n
     #  final_temp: {final_temp}, cooling rate: {cooling_rate},  normalize: True, step_size: {dCpt_step_size*2} simulation: {simulation}, temp_step_size: {temp_step_size} dCpt_step_size: {dCpt_step_size}, move_type: {move_type}, outfile: {outfile}""")
+    random_seed = int(8965 * task_idx + 1234)
+    rng = np.random.default_rng(random_seed)
 
     initial_step_size = 1
     final_step_size = 0.1
-    end_exploration = 0.75
+    if task_idx ==0:
+        end_exploration = 0.25
+    elif task_idx == 1:
+        end_exploration = 0.25
+    elif task_idx == 2:
+        end_exploration = 0.5
+    elif task_idx == 3:
+        end_exploration = 0.75
     cooling_rate = (final_temp/100)**(1/(maxiter*end_exploration))
-    outfile = f"smcsa_gem_june5_ee{end_exploration}_normalize_{task_idx}.pkl"
+    outfile = f"{outdir}/smcsa_gem_june9_ee{end_exploration}_normalize_{task_idx}.pkl"
 
     logging.info('Initialize model')
     model = sa.SimulatedAnnealing(simulator= GEMS.simulate_at_two_conditions_2,
@@ -104,7 +113,7 @@ def main():
                              final_step_size= final_step_size,
                              end_exploration=end_exploration)
     logging.info(f"""Start evolutionary simulations with Simulated Annealing and adaptive step: \n
-     final_temp: {final_temp}, end_exploration: {end_exploration}, cooling rate: {cooling_rate},  normalize: True, initial_step_size: {initial_step_size}, final_step_size: {final_step_size}, simulation: {simulation}, move_type: {move_type}, outfile: {outfile}""")
+     random_seed: {random_seed}, final_temp: {final_temp}, end_exploration: {end_exploration}, cooling rate: {cooling_rate},  normalize: True, initial_step_size: {initial_step_size}, final_step_size: {final_step_size}, simulation: {simulation}, move_type: {move_type}, outfile: {outfile}""")
 
     model.run_simulation()
     logging.info("DONE")

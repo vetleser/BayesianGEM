@@ -7,11 +7,11 @@
 #SBATCH --array=3
 #SBATCH --mem=100G
 #SBATCH --export=NONE
-#SBATCH --nodelist=pompey
+#SBATCH --nodelist=caesar
 
 echo "Running SLURM_ARRAY_TASK_ID=$SLURM_ARRAY_TASK_ID on $(hostname)"
 
 
 WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR}
-/triumvirate/home/vetleser/.conda/envs/etcFBA/bin/python3 gem_smcsa_run.py &> "../results/sa/gem_smcsa_june5_$SLURM_ARRAY_TASK_ID.log"
+/triumvirate/home/vetleser/.conda/envs/etcFBA/bin/python3 gem_smcsa_run.py &> "../results/sa/gem_smcsa_june9_$SLURM_ARRAY_TASK_ID.log"
