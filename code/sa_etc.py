@@ -50,7 +50,7 @@ class SimulatedAnnealing():
                  move_type : str= 'normal',
                  dCpt_step_size: float = 1.0,
                  step_size: float = 0.1,  # This is the step size for the normal move type
-                 end_exploration: float = 0.5,
+                 end_exploration: float = 1.0,  # This is the fraction of the maximum number of generations that is used for exploration
                  initial_step_size: float = 10,  # This is the initial step size for the normal move type
                  final_step_size: float = 0.1,  # This is the final step size for the normal move type, after cooling down
                  ):
@@ -314,9 +314,9 @@ class SimulatedAnnealing():
         self.times_challenged.extend(repeat(0,len(simulated_data))) #This is not in use in evo_etc either, just recorded as information. Or not updated either it seems
         end = time.time()
         logging.info('Completed parallel evaluation of candidates in {0} seconds'.format(end - start))
-        # logging.debug(f"Length of all_simulated_data is {len(self.all_simulated_data)}")
-        # logging.debug(f"Length of all_distances is {len(self.all_distances)}")
-        # logging.debug(f"Length of all_particles is {len(self.all_particles)}")
+        # logging.warning(f"Length of all_simulated_data is {len(self.all_simulated_data)}")
+        # logging.warning(f"Length of all_distances is {len(self.all_distances)}")
+        # logging.warning(f"Length of all_particles is {len(self.all_particles)}")
 
 
 
@@ -332,9 +332,9 @@ class SimulatedAnnealing():
         # We assume that entries are of the form PROTID_{Tm,Topt,dCpt}
         # If this is not the case, we assume that the algorithm is used for another kind of inference problem,
         # so we skip this domain-specific check. This also applies to the dCPt as mutatating them does not violate the constraint
-        if split_entry[1] == 'dCpt':
-            if candidate[entry] < -29675.04 or candidate[entry] > 19962.98:
-                logging.info(f"Invalid dCpt value {candidate[entry]} for {entry}. Can work, but inspect carefully.") #Values from evo simulations
+        # if split_entry[1] == 'dCpt':
+        #     if candidate[entry] < -29675.04 or candidate[entry] > 19962.98:
+        #         logging.info(f"Invalid dCpt value {candidate[entry]} for {entry}. Can work, but inspect carefully.") #Values from evo simulations
         if len(split_entry) != 2 or split_entry[1] not in ("Tm","Topt"):
             return True
         protein_id = split_entry[0]
@@ -496,6 +496,7 @@ class SimulatedAnnealing():
                             candidate[key] += self.temp_step_size * (self.rng.random() - 0.5)
                         else:
                             candidate[key] += self.step_size * (self.rng.random() - 0.5)
+                            candidate[key] = np.clip(candidate[key], -5.12, 5.12)  # Clip to avoid extreme values
                         if not self.check_validity(candidate, key):
                             candidate[key] = old_parameter_value
                 candidates.append(candidate)
