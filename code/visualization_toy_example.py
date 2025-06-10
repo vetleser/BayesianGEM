@@ -95,21 +95,24 @@ def contour_function5(x, y):
 
     return -R2/1.0054182663306717
 
-def general_contour_function(x, y, minima_list, scaling_list, sigma=0.6):
+def general_contour_function(x, y, minima_list, scaling_list, sigma_list):
+    logging.info(f"Minima list: {minima_list}, Scaling list: {scaling_list}, Sigma list: {sigma_list}")
     R2 = np.zeros_like(x, dtype=float)
 
     for i, (min_x, min_y) in enumerate(minima_list):
         dx = x - min_x
         dy = y - min_y
-        exponent = -(dx**2 + dy**2) / (2 * sigma**2)
+        exponent = -(dx**2 + dy**2) / (2 * sigma_list[i]**2)
         R2 += np.exp(exponent) * scaling_list[i]
 
-    # Compute max R2 for normalization
-    max_R2 = 0
-    for i, (min_x, min_y) in enumerate(minima_list):
-        exponent = -0 / (2 * sigma**2)  # dx=dy=0 at the minima point
-        max_R2 += np.exp(exponent) * scaling_list[i]  # This sums up scaling_list[i]
+    max_index = np.unravel_index(np.argmax(R2), R2.shape)
+    max_x = x[max_index]
+    max_y = y[max_index]
+    max_val = R2[max_index]
 
+    logging.info(f"Max R2 value: {max_val:.4f} at coordinates (x={max_x:.4f}, y={max_y:.4f})")
+
+    max_R2 = np.max(R2)
     return -R2 / max_R2
 
 def rastrigin_contour_function(x, y):
@@ -124,17 +127,18 @@ def rastrigin_contour_function(x, y):
 
 
 
-def make_plot(fig_number,
+def make_plot(fig_type,
               final_temp_list, 
               minima_list,
               scaling_list,
+              sigma_list,
               xlim=(-2.5, 2.5),
               ylim=(-2.5, 2.5),
               contour_func=None,
               filename = None,
             ):
     # Set up figure size and font
-    plt.figure(figsize=(2 * 12.5, 2 * 12.5))
+    fig = plt.figure(figsize=(15, 12.5))
     font = {'family': 'normal', 'weight': 'bold', 'size': 25}
     matplotlib.rc('font', **font)
 
@@ -155,7 +159,7 @@ def make_plot(fig_number,
         plt.ylabel("y")
 
     # Number of simulations and plots (replace with actual values)
-    n_plots = 4
+    n_plots = 1
     n_simulations = 4
 
     # Define the colormap and markers for simulations
@@ -163,16 +167,18 @@ def make_plot(fig_number,
     markers = ["o", "s", "*", "^"]  # Customize with different markers if needed
     
     if contour_func is None:
-        contour_func = lambda x, y: general_contour_function(x, y, minima_list, scaling_list)
+        contour_func = lambda x, y: general_contour_function(x, y, minima_list, scaling_list, sigma_list)
     # Loop to create subplots for each plot
     for j, plot in enumerate(range(n_plots)):
-        ax = plt.subplot(2, 2, j + 1)
-        X, Y = np.meshgrid(np.linspace(-10, 10, 1000), np.linspace(-10, 10, 1000))
+        ax = plt.subplot(1, 1, j + 1)
+        #X, Y = np.meshgrid(np.linspace(-10, 10, 1000), np.linspace(-10, 10, 1000))
+        X, Y = np.meshgrid(np.linspace(xlim[0], xlim[1], 1000), np.linspace(ylim[0], ylim[1], 1000))
         
         Z = contour_func(X, Y) #Change contour function here
         ax.contour(X, Y, Z, 10, colors="black") 
-        ax.pcolormesh(X, Y, Z, shading='auto', cmap='viridis')
-        #plt.colorbar(label="Function value")
+        c = ax.pcolormesh(X, Y, Z, shading='auto', cmap='viridis', vmin=-1, vmax=0)
+        cbar = fig.colorbar(c, ax=ax, label="Function value")
+        cbar.set_ticks(np.arange(-1.0, 0.1, 0.2))  # optional: set custom ticks
         
         # Set subplot title
         ax.set_title(["A", "B", "C", "D"][j], loc="left", fontsize=45, fontweight="bold")
@@ -200,10 +206,10 @@ def make_plot(fig_number,
         for i, simulation in enumerate(range(n_simulations)):
             # Get the final generation data for the given plot and simulation
             if filename == None:
-                filename_sim = f"simanneal_fig{fig_number}_new_{plot}_{simulation}.pkl"
+                filename_sim = f"simanneal_toy_example_{plot}_{simulation}.pkl"
             else:
                 filename_sim = f"{filename}_{plot}_{simulation}.pkl"
-            model = load_pickle(f"../results/toy_example_new/{filename_sim}")
+            model = load_pickle(f"../results/toy_example/{filename_sim}")
             particles = extract_simulated_annealing_final_generation(model)
             logging.info(f"Particles: {particles}")
             
@@ -212,32 +218,56 @@ def make_plot(fig_number,
 
     # Save and show the plot
     plt.tight_layout()
-    logging.info(f"Saving figure {fig_number}")
-    plt.savefig(f"../figures/toy_example_new/toy_example_fig{fig_number}_new_wtitle.png", dpi=300)
+    logging.info(f"Saving figure")
+    plt.savefig(f"../figures/toy_example/toy_example_{fig_type}2.png", dpi=300)
     plt.show()
 
 
+logging.info("Gaussian fitness landscape, four minima, different scaling factors")
+df = load_pickle("../results/toy_example/toy_example_df.pkl")
+# make_plot(
+#     fig_type="gaussian",
+#     final_temp_list=[0.001],
+#     minima_list=df["Minima_list"].tolist(),
+#     scaling_list=df["Scaling_list"].tolist(),
+#     sigma_list=df["Sigma_list"].tolist(),
+#     xlim=(-5, 5),
+#     ylim=(-5, 5),
+#     filename="simanneal_toy_example",
+# )
 
+logging.info("Rastrigin fitness landscape")
+make_plot(
+    fig_type="rastr",
+    final_temp_list=[0.001],
+    minima_list=[],
+    scaling_list=[],
+    sigma_list=[],
+    xlim=(-5.12, 5.12),
+    ylim=(-5.12, 5.12),
+    filename="simanneal_rastr",
+    contour_func=rastrigin_contour_function
+)
 
 #logging.info("Four versions of simulated annealing, different final temperatures. Fitness function 3")
 #Plotting!
-outdir = "../results/toy_example_new"
-n_simulations = 4
-n_plots = 4
+# outdir = "../results/toy_example_new"
+# n_simulations = 4
+# n_plots = 4
 
-toy_example_df = load_pickle(f"{outdir}/toy_example_df.pkl")
-toy_example_df2 = load_pickle(f"{outdir}/toy_example_df2.pkl")
+# toy_example_df = load_pickle(f"{outdir}/toy_example_df.pkl")
+# toy_example_df2 = load_pickle(f"{outdir}/toy_example_df2.pkl")
 
-make_plot(
-    fig_number="rastr",
-    final_temp_list=[1, 0.1, 0.01, 0.001],
-    minima_list=[(-1, 1), (1, 1), (-1, -1), (1, -1)],
-    scaling_list=[1, 0.9, 0.8, 0.7],
-    xlim=(-5.12, 5.12),
-    ylim=(-5.12, 5.12),
-    contour_func=rastrigin_contour_function,
-    filename="simanneal_rastr"
-)    
+# make_plot(
+#     fig_number="rastr",
+#     final_temp_list=[1, 0.1, 0.01, 0.001],
+#     minima_list=[(-1, 1), (1, 1), (-1, -1), (1, -1)],
+#     scaling_list=[1, 0.9, 0.8, 0.7],
+#     xlim=(-5.12, 5.12),
+#     ylim=(-5.12, 5.12),
+#     contour_func=rastrigin_contour_function,
+#     filename="simanneal_rastr"
+# )    
 
 # for figure in toy_example_df["Figure"]:
 #     row = toy_example_df.loc[toy_example_df["Figure"] == figure].iloc[0]  # robust row access
@@ -553,8 +583,9 @@ logging.info("Obtaining one Simulated Annealing and one Evolutionary Algorithm")
 #----------------------------------------------------------------------------------
 
 logging.info("Blank toy example fitness landscape")
+df = load_pickle("../results/toy_example/toy_example_df.pkl")
 # Set up figure size and font
-plt.figure(figsize=(12.5, 12.5))
+plt.figure(figsize=(15, 12.5))
 font = {'family': 'normal', 'weight': 'bold', 'size': 25}
 matplotlib.rc('font', **font)
 
@@ -571,7 +602,7 @@ matplotlib.rc('font', **font)
 #     plt.ylabel("y")
 
 # Number of simulations and plots (replace with actual values)
-n_plots = 4
+n_plots = 1
 n_simulations = 4
 
 # Define the colormap and markers for simulations
@@ -579,49 +610,33 @@ cmap = matplotlib.cm.get_cmap('tab10', n_simulations)
 markers = ["o", "s", "*", "^"]  # Customize with different markers if needed
 
 rastr_lim = (-5.12, 5.12)
+plot_lim = (-10, 10)
 
 # Loop to create subplots for each plot
 #plt.subplot(2, 2, j + 1)  # Create subplots in a 2x2 grid
-X, Y = np.meshgrid(np.linspace(rastr_lim[0], rastr_lim[1], 1000), np.linspace(rastr_lim[0], rastr_lim[1], 1000))
+X, Y = np.meshgrid(np.linspace(plot_lim[0], plot_lim[1], 1000), np.linspace(plot_lim[0], plot_lim[1], 1000))
 Z = rastrigin_contour_function(X, Y)
-#plt.contour(X, Y, Z, 10, colors="black")  # Add contour lines
-plt.pcolormesh(X, Y, Z, shading='auto', cmap='viridis')
-plt.colorbar(label="Function value")
+# Z = general_contour_function(X, Y,
+#     minima_list=df["Minima_list"].tolist(),
+#     scaling_list=df["Scaling_list"].tolist(),
+#     sigma_list=df["Sigma_list"].tolist()
+# )
+plt.contour(X, Y, Z, 10, colors="black")  # Add contour lines
+# plt.pcolormesh(X, Y, Z, shading='auto', cmap='viridis')
+# plt.colorbar(label="Function value")
+im = plt.imshow(Z, extent=(rastr_lim[0], rastr_lim[1], rastr_lim[0], rastr_lim[1]), origin='lower', cmap='viridis', aspect='auto')
+# Add contour lines
+cbar = plt.colorbar(im, label="Fitness Value")
+cbar.set_ticks(np.arange(-1.0, 0.1, 0.2))  # ticks at 0.0, 0.2, 0.4, ..., 1.0
+
 
 
 
 x_pos = [1, -1, 1, -1]
 y_pos = [1, -1, -1, 1]
-# Plot the four points
-# for i in range(4):
-#     plt.scatter(x_pos[i], y_pos[i], s=200, alpha=0.8, facecolors="green", edgecolors="green", 
-#                 linewidths=2.5)
-#     plt.text(x_pos[i], y_pos[i]+0.3, f"({x_pos[i]}, {y_pos[i]})", fontsize=22, fontweight="normal", color="black", 
-#              verticalalignment='top', horizontalalignment='right', bbox=dict(
-#         facecolor='white',
-#         alpha=0.7,       # Transparency: 0 = fully transparent, 1 = opaque
-#         edgecolor='black',
-#         boxstyle='round,pad=0.3'
-#     ))
-# # plt.scatter(x_pos[i], y_pos[i], s=200, alpha=1, facecolors="none", edgecolors=cmap(i),
-# plt.scatter(0, 0, s=200, alpha=0.8, facecolors="blue", edgecolors="blue")
-# plt.text(0, 0+0.3, f"(-1.1)", fontsize=22, fontweight="normal", color="black", 
-#          verticalalignment='top', horizontalalignment='right', bbox=dict(
-#     facecolor='white',
-#     alpha=0.7,       # Transparency: 0 = fully transparent, 1 = opaque
-#     edgecolor='black',
-#     boxstyle='round,pad=0.3'
-# ))
 
-# green_dot = Line2D([0], [0], marker='o', color='w', label='Global minima, R² = -1.0',
-#                        markerfacecolor='green', markersize=15)
-# blue_dot = Line2D([0], [0], marker='o', color='w', label='Local minimum, R² ≈ -0.25',
-#                       markerfacecolor='blue', markersize=15)
 
-# # Add legend
-# plt.legend(handles=[green_dot, blue_dot], loc='upper right', fontsize=14, frameon=True)
-
-plt.title("Toy Example Rastrigin Fitness Landscape", loc="center", fontsize=36, fontweight="bold")
+plt.title("Rastrigin Fitness Landscape", loc="center", fontsize=36, fontweight="bold")
 
 
 plt.xlim(rastr_lim)
@@ -631,5 +646,5 @@ plt.ylabel("y")
 
 # Save and show the plot
 plt.tight_layout()
-plt.savefig("../figures/toy_example_new/toy_example_blank_rastrigin.png", dpi=300)
-plt.show()
+plt.savefig("../figures/toy_example/blank_rastr_3.png", dpi=300)
+# plt.show()
