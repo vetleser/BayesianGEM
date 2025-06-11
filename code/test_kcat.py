@@ -1,3 +1,4 @@
+from itertools import product
 import logging
 import os
 import pickle
@@ -9,7 +10,7 @@ from reframed.solvers.solver import Solver
 import numpy as np
 from sympy import solve
 from scipy.optimize import fsolve
-
+from GEMS import load_exp_batch_data
 
 import etcpy.thermal_parameters as th
 
@@ -176,6 +177,9 @@ def get_dH_dS_dCpu_from_TmLength(Tm,N):
 
 #Functions from thermal_parameters.py written above
 
+def round_kcat(kcat, decimals=6):
+    return round(kcat, decimals)
+
 def save_results(kcat, tm, topt, dCpt, dict):
     """
     Save the results of kcat calculations to a file.
@@ -187,49 +191,50 @@ def save_results(kcat, tm, topt, dCpt, dict):
     """
 
     kcat = float(kcat)  # Ensure kcat is a float for consistency
+    kcat = round_kcat(kcat)  # Round kcat to 6 decimal places
+    dCpt = float(dCpt)  # Ensure dCpt is a float for consistency
     if kcat in dict and kcat != 0:
-        logging.warning(f"Kcat {kcat} already exists in the dictionary. tm: {tm}, topt: {topt}, dCpt: {dCpt}")
-        logging.warning(f"Existing entry: {dict[kcat]}")
+        if abs(dict[kcat][0] - tm) > 0.1:
+            logging.warning(f"Kcat {kcat} already exists in the dictionary. tm: {tm}, topt: {topt}, dCpt: {dCpt}")
+            logging.warning(f"Existing entry: {dict[kcat]}")
+        return
     dict[kcat] = [tm, topt, dCpt]
 
 
-def func(param_dict):
-    rxn: reframed.CBReaction
-    for rxn in model.reactions.values():
-        #if rxn.id.startswith('draw_prot'): continue
-        if rxn.id != shikimate_kinase: continue  # Only shikimate kinase for testing
-        for met in rxn.stoichiometry:
-            if not met.startswith('prot_'): continue
-            # ingore metabolite: prot_pool
-            if met == 'prot_pool': continue
-            uniprot_id = met.split('_')[1]
-            parameter_entries = param_dict[uniprot_id]
-            [dHTH, dSTS,dCpu,Topt,dCpt]= [parameter_entries[parameter] for parameter in cols]
-            [Tm, Topt, dCpt] = [parameter_entries[parameter] for parameter in cols2]
-            # Change kcat value.
-            # pmet_r_0001 + 1.8518518518518518e-07 prot_P00044 + 1.8518518518518518e-07 prot_P32891 -->
-            # 2.0 s_0710 + s_1399
-            #
-            # 1.8518518518518518e-07 is correponding to 1/kcat
-            # change the kcat to kcat(T)
-            # In some casese, this coefficient could be 2/kcat or some other values. This doesn't matter.
-            #
-            # a protein could be involved in several reactions
-            # assume that Topt in the original model is measured at Topt
-            kcatTopt = -1/rxn.stoichiometry[met]
-            kcatT = calculate_kcatT(T,dHTH,dSTS,dCpu,kcatTopt,dCpt,Topt)
-            #logging.info(f"Calculated kcatT for reaction {rxn.id}. Tm {Tm}, Topt {Topt}, dCpt {dCpt}:\n {kcatT} for {met} at T={T} K")
-            kcat_dict[f"Rxn {rxn.id}, met {met}"] = kcatT
-            if rxn.id not in rxn_dict:
-                rxn_dict[rxn.id] = set()
-            if met not in prot_dict:
-                prot_dict[met] = set()
-            rxn_dict[rxn.id].add(kcatT)
-            prot_dict[met].add(kcatT)
+def func(tm, topt, dCpt, enzyme_id, T, reaction, T_dict):
+    single_param = params[params.index.str.startswith(enzyme_id)].copy()
+    new_single_param = single_param.copy()
+    #logging.info(f"Shikimate parameters loaded: \n {shikimate_params}")
 
-tm_values = np.linspace(250, 350, 100)  # Example Tm values in K
-topt_values = np.linspace(200, 300, 100)  # Example Topt values in K
-dCpt_values = np.linspace(-10000, -1000, 1000)  # Example dCpt values in J/mol/K
+    new_single_param.loc[enzyme_id, 'Tm'] = tm
+    new_single_param.loc[enzyme_id, 'Topt'] = topt
+    new_single_param.loc[enzyme_id, 'dCpt'] = dCpt
+
+    new_single_param['T90'] = single_param['T90'] - single_param['Tm'] + new_single_param['Tm']
+
+    #logging.info(f"New shikimate parameters: \n {new_shikimate_params}")
+
+    cols = ['dHTH', 'dSTS','dCpu','Topt','dCpt']
+
+    df = calculate_thermal_params(new_single_param)
+    #logging.info(f"Thermal parameters calculated: \n {df}")
+    [dHTH, dSTS,dCpu,Topt,dCpt]= [df[parameter] for parameter in cols]
+    #logging.info(f"Extracted parameters: dHTH={dHTH}, dSTS={dSTS}, dCpu={dCpu}, Topt={Topt}, dCpt={dCpt}")
+
+    # logging.info(f"Thermal parameters calculated: \n {[dHTH, dSTS,dCpu,Topt,dCpt]}")
+    kcatTopt = -1/model.reactions[reaction].stoichiometry[f'prot_{enzyme_id}']
+
+    kcatT = calculate_kcatT(T,dHTH,dSTS,dCpu,kcatTopt,dCpt,Topt)
+    #logging.info(f"Calculated kcatT for reaction {shikimate_kinase}. Tm {tm}, Topt {topt}, dCpt {(dCpt)}:\n {kcatT} for enzyme {enzyme_id} at T={T} K")
+    #logging.info(f"Kcat: {float(kcatT)}")
+    save_results(kcat=kcatT, tm=tm, topt=topt, dCpt=dCpt, dict=T_dict)
+
+# 2025-06-10 18:12:54,811 P08566 Tm:    min = 311.74, max = 346.37
+# 2025-06-10 18:12:54,811 P08566 Topt:  min = 271.20, max = 328.28
+# 2025-06-10 18:12:54,811 P08566 dCpt:  min = -15273.10, max = 4263.70
+tm_values = np.linspace(312, 346, 20)  # Example Tm values in K
+topt_values = np.linspace(272, 328, 10)  # Example Tm values in K
+dCpt_values = np.linspace(-15000, -1000, 10)  # Example dCpt values in J/mol/K
 
 
 #logging.info(f"Model particle modified: \n {model_particle}")
@@ -238,55 +243,72 @@ path = os.path.dirname(os.path.realpath(__file__)).replace('code','')
 model = pickle.load(open(os.path.join(path,'models/aerobic.pkl'),'rb'))
 params = pd.read_csv(os.path.join(path,'data/model_enzyme_params.csv'),index_col=0)
 T = 310.0  # Temperature in K
+dfae_batch,dfan_batch = load_exp_batch_data(os.path.join(path,'data/ExpGrowth.tsv'))
+sel_temp = dfae_batch.index + 273.15
 
 kcat_dict = {}
 rxn_dict : Dict[str, set]= {}
 prot_dict : Dict[str, set] = {}
 #Rxn r_0997No1, met prot_P08566: 1.8625408048767017e+30
 
+rxns = model.reactions.values()
+
+
 shikimate_kinase = 'r_0997No1'
 enzyme_id = 'P08566'  # Example enzyme ID for testing
 cols2 = ['Tm', 'Topt', 'dCpt']
 kcat_dict = {}
+counter = 0
+# for tm in tm_values:
+#     #logging.info(f"Processing Tm: {tm}")
+#     counter += 1
+#     logging.info(f"Counter: {counter}, Tm: {tm}")
+#     for topt in topt_values:
+#         for dCpt in dCpt_values:
+#             if tm < topt: continue
+#             func(tm=tm, topt=topt, dCpt=dCpt, enzyme_id=enzyme_id, T=T, reaction=shikimate_kinase)
+#             shikimate_params = params[params.index.str.startswith(enzyme_id)].copy()
+#             new_shikimate_params = shikimate_params.copy()
+#             #logging.info(f"Shikimate parameters loaded: \n {shikimate_params}")
 
-for tm in tm_values:
-    for topt in topt_values:
-        for dCpt in dCpt_values:
-            if tm < topt: continue
-            shikimate_params = params[params.index.str.startswith(enzyme_id)].copy()
-            new_shikimate_params = shikimate_params.copy()
-            #logging.info(f"Shikimate parameters loaded: \n {shikimate_params}")
+#             new_shikimate_params.loc[enzyme_id, 'Tm'] = tm
+#             new_shikimate_params.loc[enzyme_id, 'Topt'] = topt
+#             new_shikimate_params.loc[enzyme_id, 'dCpt'] = dCpt
 
-            new_shikimate_params.loc[enzyme_id, 'Tm'] = tm
-            new_shikimate_params.loc[enzyme_id, 'Topt'] = topt
-            new_shikimate_params.loc[enzyme_id, 'dCpt'] = dCpt
+#             new_shikimate_params['T90'] = shikimate_params['T90'] - shikimate_params['Tm'] + new_shikimate_params['Tm']
 
-            new_shikimate_params['T90'] = shikimate_params['T90'] - shikimate_params['Tm'] + new_shikimate_params['Tm']
+#             #logging.info(f"New shikimate parameters: \n {new_shikimate_params}")
 
-            #logging.info(f"New shikimate parameters: \n {new_shikimate_params}")
-
-            cols = ['dHTH', 'dSTS','dCpu','Topt','dCpt']
+#             cols = ['dHTH', 'dSTS','dCpu','Topt','dCpt']
 
 
-            df = calculate_thermal_params(new_shikimate_params)
-            #logging.info(f"Thermal parameters calculated: \n {df}")
-            [dHTH, dSTS,dCpu,Topt,dCpt]= [df[parameter] for parameter in cols]
-            #logging.info(f"Extracted parameters: dHTH={dHTH}, dSTS={dSTS}, dCpu={dCpu}, Topt={Topt}, dCpt={dCpt}")
+#             df = calculate_thermal_params(new_shikimate_params)
+#             #logging.info(f"Thermal parameters calculated: \n {df}")
+#             [dHTH, dSTS,dCpu,Topt,dCpt]= [df[parameter] for parameter in cols]
+#             #logging.info(f"Extracted parameters: dHTH={dHTH}, dSTS={dSTS}, dCpu={dCpu}, Topt={Topt}, dCpt={dCpt}")
 
-            # logging.info(f"Thermal parameters calculated: \n {[dHTH, dSTS,dCpu,Topt,dCpt]}")
-            kcatTopt = -1/model.reactions[shikimate_kinase].stoichiometry[f'prot_{enzyme_id}']
+#             # logging.info(f"Thermal parameters calculated: \n {[dHTH, dSTS,dCpu,Topt,dCpt]}")
+#             kcatTopt = -1/model.reactions[shikimate_kinase].stoichiometry[f'prot_{enzyme_id}']
 
-            kcatT = calculate_kcatT(T,dHTH,dSTS,dCpu,kcatTopt,dCpt,Topt)
-            #logging.info(f"Calculated kcatT for reaction {shikimate_kinase}. Tm {tm}, Topt {topt}, dCpt {(dCpt)}:\n {kcatT} for enzyme {enzyme_id} at T={T} K")
-            #logging.info(f"Kcat: {float(kcatT)}")
-            save_results(kcat=kcatT, tm=tm, topt=topt, dCpt=dCpt, dict=kcat_dict)
+#             kcatT = calculate_kcatT(T,dHTH,dSTS,dCpu,kcatTopt,dCpt,Topt)
+#             #logging.info(f"Calculated kcatT for reaction {shikimate_kinase}. Tm {tm}, Topt {topt}, dCpt {(dCpt)}:\n {kcatT} for enzyme {enzyme_id} at T={T} K")
+#             #logging.info(f"Kcat: {float(kcatT)}")
+#             save_results(kcat=kcatT, tm=tm, topt=topt, dCpt=dCpt, dict=kcat_dict)
                         
 
 logging.info(f"Length of kcat_dict: {len(kcat_dict)}")
 # Load the model and parameters
 #param_dict = format_input(params, model_particle)
+topt_values = [309.3333333333333]
+dCpt_values = [-15000.0]
 
-
+for T in sel_temp:
+    T_dict = {}
+    logging.info(f"Processing temperature: {T} K")
+    for tm in tm_values:
+        for topt, dCpt in product(topt_values, dCpt_values):
+            if tm < topt: continue
+            func(tm=tm, topt=topt, dCpt=dCpt, enzyme_id=enzyme_id, T=T, reaction=shikimate_kinase, T_dict=T_dict)
 
 
 
