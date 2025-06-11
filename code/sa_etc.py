@@ -327,7 +327,7 @@ class SimulatedAnnealing():
     def check_validity(self, candidate, entry: str) -> bool:
         # As we only change one parameter at a time, we only need to check
         # the validity of the parameters of one enzyme
-        # Topt > Tm in real life, but mutation may disregard this constraint, so we have to account for it
+        # Topt < Tm in real life, but mutation may disregard this constraint, so we have to account for it
         split_entry = entry.split('_')
         # We assume that entries are of the form PROTID_{Tm,Topt,dCpt}
         # If this is not the case, we assume that the algorithm is used for another kind of inference problem,
