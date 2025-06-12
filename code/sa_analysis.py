@@ -13,6 +13,8 @@ import matplotlib.pyplot as plt
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 
+logging.info("BEGIN")
+
 # Convenient pickle wrappers
 def load_pickle(filename):
     return pickle.load(open(file=filename,mode='rb'))
@@ -121,6 +123,10 @@ filenames = ['smcsa_gem_0.001_0', 'smcsa_gem_may19_0.0001_0',
              'smcsa_gem_may22_0.1_0', 'smcsa_gem_may22_0.5_0', 'smcsa_gem_may22_0.5_1',
              'smcsa_gem_may31_0.5_0', 'smcsa_gem_may31_1.0_0', 'smcsa_gem_may31_5.0_0', 'smcsa_gem_may31_10.0_0'] #Removed file_1, different length of all_particles and all_distances due to timeouterror
 
+
+
+
+
 # files = [file_0, file_2, file_3, file_4, file_5, file_6, file_7, file_8, file_9] #Removed file_1, different length of all_particles and all_distances due to timeouterror
 # for file, filename in zip(batch_june4, batch_june4_filenames):
 #     logging.info(f"Processing file: {file}")
@@ -130,16 +136,16 @@ filenames = ['smcsa_gem_0.001_0', 'smcsa_gem_may19_0.0001_0',
 #     logging.info(f"Data Frame columns: {df.columns}")
 #     logging.info(f"Data Frame head: {df.head()}")
 #     logging.info(f"Data Frame tail: {df.tail()}")
-columns = ['file'] + [f'r2_{threshold}' for threshold in [0.9, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99]]
-combined_count_df = pd.DataFrame(columns=columns) 
+# columns = ['file'] + [f'r2_{threshold}' for threshold in [0.9, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99]]
+# combined_count_df = pd.DataFrame(columns=columns) 
 
-for filename in batch_june4_filenames:
-    df = load_pickle(f"{outdir}/{filename}_df.pkl")
-    logging.info(f"Loaded Data Frame for {filename} with shape: {df.shape}")
-    count_particles_by_r2(df,filename,  combined_count_df)
+# for filename in batch_june4_filenames:
+#     df = load_pickle(f"{outdir}/{filename}_df.pkl")
+#     logging.info(f"Loaded Data Frame for {filename} with shape: {df.shape}")
+#     count_particles_by_r2(df,filename,  combined_count_df)
 
-with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', 1000):
-    logging.warning(f"Combined count Data Frame:\n{combined_count_df}")
+# with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', 1000):
+#     logging.warning(f"Combined count Data Frame:\n{combined_count_df}")
 # filename = '../results/analysis/df_simulation_0_R098.pkl'
 
 # logging.info(f"Loading Data Frame from {filename}")
@@ -161,37 +167,37 @@ with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'd
 #------------------------------------------------------------------------
 
 
-def get_acceptance_rate(file):
-    """
-    Get the acceptance rate from a SimulatedAnnealing object stored in a pickle file.
-    """
-    logging.info(f"Loading acceptance rates from file")
-    results = load_pickle(file)
-    acceptance_rates : List[float]= results.acceptance_rates
-    #logging.info(f"Acceptance rate: {acceptance_rates}")
-    return acceptance_rates
+# def get_acceptance_rate(file):
+#     """
+#     Get the acceptance rate from a SimulatedAnnealing object stored in a pickle file.
+#     """
+#     logging.info(f"Loading acceptance rates from file")
+#     results = load_pickle(file)
+#     acceptance_rates : List[float]= results.acceptance_rates
+#     #logging.info(f"Acceptance rate: {acceptance_rates}")
+#     return acceptance_rates
 
-outdir = "../results/sa"
-file1 = f"{outdir}/smcsa_gem_june2_0.1_0.5_1.pkl"
-file2 = f"{outdir}/smcsa_gem_june2_0.1_0.5_0.pkl"
+# outdir = "../results/sa"
+# file1 = f"{outdir}/smcsa_gem_june2_0.1_0.5_1.pkl"
+# file2 = f"{outdir}/smcsa_gem_june2_0.1_0.5_0.pkl"
 
-# acceptance_rates1 = get_acceptance_rate(file1)
-# acceptance_rates2 = get_acceptance_rate(file2)
+# # acceptance_rates1 = get_acceptance_rate(file1)
+# # acceptance_rates2 = get_acceptance_rate(file2)
 
 
-#acceptance_rates_list = map(get_acceptance_rate, batch_june4)
-for i, file in enumerate(batch_june4):
-    acceptance_rates = get_acceptance_rate(file)
-    #logging.info(f"Acceptance rates for {file}: {acceptance_rates}")
-    plt.plot(acceptance_rates, label=file)
+# #acceptance_rates_list = map(get_acceptance_rate, batch_june4)
+# for i, file in enumerate(batch_june4):
+#     acceptance_rates = get_acceptance_rate(file)
+#     #logging.info(f"Acceptance rates for {file}: {acceptance_rates}")
+#     plt.plot(acceptance_rates, label=file)
 
-# plt.plot(acceptance_rates1, label='Acceptance Rate 1')
-# plt.plot(acceptance_rates2, label='Acceptance Rate 2')
-plt.xlabel("Iteration")
-plt.ylabel("Acceptance Rate")
-plt.title("Acceptance Rate Over Iterations")
-plt.legend()
-plt.savefig(f"../figures/acceptance_rate_plot_june4.png")
+# # plt.plot(acceptance_rates1, label='Acceptance Rate 1')
+# # plt.plot(acceptance_rates2, label='Acceptance Rate 2')
+# plt.xlabel("Iteration")
+# plt.ylabel("Acceptance Rate")
+# plt.title("Acceptance Rate Over Iterations")
+# plt.legend()
+# plt.savefig(f"../figures/acceptance_rate_plot_june4.png")
 # acceptance_rates_0 = inspect_acceptance_rate(file_0)
 # acceptance_rates_1 = inspect_acceptance_rate(file_1)
 # acceptance_rates_2 = inspect_acceptance_rate(file_2)
@@ -213,6 +219,98 @@ plt.savefig(f"../figures/acceptance_rate_plot_june4.png")
 # plt.show()
 # plt.savefig('../figures/acceptance_rate.png')
 #     df_2 = build_a_dataframe_for_all_particles(file_2)
+
+#---------------------------------------------------------------------------
+
+model_frame = load_pickle("../results/sa/distance_frame_final.pkl")
+
+logging.info(f"Model frame shape: {model_frame.shape}")
+logging.info(f"Model frame columns: {model_frame.columns}")
+logging.info(f"Model frame head: {model_frame.head()}")
+
+maxiter = 1000
+
+def plot_acceptance_rates(acceptance_rates, label=None):
+    """
+    Plot acceptance rates over iterations.
+    """
+    plt.plot(acceptance_rates, label=label)
+    plt.xlabel('Iteration')
+    plt.ylabel('Acceptance Rate')
+    plt.ylim([0, 1.1])  # Assuming acceptance rates are between 0 and 1
+    plt.title('Acceptance Rate Over Iterations')
+    if label:
+        plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+
+def plot_acceptance_rates_smooth(acceptance_rates, label=None, window_size=5):
+    """
+    Plot smoothed acceptance rates using a moving average with edge padding.
+
+    :param acceptance_rates: List or array of acceptance rates.
+    :param label: Optional label for the line.
+    :param window_size: Number of points to average over (must be odd).
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    rates = np.array(acceptance_rates)
+    
+    if len(rates) < window_size:
+        smoothed = rates  # Too short to smooth
+    else:
+        pad_size = window_size // 2
+        padded = np.pad(rates, pad_width=pad_size, mode='edge')
+        kernel = np.ones(window_size) / window_size
+        smoothed = np.convolve(padded, kernel, mode='valid')
+
+    plt.plot(smoothed, label=label)
+    plt.xlabel('Iteration')
+    plt.ylabel('Smoothed Acceptance Rate')
+    plt.title('Smoothed Acceptance Rate Over Iterations')
+    plt.ylim([0, 1.1])  # Assuming acceptance rates are between 0 and 1
+    if label:
+        plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+
+plt.figure(figsize=(10, 5))
+
+for idx, row in model_frame.iterrows():
+    logging.info(f"Processing row index: {idx}")
+    #logging.info(f"Processing row: {row.Index}")
+    #logging.info(f"Final temperature: {row.final_temp}, Move type: {row.move_type}, Step size: {row.step_size}, Simulation: {row.simulation}")
+
+    #row = model_frame.iloc[0]
+    acceptance_rates = row["acceptance_rates"]
+    end_exploration = row["end_exploration"]
+    simulation = row["simulation"]
+    #logging.info(f"Acceptance rates for simulation {idx}: {acceptance_rates}")
+    
+    plot_acceptance_rates(acceptance_rates, label=f'End_exploration: {end_exploration}, Simulation {simulation +1}')
+
+plt.savefig(f'../figures/acceptance_rates_final.png')
+
+
+plt.figure(figsize=(10, 5))
+window_size = 21  # Adjust as needed for smoothing
+
+for idx, row in model_frame.iterrows():
+    logging.info(f"Processing row index: {idx}")
+    
+    acceptance_rates = row["acceptance_rates"]
+    end_exploration = row["end_exploration"]
+    simulation = row["simulation"]
+    
+    plot_acceptance_rates_smooth(
+        acceptance_rates,
+        label=f'End_exploration: {end_exploration}, Simulation {simulation +1}',
+        window_size=window_size  # adjust as needed
+    )
+
+plt.savefig(f'../figures/acceptance_rates_smooth_wsize{window_size}_final.png')
+
 
 
 #--------------------------------------------------------------------
@@ -244,8 +342,13 @@ font = {'family' : 'normal',
         'weight' : 'bold',
         'size'   : 30}
 
+def plot_convergence_sa(distances, maxiter, populations, label = None):
+    distance_array = -np.array(distances)
+    yp = np.vstack([np.percentile(distance_array[population],[5,50,95]) for population in populations[0:maxiter]])
+    plt.plot(np.arange(yp.shape[0]),yp[:,1], label = label)
+    plt.fill_between(np.arange(yp.shape[0]),yp[:,0],yp[:,2],alpha=0.5)
 
-# model_frame = load_pickle("../results/sa/distance_frame.pkl")
+# model_frame = load_pickle("../results/sa/distance_frame_final.pkl")
 # logging.info(f"Model frame shape: {model_frame.shape}")
 # logging.info(f"Model frame columns: {model_frame.columns}")
 # logging.info(f"Model frame head: {model_frame.head()}")
@@ -255,10 +358,10 @@ font = {'family' : 'normal',
 #     # logging.info(f"Processing row: {row.Index}")
 #     # logging.info(f"Final temperature: {row.final_temp}, Move type: {row.move_type}, Step size: {row.step_size}, Simulation: {row.simulation}")
 
-#     #row = model_frame.iloc[0]
+#     row = model_frame.iloc[0]
 #     all_distances = row["all_distances"]
 #     population = row["population"]
-#     indices = [i for i, p in enumerate(population[-1]) if all_distances[p] < -0.97]
+#     #indices = [i for i, p in enumerate(population[-1]) if all_distances[p] < -0.97]
 #     final_distances = [all_distances[p] for p in population[-1] if all_distances[p] < 3]
 #     logging.info(f"Final generation distances: {final_distances}")
 #     mean_distances = []
@@ -267,7 +370,7 @@ font = {'family' : 'normal',
 #         gen_iter += 1
 #         #logging.info(f"Processing generation {gen_iter} with {len(gen)} particles")
 #         # distances = [all_distances[p] for i, p in enumerate(gen) if all_distances[p] < 5 and i in indices]
-#         distances = [all_distances[p] for i, p in enumerate(gen) if i in indices]
+#         distances = [all_distances[p] for p in gen]
 
 #         logging.info(f"Generation {gen_iter} n_distances: {len(distances)}")
 #         mean_distances.append(-np.mean(distances))
@@ -281,32 +384,40 @@ font = {'family' : 'normal',
 #     plt.legend()
 #     plt.savefig(f'../figures/mean_distances_{idx}.png')
 
-# matplotlib.rc('font', **font)
-# proper_names = {'unpermuted': "Unpermuted", 'permuted_0': "Permuted 1",
-#                 'permuted_1': "Permuted 2", 'permuted_2': "Permuted 3"}
-# maxiter = 1000
-# i = 1
-# plt.figure(figsize=(20,20))
-# for index, series in model_frame["all_distances"]:
-#     plt.subplot(2,2,i)
-#     origin_distances = series[index]
-#     # Simulation 1
-#     original_distances = origin_distances["original"]
-#     # Simulation 2
-#     replicate_distances = origin_distances["replicate"]
-#     plot_convergence_inner(original_distances,maxiter, label = 'Simulation 1')
-#     plot_convergence_inner(replicate_distances,maxiter, label = 'Simulation 2')
-#     if i==4:
-#         handles, labels = plt.gca().get_legend_handles_labels()
-#     plt.ylim([0,1])
-#     plt.xlabel('Iterations')
-#     plt.ylabel('$R^2$')
-#     plt.title(proper_names[index])
-#     i += 1
-#     plt.tight_layout()
-# plt.subplots_adjust(bottom=0.1)
-# plt.gcf().legend(handles,labels, loc=(.34,0.005),ncol=2,handletextpad=0.5)
-# plt.savefig("../figures/R2_vetle.pdf")
-# plt.show()
-logging.info("DONE")
+
+
+matplotlib.rc('font', **font)
+proper_names = {'unpermuted': "Unpermuted", 'permuted_0': "Permuted 1",
+                'permuted_1': "Permuted 2", 'permuted_2': "Permuted 3"}
+maxiter = 1000
+i = 1
+font = {'family' : 'normal',
+        'weight' : 'bold',
+        'size'   : 30}
+
+matplotlib.rc('font', **font)
+maxiter = 1000
+plt.figure(figsize=(30,10))
+end_exploration_values = np.unique(model_frame["end_exploration"])
+subplot_order = dict(map(reversed,enumerate(end_exploration_values,start=1)))
+for _, entry in model_frame.iterrows():
+    end_exploration = entry["end_exploration"]
+    simulation = entry["simulation"]
+    populations = entry["population"]
+    # plt.subplot(2,2,i)
+    distances = entry["all_distances"]
+    i = subplot_order[end_exploration]
+    plt.subplot(1,3,i)
+    plot_convergence_sa(distances,maxiter=1000,populations=populations, label = f'Simulation {simulation + 1}')
+    handles, labels = plt.gca().get_legend_handles_labels()
+    plt.ylim([0,1])
+    plt.xlim([0, maxiter])
+    plt.xlabel('Generation')
+    plt.ylabel('$R^2$')
+    plt.title(rf"$End\_exploration: {end_exploration}$")
+    plt.tight_layout()
+plt.subplots_adjust(bottom=0.20)
+plt.gcf().legend(handles,labels, loc=(.34,0.005),ncol=2,handletextpad=0.5)
+plt.savefig("../figures/sa_R2.png",dpi=300)
+plt.show()
 
