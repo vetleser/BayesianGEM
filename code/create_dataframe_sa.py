@@ -53,8 +53,8 @@ model_frame["frame_ID"] = range(model_frame.shape[0])
 # We are in this case only interested in the solutions with F=0.5 and CR=0.99
 reduced_model_frame = (
     model_frame.
-    set_index(["scaling_factor","crossover_prob"]).
-    loc[(1.0,0.999)]
+    set_index(["end"]).
+    loc[(0.25, 0.5, 0.75), :].
 )
 logging.info("Loading data")
 particle_dfs = list(map(build_a_dataframe_for_posterior_particles,reduced_model_frame.outfile))
