@@ -168,22 +168,30 @@ def plot_histogram_entropy(col):
     #     logging.info(f"Entropy for {col} is: {param_entropy}")
     x = [interval.mid for interval in bin_counts.index]
     y = bin_counts.values
-    # if param_entropy < 0:
-    #     logging.info(f" Y.max() is: {y.max()} for {col}")
-    #     logging.info(f"Entropy for {col} is: {param_entropy}")
-    #     logging.info(f"plot_counter is: {plot_counter}")
-    #     plot_counter += 1
+    if param_entropy > 0:
+        logging.info(f" Y.max() is: {y.max()} for {col}")
+        logging.info(f"Entropy for {col} is: {param_entropy}")
+        logging.info(f"plot_counter is: {plot_counter}")
+        plot_counter += 1
 
-    #     plt.figure(figsize=(12, 5))
-    #     plt.bar(x, y, width=step, align='center')
+        plt.figure(figsize=(12, 5))
+        plt.bar(x, y, width=step, align='center')
 
-    #     plt.xlabel('Temperature (°K)')
-    #     plt.ylabel('Count')
-    #     plt.title(f'Distribution of {col}. Entropy: {param_entropy:.4f}')
-    #     plt.grid(True)
-    #     plt.tight_layout()
-    #     plt.show()
-    #     plt.savefig(f"../figures/analysis/aa_histogram_{col}_entropy.png")
+        if col.endswith("_Tm"):
+            plt.title(rf'Distribution of $T_m$ for Enzyme {col.split("_")[0]}', fontsize=16, fontweight='bold')
+            plt.xlabel(r'$T_m$ (°K)')
+        elif col.endswith("_Topt"):
+            plt.title(rf'Distribution of $T_{{opt}}$ for Enzyme {col.split("_")[0]}', fontsize=16, fontweight='bold')
+            plt.xlabel(r'$T_{{opt}}$ (°K)')
+        else:
+            plt.title(rf'Distribution of $dC_p\ddag$ for Enzyme {col.split("_")[0]}', fontsize=16, fontweight='bold')
+            plt.xlabel(r'$\Delta C_p^\ddag$  (J/mol/K)')
+        plt.ylabel('Count')
+        #plt.title(f'Distribution of {col}. Entropy: {param_entropy:.4f}')
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
+        plt.savefig(f"../figures/analysis/aaa_histogram_{col}_entropy.png")
 
 
 # tot_entropy = {k: 0.0 for k in combined_normalized_importance.keys()}
@@ -254,10 +262,16 @@ plot_counter = 0
 
 # cols1 = ['P08566', 'Q99190', 'P38286', 'P40857', 'P47176', 'P00815', 'P05375', 'P07245', 'P40319', 'P36010']
 
-# for prot in cols1:
-#     param = prot + '_Tm'
-#     plot_histogram_entropy(param)
-#     plt.close()
+cols1 = [enzyme_id]
+
+for prot in cols1:
+    param = prot + '_Tm'
+    plot_histogram_entropy(param)
+    param = prot + '_Topt'
+    plot_histogram_entropy(param)
+    param = prot + '_dCpt'
+    plot_histogram_entropy(param)
+    plt.close()
 
 # cols = df.columns.tolist()
 # for col in cols:
