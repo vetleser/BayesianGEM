@@ -70,7 +70,7 @@ data = [
 
 df = pd.DataFrame(data)[['end_exploration', 'initial_step_size', 'final_step_size', 'simulation', 'random_seed', 'outfile']]
 sa_simulation_skeleton = df.sort_values(by='end_exploration').reset_index(drop=True)
-
+dump_pickle(sa_simulation_skeleton, "../results/sa/sa_simulation_skeleton.pkl")
 
 
 logging.info(f"DataFrame with desired files:\n{sa_simulation_skeleton}")
