@@ -88,11 +88,14 @@ def simulate_at_two_conditions_2(args):
     data_batch = ae_output['data']
     reac_importance_ae = ae_output['reac_importance']
 
-
+    dump_pickle(reac_importance_ae, f"../transfer/aerobic_flux_importance.pkl")
 
     an_output = anaerobic_reduced(args)
     data_batch_an= an_output['data']
     reac_importance_an = an_output['reac_importance']
+
+    dump_pickle(reac_importance_an, f"../transfer/anaerobic_flux_importance.pkl")
+
     reac_importance_tot = {key: 0.0 for key in reac_importance_ae}
 
         # Combine flux dicts with metadata
@@ -186,7 +189,9 @@ def aerobic(thermalParams):
     temps = dfae_batch.index + 273.15
     for temp, flux in zip(temps, fluxes):
         flux_dict_by_temp[temp] = flux
-
+    logging.info(f"Length of flux_dict_by_temp: {len(flux_dict_by_temp)}")
+    logging.info(f"Length of fluxes: {len(fluxes)}")
+    # Calculate reaction importance
     reac_importance : Dict[str, float] = {key: 0.0 for key in fluxes[0]}
     for flux in fluxes:
         for key in flux:
@@ -314,8 +319,8 @@ def evaluate_candidate(candidate: candidateType):
 # r2_value = -best_row["r2"]
 
 logging.info("Load particle and transform to dict")
-n_particles = 10
-file = load_pickle(f"{outdir}/evo_combined_df_R098.pkl")
+n_particles = 1
+file = load_pickle(f"../results/sa/sa_combined_df_R090_final.pkl")
 param_columns = [col for col in file.columns if col not in ["particle_ID", "frame_ID", "r2"]]
 
 # Sort by r2, drop duplicates based on parameter values

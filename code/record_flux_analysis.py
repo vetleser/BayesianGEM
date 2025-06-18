@@ -52,13 +52,13 @@ logging.info(f"Loaded ae_model: {type(ae_model)}")
 an_model = load_pickle(f"../models/anaerobic.pkl")
 # logging.info(f"Loaded an_model: {type(an_model)}")
 # logging.info(f"Loaded an_model: {an_model}")
-for rxn_id, rxn in ae_model.reactions.items():
-    if rxn_id not in an_model.reactions:
-        logging.info(f"Reaction {rxn_id} in ae_model not in an_model: {rxn}")
-    elif str(rxn) != str(an_model.reactions[rxn_id]):
-        logging.info(f"Reaction {rxn_id} differs between models:")
-        logging.info(f"  ae_model: {rxn}")
-        logging.info(f"  an_model: {an_model.reactions[rxn_id]}")
+# for rxn_id, rxn in ae_model.reactions.items():
+#     if rxn_id not in an_model.reactions:
+#         logging.info(f"Reaction {rxn_id} in ae_model not in an_model: {rxn}")
+#     elif str(rxn) != str(an_model.reactions[rxn_id]):
+#         logging.info(f"Reaction {rxn_id} differs between models:")
+#         logging.info(f"  ae_model: {rxn}")
+#         logging.info(f"  an_model: {an_model.reactions[rxn_id]}")
 
 logging.info(f"Finished loading models")
 
@@ -68,9 +68,61 @@ logging.info(f"Loaded particle_IDs_to_evaluate: {particle_IDs_to_evaluate}")
 
 
 
-def get_parameter_importance(particle_ID):
+def get_combined_parameter_importance(particle_ID):
     logging.info(f"Loading particle_ID: {particle_ID}")
     df_flux = load_pickle(f"{outdir}/combined_flux_data_{particle_ID}.pkl")
+    df_flux_importance = (df_flux > 0).sum(axis=0) / len(df_flux)
+    df_flux_importance = df_flux_importance.to_frame().T
+    param_importance : Dict[str, float] = {ID: 0.0 for ID in protein_IDs}
+
+    # for model in [ae_model, an_model]:
+    #     if model == ae_model:
+    #         logging.info(f"Loading ae_model")
+    #     else:
+    #         logging.info(f"Loading an_model")
+    for rxn_id, rxn in ae_model.reactions.items():
+        if not rxn_id.startswith('draw_'): continue
+        for met in rxn.stoichiometry:
+            if not met.startswith('prot_'): continue
+                # ingore metabolite: prot_pool
+            if met == 'prot_pool': continue
+            uniprot_id = met.split('_')[1]
+            #logging.info(f"Reaction {rxn_id}: {rxn} is associated with uniprot_id: {uniprot_id}")
+            #reactions.add(rxn_id)
+            #ids.add(uniprot_id)
+            param_importance[uniprot_id] += df_flux_importance[rxn_id].values[0]
+    return param_importance
+
+def get_ae_parameter_importance(particle_ID):
+    logging.info(f"Loading particle_ID: {particle_ID}")
+    df_flux = load_pickle(f"{outdir}/combined_flux_data_{particle_ID}.pkl")
+    df_flux = df_flux.iloc[0:8]
+    df_flux_importance = (df_flux > 0).sum(axis=0) / len(df_flux)
+    df_flux_importance = df_flux_importance.to_frame().T
+    param_importance : Dict[str, float] = {ID: 0.0 for ID in protein_IDs}
+
+    # for model in [ae_model, an_model]:
+    #     if model == ae_model:
+    #         logging.info(f"Loading ae_model")
+    #     else:
+    #         logging.info(f"Loading an_model")
+    for rxn_id, rxn in ae_model.reactions.items():
+        if not rxn_id.startswith('draw_'): continue
+        for met in rxn.stoichiometry:
+            if not met.startswith('prot_'): continue
+                # ingore metabolite: prot_pool
+            if met == 'prot_pool': continue
+            uniprot_id = met.split('_')[1]
+            #logging.info(f"Reaction {rxn_id}: {rxn} is associated with uniprot_id: {uniprot_id}")
+            #reactions.add(rxn_id)
+            #ids.add(uniprot_id)
+            param_importance[uniprot_id] += df_flux_importance[rxn_id].values[0]
+    return param_importance
+
+def get_an_parameter_importance(particle_ID):
+    logging.info(f"Loading particle_ID: {particle_ID}")
+    df_flux = load_pickle(f"{outdir}/combined_flux_data_{particle_ID}.pkl")
+    df_flux = df_flux.iloc[8:16]
     df_flux_importance = (df_flux > 0).sum(axis=0) / len(df_flux)
     df_flux_importance = df_flux_importance.to_frame().T
     param_importance : Dict[str, float] = {ID: 0.0 for ID in protein_IDs}
@@ -98,7 +150,17 @@ zero_importance_enzymes_list = []
 combined_parameter_importance = {}
 all_importance_values = []
 for ID in particle_IDs_to_evaluate:
-    parameter_importance = get_parameter_importance(ID)
+    parameter_importance = get_combined_parameter_importance(ID)
+    ae_parameter_importance = get_ae_parameter_importance(ID)
+    an_parameter_importance = get_an_parameter_importance(ID)
+    logging.info(f"Parameter importance for particle {ID}: \n {parameter_importance}")
+    logging.info(f"Aerobic parameter importance for particle {ID}: \n {ae_parameter_importance}")
+    logging.info(f"Anaerobic parameter importance for particle {ID}: \n {an_parameter_importance}")
+    dump_pickle(parameter_importance, f"../transfer/combined_parameter_importance_{ID}.pkl")
+    dump_pickle(ae_parameter_importance, f"../transfer/ae_parameter_importance_{ID}.pkl")
+    dump_pickle(an_parameter_importance, f"../transfer/an_parameter_importance_{ID}.pkl")
+
+
     all_importance_values.extend(parameter_importance.values())
     combined_parameter_importance = {k: combined_parameter_importance.get(k, 0) + v for k, v in parameter_importance.items()}
     #logging.info(f"Parameter importance for particle {ID}: \n {parameter_importance}")
