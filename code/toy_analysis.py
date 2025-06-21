@@ -70,6 +70,12 @@ def extract_all_distances(model: sa_etc.SimulatedAnnealing):
         return []
     return [model.all_distances]
 
+def extract_all_particles(model: sa_etc.SimulatedAnnealing):
+    if not hasattr(model, "all_particles"):
+        logging.info("No all_particles in model")
+        return []
+    return model.all_particles  # Return the list of all particles
+
 
 
 outdir = "../results/toy_example"
@@ -90,6 +96,9 @@ toy_example_results["modelfile"] = toy_example_results.apply(
 toy_example_results["model"] = toy_example_results["modelfile"].map(lambda filename: load_pickle(f"{outdir}/{filename}"))
 toy_example_results["population"] = toy_example_results["model"].map(extract_sa_population)
 toy_example_results["all_distances"] = toy_example_results["model"].map(extract_all_distances)
+toy_example_results["all_particles"] = toy_example_results["model"].map(extract_all_particles)
+toy_example_results.drop('model', axis=1, inplace=True)
+
 
 # toy_example_results = pd.DataFrame(index=pd.MultiIndex.from_product([range(n_plots),range(n_simulations)],names=["Plot","Simulation"])).reset_index()
 # toy_example_results["modelfile"] = list(itertools.starmap(lambda plot,simulation: f"{'simanneal'}_rastr_{plot}_{simulation}.pkl",
@@ -109,10 +118,14 @@ with pd.option_context('display.max_rows', None, 'display.max_columns', None):  
     logging.info(toy_example_results)
 
 
-
+dump_pickle(toy_example_results, f"../transfer/toy_example_results.pkl")
 tol = 0.3
 
 toy_example_setup = load_pickle(f"{outdir}/toy_example_df.pkl")
+dump_pickle(toy_example_setup, f"../transfer/toy_example_setup.pkl")
+
+logging.info("Can end here, toy_example_setup and toy_example_results are saved.")
+
 
 def sort_particles_by_xy(particles, plot, sim):
     logging.info(f"Number of particles in plot {plot}, simulation {sim}: {len(particles)}")
