@@ -1,16 +1,14 @@
 import pickle
 import logging
+import os
+from reframed import CBModel
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 
+path = os.path.dirname(os.path.realpath(__file__)).replace('code','')
 
-# Specify the path to your .pkl file
-file_path = "../results/crowdingDE/smcevo_gem_1.0_0.999_0.pkl"
+model: CBModel = pickle.load(open(os.path.join(path, 'models/anaerobic.pkl'), 'rb'))
 
-# Load the file
-with open(file_path, "rb") as file:
-    data = pickle.load(file)
-
-# Inspect the data
-print(type(data))  # Check the type of the data
-print(data)        # Print the content (if it's not too large)
+for rxn in model.reactions.values():
+    if "oxygen" in rxn.name.lower():
+        CBModel.print_reaction(model, rxn.id, use_names=True)
