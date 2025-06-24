@@ -4,7 +4,7 @@
 #SBATCH --nodes=1                    
 #SBATCH -c 1
 #SBATCH --mem=10G
-#SBATCH --array=10-19
+#SBATCH --array=100-119
 #SBATCH -t 01:00:00             # Upper time limit for the job
 #SBATCH --export=NONE
 

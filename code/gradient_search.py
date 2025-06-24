@@ -63,11 +63,15 @@ np.set_printoptions(precision=15)
 
 # Load the data, create particle as dict
 logging.info("Load particle and transform to dict")
-file = load_pickle(f"{outdir}/evo_combined_df_R098.pkl")
-best_row = file.loc[file["particle_ID"] == 119932.0].iloc[0] #Particle ID of the particle with highest r2 score, found in previous simulations
+# file = load_pickle(f"{outdir}/evo_combined_df_R098.pkl")
+# best_row = file.loc[file["particle_ID"] == 119932.0].iloc[0] #Particle ID of the particle with highest r2 score, found in previous simulations
+# model_particle: candidateType = best_row.drop(["r2", "particle_ID", "frame_ID"]).to_dict()
+# r2_value = -best_row["r2"]
+
+file = load_pickle(f"../results/sa/sa_combined_df_R090_final.pkl")
+best_row = file.loc[file["particle_ID"] == 127498.0].iloc[0] #Particle ID of the particle with highest r2 score, found in previous simulations
 model_particle: candidateType = best_row.drop(["r2", "particle_ID", "frame_ID"]).to_dict()
 r2_value = -best_row["r2"]
-
 logging.info(f"Selected particle ID: {best_row['particle_ID']}, r2 value: {r2_value}")
 
 
@@ -109,7 +113,7 @@ def evaluate_candidate(param_values: NDArray[np.float64]):
     
     distance = distance_function(Yobs, simulated_data)
 
-    dump_pickle(simulated_data, f"{outdir}/simulated_data_{task_idx}.pkl")
+    #dump_pickle(simulated_data, f"{outdir}/simulated_data_{task_idx}.pkl")
     #print(simulated_data)
         
         
