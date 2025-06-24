@@ -313,14 +313,15 @@ def evaluate_candidate(candidate: candidateType):
 
 # Load the data, create particle as dict
 # logging.info("Load particle and transform to dict")
-# file = load_pickle(f"{outdir}/evo_combined_df_R098.pkl")
 # best_row = file.loc[file["particle_ID"] == 119932.0].iloc[0] #Particle ID of the particle with highest r2 score, found in previous simulations
 # model_particle: candidateType = best_row.drop(["r2", "particle_ID", "frame_ID"]).to_dict()
 # r2_value = -best_row["r2"]
 
 logging.info("Load particle and transform to dict")
-n_particles = 1
+n_particles = 10
 file = load_pickle(f"../results/sa/sa_combined_df_R090_final.pkl")
+file = load_pickle(f"{outdir}/evo_combined_df_R098.pkl")
+
 param_columns = [col for col in file.columns if col not in ["particle_ID", "frame_ID", "r2"]]
 
 # Sort by r2, drop duplicates based on parameter values

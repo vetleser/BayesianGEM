@@ -153,12 +153,12 @@ for ID in particle_IDs_to_evaluate:
     parameter_importance = get_combined_parameter_importance(ID)
     ae_parameter_importance = get_ae_parameter_importance(ID)
     an_parameter_importance = get_an_parameter_importance(ID)
-    logging.info(f"Parameter importance for particle {ID}: \n {parameter_importance}")
-    logging.info(f"Aerobic parameter importance for particle {ID}: \n {ae_parameter_importance}")
-    logging.info(f"Anaerobic parameter importance for particle {ID}: \n {an_parameter_importance}")
-    dump_pickle(parameter_importance, f"../transfer/combined_parameter_importance_{ID}.pkl")
-    dump_pickle(ae_parameter_importance, f"../transfer/ae_parameter_importance_{ID}.pkl")
-    dump_pickle(an_parameter_importance, f"../transfer/an_parameter_importance_{ID}.pkl")
+    # logging.info(f"Parameter importance for particle {ID}: \n {parameter_importance}")
+    # logging.info(f"Aerobic parameter importance for particle {ID}: \n {ae_parameter_importance}")
+    # logging.info(f"Anaerobic parameter importance for particle {ID}: \n {an_parameter_importance}")
+    # dump_pickle(parameter_importance, f"../transfer/combined_parameter_importance_{ID}.pkl")
+    # dump_pickle(ae_parameter_importance, f"../transfer/ae_parameter_importance_{ID}.pkl")
+    # dump_pickle(an_parameter_importance, f"../transfer/an_parameter_importance_{ID}.pkl")
 
 
     all_importance_values.extend(parameter_importance.values())
