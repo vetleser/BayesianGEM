@@ -167,22 +167,25 @@ filenames = ['smcsa_gem_0.001_0', 'smcsa_gem_may19_0.0001_0',
 #------------------------------------------------------------------------
 
 
-# def get_acceptance_rate(file):
-#     """
-#     Get the acceptance rate from a SimulatedAnnealing object stored in a pickle file.
-#     """
-#     logging.info(f"Loading acceptance rates from file")
-#     results = load_pickle(file)
-#     acceptance_rates : List[float]= results.acceptance_rates
-#     #logging.info(f"Acceptance rate: {acceptance_rates}")
-#     return acceptance_rates
+def get_acceptance_rate(file):
+    """
+    Get the acceptance rate from a SimulatedAnnealing object stored in a pickle file.
+    """
+    logging.info(f"Loading acceptance rates from file")
+    results = load_pickle(file)
+    acceptance_rates : List[float]= results.acceptance_rates
+    #logging.info(f"Acceptance rate: {acceptance_rates}")
+    return acceptance_rates
 
-# outdir = "../results/sa"
-# file1 = f"{outdir}/smcsa_gem_june2_0.1_0.5_1.pkl"
-# file2 = f"{outdir}/smcsa_gem_june2_0.1_0.5_0.pkl"
+outdir = "../results/sa"
+file_0 = file_2
+file_1 = "../results/sa/smcsa_gem_may19_0.0001_1.pkl"
 
-# # acceptance_rates1 = get_acceptance_rate(file1)
-# # acceptance_rates2 = get_acceptance_rate(file2)
+
+acceptance_rates1 = get_acceptance_rate(file_0)
+#acceptance_rates2 = get_acceptance_rate(file_1)
+logging.info(f"Acceptance rates for file 0: {acceptance_rates1}")
+#logging.info(f"Acceptance rates for file 1: {acceptance_rates2}")
 
 
 # #acceptance_rates_list = map(get_acceptance_rate, batch_june4)
@@ -191,19 +194,14 @@ filenames = ['smcsa_gem_0.001_0', 'smcsa_gem_may19_0.0001_0',
 #     #logging.info(f"Acceptance rates for {file}: {acceptance_rates}")
 #     plt.plot(acceptance_rates, label=file)
 
-# # plt.plot(acceptance_rates1, label='Acceptance Rate 1')
-# # plt.plot(acceptance_rates2, label='Acceptance Rate 2')
+# plt.plot(acceptance_rates1, label='Acceptance Rate 1')
+# plt.plot(acceptance_rates2, label='Acceptance Rate 2')
 # plt.xlabel("Iteration")
 # plt.ylabel("Acceptance Rate")
 # plt.title("Acceptance Rate Over Iterations")
 # plt.legend()
 # plt.savefig(f"../figures/acceptance_rate_plot_june4.png")
-# acceptance_rates_0 = inspect_acceptance_rate(file_0)
-# acceptance_rates_1 = inspect_acceptance_rate(file_1)
-# acceptance_rates_2 = inspect_acceptance_rate(file_2)
-# acceptance_rates_3 = inspect_acceptance_rate(file_3)
-# acceptance_rates_4 = inspect_acceptance_rate(file_4)
-# acceptance_rates_5 = inspect_acceptance_rate(file_5)
+
 
 # plt.figure(figsize=(10, 5))
 # plt.plot(acceptance_rates_0, label='Acceptance Rate 0')
@@ -266,9 +264,9 @@ def plot_acceptance_rates_smooth(acceptance_rates, label=None, window_size=5):
         smoothed = np.convolve(padded, kernel, mode='valid')
 
     plt.plot(smoothed, label=label)
-    plt.xlabel('Iteration')
+    plt.xlabel('Generation')
     plt.ylabel('Smoothed Acceptance Rate')
-    plt.title('Smoothed Acceptance Rate Over Iterations')
+    plt.title('Smoothed Acceptance Rate Over Generations')
     plt.ylim([0, 1.1])  # Assuming acceptance rates are between 0 and 1
     if label:
         plt.legend()
