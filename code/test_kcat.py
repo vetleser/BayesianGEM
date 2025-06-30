@@ -298,14 +298,14 @@ def make_diversity_plot_from_simdata(result_dict, sel_temp, max_legend_entries=1
     for idx, (params, kcat_list) in enumerate(result_dict.items()):
         # Convert log10(kcat + 1) back to true kcat
         
-        label = f"Tm={params[0]:.1f}, Topt={params[1]:.1f}, dCpt={params[2]:.2f}" if idx < max_legend_entries else None
-        plt.plot(sel_temp, kcat_list, alpha=0.6, label=label)
+        label = rf"$T_m$={params[0]:.1f}, $T_{{opt}}$={params[1]:.1f}, $\Delta C_p^\ddag$={params[2]:.2f}" if idx < max_legend_entries else None
+        plt.plot(sel_temp, kcat_list, "o--", alpha=0.6, label=label)
         if idx == max_legend_entries:
             break
 
     plt.xlabel("Temperature (K)")
-    plt.ylabel("$k_{cat}$")
-    plt.yscale('log')  # Log scale for kcat
+    plt.ylabel(r"$k_{cat}$")
+    #plt.yscale('log')  # Log scale for kcat
     plt.title(rf"$k_{{cat}}$ Profiles for {(max_legend_entries)} Parameter Sets")
     plt.grid(True)
 
@@ -572,31 +572,34 @@ kcat_min = min(kcat_dict1.keys())
 kcat_max = max(kcat_dict1.keys())
 logging.info(f"Minimum kcat: {kcat_min}, Maximum kcat: {kcat_max}")
 
-
-# for kcat, values in counter_dict1.items():
-#     if kcat < 1000: continue  # Skip kcat values less than 1e-6
-#     if values > 1:
-#         entries = kcat_dict1[kcat]
-#         tm_min = min(entry[0] for entry in entries)
-#         tm_max = max(entry[0] for entry in entries)
-#         topt_min = min(entry[1] for entry in entries)
-#         topt_max = max(entry[1] for entry in entries)
-#         dCpt_min = min(entry[2] for entry in entries)
-#         dCpt_max = max(entry[2] for entry in entries)
-#         tm_diff = tm_max - tm_min
-#         topt_diff = topt_max - topt_min
-#         dCpt_diff = dCpt_max - dCpt_min
-#         if tm_tol < tm_diff and topt_tol < topt_diff :
-#             logging.info(f"Tm and Topt difference for kcat {kcat} with {values} entries: {entries}")
-#             logging.info(f"Tm_diff: {tm_max - tm_min}")
-#             logging.info(f"Topt_diff: {topt_max - topt_min}")
-#             logging.info(f"dCpt_diff: {dCpt_max - dCpt_min}")
-#         # if topt_diff > 10:
-#         #     logging.info(f"Topt difference for kcat {kcat} with {values} entries: {entries}")
-#         #     logging.info(f"Topt_diff: {topt_max - topt_min}")
-#         # if dCpt_diff > 1000:
-#         #     logging.info(f"dCpt difference for kcat {kcat} with {values} entries: {entries}")
-#         #     logging.info(f"dCpt_diff: {dCpt_max - dCpt_min}")
+counter = 1
+max_entries = 0
+for kcat, values in counter_dict1.items():
+    if kcat < 1000: continue  # Skip kcat values less than 1e-6
+    if values > 1:
+        entries = kcat_dict1[kcat]
+        tm_min = min(entry[0] for entry in entries)
+        tm_max = max(entry[0] for entry in entries)
+        topt_min = min(entry[1] for entry in entries)
+        topt_max = max(entry[1] for entry in entries)
+        dCpt_min = min(entry[2] for entry in entries)
+        dCpt_max = max(entry[2] for entry in entries)
+        tm_diff = tm_max - tm_min
+        topt_diff = topt_max - topt_min
+        dCpt_diff = dCpt_max - dCpt_min
+        if tm_tol < tm_diff and topt_tol < topt_diff :
+            logging.info(f"Tm and Topt difference for kcat {kcat} with {values} entries: {entries}")
+            logging.info(f"Tm_diff: {tm_max - tm_min}")
+            logging.info(f"Topt_diff: {topt_max - topt_min}")
+            logging.info(f"dCpt_diff: {dCpt_max - dCpt_min}")
+            logging.info(f"Counter: {counter}")
+            counter += 1
+        # if topt_diff > 10:
+        #     logging.info(f"Topt difference for kcat {kcat} with {values} entries: {entries}")
+        #     logging.info(f"Topt_diff: {topt_max - topt_min}")
+        # if dCpt_diff > 1000:
+        #     logging.info(f"dCpt difference for kcat {kcat} with {values} entries: {entries}")
+        #     logging.info(f"dCpt_diff: {dCpt_max - dCpt_min}")
 
 
 
@@ -730,51 +733,63 @@ logging.info(f"Minimum kcat: {kcat_min}, Maximum kcat: {kcat_max}")
 
 
 # -------------------------------------------------------------------------------------------------------------------
-# logging.info("Analyzing kcat profiles from evolutionary data")
-# df = load_pickle("../results/analysis/evo_combined_df_R098.pkl")
-# logging.info(f"DataFrame loaded with shape: {df.shape}")
-# df_tm_values = df[f'{enzyme_id}_Tm'].values
-# df_topt_values = df[f'{enzyme_id}_Topt'].values
-# df_dCpt_values = df[f'{enzyme_id}_dCpt'].values
+logging.info("Analyzing kcat profiles from evolutionary data")
+df = load_pickle("../results/analysis/evo_combined_df_R098.pkl")
+df = df.sort_values(by=f'r2', ascending=False)
+logging.info(f"DataFrame loaded with shape: {df.shape}")
+logging.info(f"Ten best rows based on r2:\n{df.head(10)}")
+enzyme_id = 'P08566'  # Example enzyme ID for testing
+df_tm_values = df[f'{enzyme_id}_Tm'].values
+df_topt_values = df[f'{enzyme_id}_Topt'].values
+df_dCpt_values = df[f'{enzyme_id}_dCpt'].values
+r2_values = df[f'r2'].values
 
-# candidates = [(tm, topt, dCpt) for tm, topt, dCpt in zip(df_tm_values, df_topt_values, df_dCpt_values) if tm >= topt]
-# logging.info(f"Total candidates found: {len(candidates)}")
+candidates = [(tm, topt, dCpt, r2) for tm, topt, dCpt, r2 in zip(df_tm_values, df_topt_values, df_dCpt_values, r2_values) if tm >= topt]
+logging.info(f"Total candidates found: {len(candidates)}")
 
-# unique_candidates = []  # Remove duplicates
-# for candidate in candidates:
-#     if candidate not in unique_candidates:
-#         unique_candidates.append(candidate)
+unique_candidates = []
+seen_conditions = set()
 
-# candidates = unique_candidates  # Use the unique candidates list
+for candidate in candidates:
+    tm, topt, dCpt, r2 = candidate
+    condition = (round(tm, 6), round(topt, 6), round(dCpt, 6))
+    if condition not in seen_conditions:
+        seen_conditions.add(condition)
+        unique_candidates.append(candidate)
 
-
-# logging.info(f"Total unique candidates found: {len(candidates)}")
-
-# logging.info(f"Tm values: min = {min(tm_values)}, max = {max(tm_values)}")
-# logging.info(f"Topt values: min = {min(topt_values)}, max = {max(topt_values)}")
-# logging.info(f"dCpt values: min = {min(dCpt_values)}, max = {max(dCpt_values)}")
-# logging.info(f"First 5 candidates: {candidates[:5]}")
-
-# logging.info(f"Calculating kcat for {len(candidates)} candidates at selected temperatures: {sel_temp}")
-# all_result_dicts = []
-# for T in sel_temp:
-#     evo_result_dict = {}  # Initialize result dictionary for storing results
-#     for tm, topt, dCpt in candidates:
-#         if tm < topt:
-#             logging.warning(f"Skipping candidate with Tm < Topt: Tm={tm}, Topt={topt}, dCpt={dCpt}")
-#             continue
-#         # Call the function with the current parameters
-#         func2(tm=tm, topt=topt, dCpt=dCpt, enzyme_id=enzyme_id, T=T, reaction=shikimate_kinase, T_dict=evo_result_dict)
-#     all_result_dicts.append(evo_result_dict)
-
-# combined_T = {key: [] for key in all_result_dicts[0].keys()}
-# for d in all_result_dicts:
-#     for params, kcat in d.items():
-#         log_kcat = np.log10(kcat+1)  
-#         combined_T[params].append(kcat)
+candidates = unique_candidates[:10]  # Use the unique candidates list
+dump_pickle(candidates, f'../transfer/{enzyme_id}_candidates.pkl')
 
 
-# make_diversity_plot_from_simdata(result_dict=combined_T, sel_temp=sel_temp, max_legend_entries=10)
+logging.info(f"Total unique candidates found: {len(candidates)}")
+logging.info(f"candid")
+
+logging.info(f"Tm values: min = {min(tm_values)}, max = {max(tm_values)}")
+logging.info(f"Topt values: min = {min(topt_values)}, max = {max(topt_values)}")
+logging.info(f"dCpt values: min = {min(dCpt_values)}, max = {max(dCpt_values)}")
+logging.info(f"First 5 candidates: {candidates[:5]}")
+
+logging.info(f"Calculating kcat for {len(candidates)} candidates at selected temperatures: {sel_temp}")
+all_result_dicts = []
+for T in sel_temp:
+    evo_result_dict = {}  # Initialize result dictionary for storing results
+    for tm, topt, dCpt, r2 in candidates:
+        if tm < topt:
+            logging.warning(f"Skipping candidate with Tm < Topt: Tm={tm}, Topt={topt}, dCpt={dCpt}")
+            continue
+        logging.info(f"Processing candidate: Tm={tm}, Topt={topt}, dCpt={dCpt} at T={T} K")
+        # Call the function with the current parameters
+        func2(tm=tm, topt=topt, dCpt=dCpt, enzyme_id=enzyme_id, T=T, reaction=shikimate_kinase, T_dict=evo_result_dict)
+    all_result_dicts.append(evo_result_dict)
+
+combined_T = {key: [] for key in all_result_dicts[0].keys()}
+for d in all_result_dicts:
+    for params, kcat in d.items():
+        log_kcat = np.log10(kcat+1)  
+        combined_T[params].append(kcat)
+
+dump_pickle(combined_T, f'../transfer/{enzyme_id}_evo_result_dicts.pkl')
+make_diversity_plot_from_simdata(result_dict=combined_T, sel_temp=sel_temp, max_legend_entries=10)
 
 
 
@@ -789,29 +804,29 @@ logging.info(f"Minimum kcat: {kcat_min}, Maximum kcat: {kcat_max}")
 #param_dict = format_input(params, model_particle)
 # topt_values = [309.3333333333333]
 # dCpt_values = [-15000.0]
-tm_values = np.linspace(312, 346, 20)  # Example Tm values in K
-topt_values = np.linspace(272, 328, 20)  # Example Tm values in K
-dCpt_values = np.linspace(-15000, 1000, 20)  # Example dCpt values in J/mol/K
+# tm_values = np.linspace(312, 346, 20)  # Example Tm values in K
+# topt_values = np.linspace(272, 328, 20)  # Example Tm values in K
+# dCpt_values = np.linspace(-15000, 1000, 20)  # Example dCpt values in J/mol/K
 
-# test_tm = tm_values[10]
-# test_opt = topt_values[10]
-# logging.info(f"Test Tm: {test_tm}, topt: {test_opt}")
+# # test_tm = tm_values[10]
+# # test_opt = topt_values[10]
+# # logging.info(f"Test Tm: {test_tm}, topt: {test_opt}")
 
-all_T_dicts = []
-# For tm. old value for dCpt: -15000.0, topt: 309.3333333333333
-for T in sel_temp:
-    T_dict: Dict[float, List[float]] = {}
-    logging.info(f"Processing temperature: {T} K")
-    for tm in tm_values:
-        for dCpt, topt in product([-7500.0], [309.3333333333333]):
-            if tm < topt: continue
-            func(tm=tm, topt=topt, dCpt=dCpt, enzyme_id=enzyme_id, T=T, reaction=shikimate_kinase, T_dict=T_dict)
-    logging.info(f"Length of T_dict: {len(T_dict)}")
-    logging.info(f"T_dict[:10]: {list(T_dict.items())[:10]}")
-    all_T_dicts.append(T_dict)
-    #make_plot(T_dict=T_dict, T=T, enzyme_id=enzyme_id, reaction=shikimate_kinase)
+# all_T_dicts = []
+# # For tm. old value for dCpt: -15000.0, topt: 309.3333333333333
+# for T in sel_temp:
+#     T_dict: Dict[float, List[float]] = {}
+#     logging.info(f"Processing temperature: {T} K")
+#     for tm in tm_values:
+#         for dCpt, topt in product([-7500.0], [309.3333333333333]):
+#             if tm < topt: continue
+#             func(tm=tm, topt=topt, dCpt=dCpt, enzyme_id=enzyme_id, T=T, reaction=shikimate_kinase, T_dict=T_dict)
+#     logging.info(f"Length of T_dict: {len(T_dict)}")
+#     logging.info(f"T_dict[:10]: {list(T_dict.items())[:10]}")
+#     all_T_dicts.append(T_dict)
+#     #make_plot(T_dict=T_dict, T=T, enzyme_id=enzyme_id, reaction=shikimate_kinase)
 
-plot_combined_kcats(all_T_dicts, sel_temp, enzyme_id, shikimate_kinase)
+# plot_combined_kcats(all_T_dicts, sel_temp, enzyme_id, shikimate_kinase)
 
 
 # #For topt
